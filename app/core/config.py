@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     apple_private_key_path: str
     apple_redirect_uri: str
 
+    # FCM (Firebase Cloud Messaging)
+    fcm_credentials_path: Optional[str] = None
+
     # Server
     server_host: str = "0.0.0.0"
     server_port: int = 8000
