@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import Tuple
 
-from app.models.user import User, UserRole, UserStatus
+from app.models.user import User, UserStatus
 from app.schemas.user import OAuthUserInfo, TokenResponse
 from app.core.security import create_access_token, create_refresh_token
 from app.core.config import settings
@@ -42,8 +42,8 @@ class AuthService:
                 nickname=oauth_info.nickname,
                 oauth_provider=oauth_info.provider,
                 oauth_id=oauth_info.oauth_id,
-                role=UserRole.CUSTOMER,
                 status=UserStatus.ACTIVE,
+                is_admin=False,
             )
             self.db.add(user)
 
