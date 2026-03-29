@@ -16,6 +16,9 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",
     "httpx>=0.27.0",
     "python-multipart>=0.0.9",
+    "aiosmtplib>=3.0.0",  # for async email sending
+    "jinja2>=3.1.0",  # for HTML email templates
+    "email-validator>=2.0.0",  # for email validation
 ]
 
 [project.optional-dependencies]

@@ -45,9 +45,24 @@ class Settings(BaseSettings):
     # FCM (Firebase Cloud Messaging)
     fcm_credentials_path: Optional[str] = None
 
+    # Email (SMTP)
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+    email_from: Optional[str] = None  # Default sender email
+    email_from_name: Optional[str] = "OrderRun"  # Default sender name
+
     # Server
     server_host: str = "0.0.0.0"
     server_port: int = 8000
+
+    # Payment
+    payment_bank_name: str = "국민은행"
+    payment_account_number: str = "123-456-789012"
+    payment_account_holder: str = "주식회사 오더런"
 
     @property
     def database_url(self) -> str:
