@@ -28,6 +28,16 @@ class ProposalNotOpenError(Exception):
     pass
 
 
+class UnauthorizedAccessError(Exception):
+    """Raised when user tries to access resources they don't own."""
+    pass
+
+
+class SelfOfferNotAllowedError(Exception):
+    """Raised when orderer tries to submit an offer to their own proposal."""
+    pass
+
+
 class OfferService:
     """Service for offer-related operations."""
 
@@ -46,6 +56,7 @@ class OfferService:
 
         Raises:
             ProposalNotFoundError: If proposal doesn't exist
+            SelfOfferNotAllowedError: If orderer tries to offer on their own proposal
             ProposalNotOpenError: If proposal cannot receive offers
             DuplicateOfferError: If runner already made an offer for this proposal
         """
@@ -56,6 +67,10 @@ class OfferService:
 
         if not proposal:
             raise ProposalNotFoundError("요청을 찾을 수 없습니다.")
+
+        # Check if orderer is trying to offer on their own proposal
+        if proposal.orderer_id == offer_data.runner_id:
+            raise SelfOfferNotAllowedError("오더러는 본인의 요청에 러너로 제안할 수 없습니다.")
 
         # Check if proposal can receive offers
         if not proposal.can_receive_offers():
@@ -98,18 +113,20 @@ class OfferService:
                 raise DuplicateOfferError("이미 해당 요청에 제안을 제출했습니다.")
             raise
 
-    def get_offers_by_proposal(self, proposal_id: int) -> List[Offer]:
+    def get_offers_by_proposal(self, proposal_id: int, orderer_id: int = None) -> List[Offer]:
         """
         Get all offers for a proposal.
 
         Args:
             proposal_id: Proposal ID
+            orderer_id: ID of the user requesting the offers (for authorization)
 
         Returns:
             List of offers ordered by created_at desc
 
         Raises:
             ProposalNotFoundError: If proposal doesn't exist
+            UnauthorizedAccessError: If user is not the owner of the proposal
         """
         # Check if proposal exists
         proposal = self.db.query(Proposal).filter(
@@ -118,6 +135,10 @@ class OfferService:
 
         if not proposal:
             raise ProposalNotFoundError("요청을 찾을 수 없습니다.")
+
+        # Check if user is the orderer of the proposal
+        if orderer_id is not None and proposal.orderer_id != orderer_id:
+            raise UnauthorizedAccessError("본인의 요청에 대한 제안만 조회할 수 있습니다.")
 
         # Get offers ordered by created_at desc, then id desc (newest first)
         offers = self.db.query(Offer).filter(
