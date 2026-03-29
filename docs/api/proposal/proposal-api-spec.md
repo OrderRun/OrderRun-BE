@@ -13,6 +13,7 @@
 
 ### 설명
 전체 제안 목록을 조회합니다.
+**주의**: `PENDING_PAYMENT` 상태의 제안은 자동으로 제외됩니다 (작성자와 관리자만 조회 가능).
 
 ### 요청
 ```http
@@ -100,6 +101,9 @@ GET /api/v1/proposal/1 HTTP/1.1
 
 ### 설명
 새로운 제안을 생성합니다.
+**생성 후 상태**: `PENDING_PAYMENT` (입금 대기 중)
+**입금 기한**: 생성 후 24시간 이내
+**입금 완료 후**: 관리자가 확인하면 `POSTED` 상태로 전환되어 공개됩니다.
 
 ### 인증
 **Required**: Bearer Token
@@ -139,10 +143,13 @@ Content-Type: application/json
     "content": "스타벅스 아메리카노 아이스 2잔 부탁드립니다.",
     "deadline": "2026-03-27T15:00:00+09:00",
     "errandFee": 5000,
-    "status": "POSTED",
+    "status": "PENDING_PAYMENT",
+    "paymentStatus": "PENDING",
+    "paymentDeadline": "2026-03-28T10:30:00+09:00",
     "createdAt": "2026-03-27T10:30:00+09:00",
     "updatedAt": "2026-03-27T10:30:00+09:00"
-  }
+  },
+  "message": "제안이 생성되었습니다. 24시간 내에 입금을 완료해주세요."
 }
 ```
 
@@ -236,8 +243,107 @@ Content-Type: application/json
   "content": string,
   "deadline": string, // ISO 8601
   "errandFee": number,
-  "status": "POSTED" | "OFFERED" | "MATCHED" | "CANCELLED",
+  "status": "PENDING_PAYMENT" | "POSTED" | "OFFERED" | "MATCHED" | "CANCELLED",
+  "paymentStatus": "PENDING" | "CONFIRMED",
+  "paymentDeadline": string, // ISO 8601
+  "depositorName"?: string | null,
+  "paymentConfirmedAt"?: string | null, // ISO 8601
+  "paymentConfirmedBy"?: number | null,
   "createdAt": string, // ISO 8601
   "updatedAt": string  // ISO 8601
+}
+```
+
+---
+
+## 4. POST /api/v1/admin/proposal/{id}/confirm-payment (관리자 전용)
+
+### 설명
+관리자가 오더러의 입금을 확인하여 제안을 `POSTED` 상태로 전환합니다.
+
+### 인증
+**Required**: Bearer Token (관리자 권한)
+
+### 요청
+```http
+POST /api/v1/admin/proposal/1/confirm-payment HTTP/1.1
+Authorization: Bearer {admin_access_token}
+Content-Type: application/json
+
+{
+  "depositorName": "홍길동"
+}
+```
+
+#### Path Parameters
+- `id` (required): Proposal ID (정수)
+
+#### Request Body
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `depositorName` | string | X | 입금자명 (선택) |
+
+### 응답
+
+#### 성공 (200 OK)
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "ordererId": 10,
+    "title": "강남역에서 커피 배달",
+    "content": "스타벅스 아메리카노 아이스 2잔 부탁드립니다.",
+    "deadline": "2026-03-27T15:00:00+09:00",
+    "errandFee": 5000,
+    "status": "POSTED",
+    "paymentStatus": "CONFIRMED",
+    "paymentDeadline": "2026-03-28T10:30:00+09:00",
+    "depositorName": "홍길동",
+    "paymentConfirmedAt": "2026-03-27T12:00:00+09:00",
+    "paymentConfirmedBy": 1,
+    "createdAt": "2026-03-27T10:30:00+09:00",
+    "updatedAt": "2026-03-27T12:00:00+09:00"
+  },
+  "message": "입금이 확인되어 제안이 공개되었습니다."
+}
+```
+
+#### 실패 - 제안을 찾을 수 없음 (404 Not Found)
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PROPOSAL_NOT_FOUND",
+    "message": "제안을 찾을 수 없습니다.",
+    "details": "id: 999"
+  },
+  "timestamp": "2026-03-27T12:00:00+09:00"
+}
+```
+
+#### 실패 - 잘못된 상태 (400 Bad Request)
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_STATUS",
+    "message": "입금 대기 상태가 아닙니다.",
+    "details": "current status: POSTED"
+  },
+  "timestamp": "2026-03-27T12:00:00+09:00"
+}
+```
+
+#### 실패 - 권한 없음 (403 Forbidden)
+```json
+{
+  "success": false,
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "관리자 권한이 필요합니다.",
+    "details": null
+  },
+  "timestamp": "2026-03-27T12:00:00+09:00"
 }
 ```

@@ -25,13 +25,21 @@ class ProposalService:
         Raises:
             HTTPException: If validation fails
         """
+        from datetime import datetime, timezone, timedelta
+
+        # Set payment deadline to 24 hours from now
+        now = datetime.now(timezone.utc)
+        payment_deadline = now + timedelta(hours=24)
+
         proposal = Proposal(
             orderer_id=orderer_id,
             title=proposal_data.title,
             content=proposal_data.content,
             deadline=proposal_data.deadline,
             errand_fee=proposal_data.errand_fee,
-            status=ProposalStatus.POSTED,
+            status=ProposalStatus.PENDING_PAYMENT,
+            payment_status="PENDING",
+            payment_deadline=payment_deadline,
         )
 
         db.add(proposal)
@@ -73,6 +81,7 @@ class ProposalService:
     def get_all_proposals(db: Session, skip: int = 0, limit: int = 100) -> List[Proposal]:
         """
         Get all proposals.
+        Automatically filters out PENDING_PAYMENT status (only visible to orderer/admin).
 
         Args:
             db: Database session
@@ -82,7 +91,13 @@ class ProposalService:
         Returns:
             List of Proposal instances
         """
-        return db.query(Proposal).offset(skip).limit(limit).all()
+        return (
+            db.query(Proposal)
+            .filter(Proposal.status != ProposalStatus.PENDING_PAYMENT)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     @staticmethod
     def update_proposal_status(db: Session, proposal_id: int, new_status: ProposalStatus) -> Proposal:
@@ -108,3 +123,86 @@ class ProposalService:
         db.refresh(proposal)
 
         return proposal
+
+    @staticmethod
+    def confirm_payment(
+        db: Session, proposal_id: int, admin_id: int, depositor_name: Optional[str] = None
+    ) -> Proposal:
+        """
+        Confirm payment for a proposal and transition to POSTED status.
+
+        Args:
+            db: Database session
+            proposal_id: Proposal ID
+            admin_id: Admin user ID confirming the payment
+            depositor_name: Optional depositor name
+
+        Returns:
+            Updated Proposal instance
+
+        Raises:
+            HTTPException: If proposal not found or invalid state
+        """
+        proposal = ProposalService.get_proposal_by_id(db, proposal_id)
+
+        # Validate that proposal is in PENDING_PAYMENT status
+        if proposal.status != ProposalStatus.PENDING_PAYMENT:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "code": "INVALID_STATUS",
+                    "message": "입금 대기 상태가 아닙니다.",
+                    "details": f"current status: {proposal.status}",
+                },
+            )
+
+        # Use model method to confirm payment
+        try:
+            proposal.confirm_payment(admin_id, depositor_name)
+            db.commit()
+            db.refresh(proposal)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "code": "PAYMENT_CONFIRMATION_FAILED",
+                    "message": str(e),
+                    "details": None,
+                },
+            )
+
+        return proposal
+
+    @staticmethod
+    def delete_expired_proposals(db: Session) -> int:
+        """
+        Delete proposals with expired payment deadlines.
+
+        Args:
+            db: Database session
+
+        Returns:
+            Number of deleted proposals
+        """
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc)
+
+        expired_proposals = (
+            db.query(Proposal)
+            .filter(
+                Proposal.status == ProposalStatus.PENDING_PAYMENT,
+                Proposal.payment_status == "PENDING",
+                Proposal.payment_deadline < now,
+            )
+            .all()
+        )
+
+        count = len(expired_proposals)
+
+        for proposal in expired_proposals:
+            db.delete(proposal)
+
+        db.commit()
+
+        return count

@@ -49,6 +49,11 @@ class ProposalResponse(BaseModel):
     deadline: datetime
     errand_fee: int = Field(..., serialization_alias="errandFee")
     status: str
+    payment_status: str = Field(..., serialization_alias="paymentStatus")
+    payment_deadline: datetime = Field(..., serialization_alias="paymentDeadline")
+    depositor_name: Optional[str] = Field(None, serialization_alias="depositorName")
+    payment_confirmed_at: Optional[datetime] = Field(None, serialization_alias="paymentConfirmedAt")
+    payment_confirmed_by: Optional[int] = Field(None, serialization_alias="paymentConfirmedBy")
     created_at: datetime = Field(..., serialization_alias="createdAt")
     updated_at: datetime = Field(..., serialization_alias="updatedAt")
 
@@ -63,8 +68,13 @@ class ProposalResponse(BaseModel):
                 "deadline": "2026-03-28T15:00:00+09:00",
                 "errandFee": 5000,
                 "status": "POSTED",
+                "paymentStatus": "CONFIRMED",
+                "paymentDeadline": "2026-03-28T10:30:00+09:00",
+                "depositorName": "홍길동",
+                "paymentConfirmedAt": "2026-03-27T12:00:00+09:00",
+                "paymentConfirmedBy": 1,
                 "createdAt": "2026-03-27T10:30:00+09:00",
-                "updatedAt": "2026-03-27T10:30:00+09:00",
+                "updatedAt": "2026-03-27T12:00:00+09:00",
             }
         },
     }
