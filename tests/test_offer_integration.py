@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.offer import Offer, OfferStatus
-from app.models.user import User, UserRole, UserStatus, OAuthProvider
+from app.models.user import User, UserStatus, OAuthProvider
 
 
 @pytest.fixture
@@ -15,8 +15,8 @@ def sample_customer(db: Session) -> User:
     user = User(
         email="customer@example.com",
         nickname="Customer",
-        role=UserRole.CUSTOMER,
         status=UserStatus.ACTIVE,
+        is_admin=False,
         oauth_provider=OAuthProvider.KAKAO,
         oauth_id="customer123",
     )
@@ -32,8 +32,8 @@ def sample_runner(db: Session) -> User:
     user = User(
         email="runner@example.com",
         nickname="Runner",
-        role=UserRole.RUNNER,
         status=UserStatus.ACTIVE,
+        is_admin=False,
         oauth_provider=OAuthProvider.KAKAO,
         oauth_id="runner123",
     )
@@ -49,8 +49,8 @@ def sample_runner2(db: Session) -> User:
     user = User(
         email="runner2@example.com",
         nickname="Runner2",
-        role=UserRole.RUNNER,
         status=UserStatus.ACTIVE,
+        is_admin=False,
         oauth_provider=OAuthProvider.KAKAO,
         oauth_id="runner456",
     )
@@ -63,13 +63,16 @@ def sample_runner2(db: Session) -> User:
 @pytest.fixture
 def posted_proposal(db: Session, sample_customer: User) -> Proposal:
     """Create a proposal in POSTED status."""
+    now = datetime.utcnow()
     proposal = Proposal(
         orderer_id=sample_customer.id,
         title="Test Proposal",
         content="Test content",
-        deadline=datetime.utcnow() + timedelta(hours=2),
+        deadline=now + timedelta(hours=2),
         errand_fee=10000,
-        status=ProposalStatus.POSTED
+        status=ProposalStatus.POSTED,
+        payment_deadline=now + timedelta(hours=24),
+        payment_status="CONFIRMED"
     )
     db.add(proposal)
     db.commit()
@@ -80,13 +83,16 @@ def posted_proposal(db: Session, sample_customer: User) -> Proposal:
 @pytest.fixture
 def offered_proposal(db: Session, sample_customer: User) -> Proposal:
     """Create a proposal in OFFERED status."""
+    now = datetime.utcnow()
     proposal = Proposal(
         orderer_id=sample_customer.id,
         title="Offered Proposal",
         content="Test content",
-        deadline=datetime.utcnow() + timedelta(hours=2),
+        deadline=now + timedelta(hours=2),
         errand_fee=10000,
-        status=ProposalStatus.OFFERED
+        status=ProposalStatus.OFFERED,
+        payment_deadline=now + timedelta(hours=24),
+        payment_status="CONFIRMED"
     )
     db.add(proposal)
     db.commit()
@@ -97,13 +103,16 @@ def offered_proposal(db: Session, sample_customer: User) -> Proposal:
 @pytest.fixture
 def matched_proposal(db: Session, sample_customer: User) -> Proposal:
     """Create a proposal in MATCHED status."""
+    now = datetime.utcnow()
     proposal = Proposal(
         orderer_id=sample_customer.id,
         title="Matched Proposal",
         content="Test content",
-        deadline=datetime.utcnow() + timedelta(hours=2),
+        deadline=now + timedelta(hours=2),
         errand_fee=10000,
-        status=ProposalStatus.MATCHED
+        status=ProposalStatus.MATCHED,
+        payment_deadline=now + timedelta(hours=24),
+        payment_status="CONFIRMED"
     )
     db.add(proposal)
     db.commit()
@@ -194,6 +203,37 @@ class TestOfferCreation:
 
 class TestOfferCreationValidation:
     """Test offer creation validation failures."""
+
+    def test_create_offer_by_orderer_to_own_proposal(
+        self,
+        client: TestClient,
+        db: Session,
+        posted_proposal: Proposal,
+        sample_customer: User
+    ):
+        """Test that orderer cannot submit an offer to their own proposal."""
+        payload = {
+            "proposal_id": posted_proposal.id,
+            "runner_id": sample_customer.id,  # Same as orderer
+            "estimated_time": 30,
+            "message": "I can do it myself"
+        }
+
+        response = client.post("/api/v1/offer", json=payload)
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["success"] is False
+        assert data["error"]["code"] == "SELF_OFFER_NOT_ALLOWED"
+        assert "오더러" in data["error"]["message"]
+        assert "러너" in data["error"]["message"]
+
+        # Verify no offer was created
+        offer_count = db.query(Offer).filter(
+            Offer.proposal_id == posted_proposal.id,
+            Offer.runner_id == sample_customer.id
+        ).count()
+        assert offer_count == 0
 
     def test_create_offer_missing_proposal_id(
         self,
@@ -365,9 +405,10 @@ class TestOfferList:
         db: Session,
         posted_proposal: Proposal,
         sample_runner: User,
-        sample_runner2: User
+        sample_runner2: User,
+        sample_customer: User
     ):
-        """Test successful offer list retrieval."""
+        """Test successful offer list retrieval by orderer."""
         # Create two offers
         offer1 = Offer(
             proposal_id=posted_proposal.id,
@@ -385,7 +426,15 @@ class TestOfferList:
         db.add(offer2)
         db.commit()
 
-        response = client.get(f"/api/v1/offer?proposalId={posted_proposal.id}")
+        # Create auth headers for the orderer
+        from app.core.security import create_access_token
+        access_token = create_access_token({"sub": str(sample_customer.id)})
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        response = client.get(
+            f"/api/v1/offer?proposalId={posted_proposal.id}",
+            headers=headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -400,10 +449,19 @@ class TestOfferList:
     def test_get_offers_empty_list(
         self,
         client: TestClient,
-        posted_proposal: Proposal
+        posted_proposal: Proposal,
+        sample_customer: User
     ):
         """Test retrieving empty offer list."""
-        response = client.get(f"/api/v1/offer?proposalId={posted_proposal.id}")
+        # Create auth headers for the orderer
+        from app.core.security import create_access_token
+        access_token = create_access_token({"sub": str(sample_customer.id)})
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        response = client.get(
+            f"/api/v1/offer?proposalId={posted_proposal.id}",
+            headers=headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -412,10 +470,16 @@ class TestOfferList:
 
     def test_get_offers_proposal_not_found(
         self,
-        client: TestClient
+        client: TestClient,
+        sample_customer: User
     ):
         """Test retrieving offers for non-existent proposal."""
-        response = client.get("/api/v1/offer?proposalId=99999")
+        # Create auth headers
+        from app.core.security import create_access_token
+        access_token = create_access_token({"sub": str(sample_customer.id)})
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        response = client.get("/api/v1/offer?proposalId=99999", headers=headers)
 
         assert response.status_code == 404
         data = response.json()
@@ -432,13 +496,16 @@ class TestOfferList:
     ):
         """Test that offers are filtered by proposal_id."""
         # Create another proposal
+        now = datetime.utcnow()
         another_proposal = Proposal(
             orderer_id=sample_customer.id,
             title="Another Proposal",
             content="Test content",
-            deadline=datetime.utcnow() + timedelta(hours=2),
+            deadline=now + timedelta(hours=2),
             errand_fee=10000,
-            status=ProposalStatus.POSTED
+            status=ProposalStatus.POSTED,
+            payment_deadline=now + timedelta(hours=24),
+            payment_status="CONFIRMED"
         )
         db.add(another_proposal)
         db.commit()
@@ -459,10 +526,52 @@ class TestOfferList:
         db.add(offer2)
         db.commit()
 
+        # Create auth headers for the orderer
+        from app.core.security import create_access_token
+        access_token = create_access_token({"sub": str(sample_customer.id)})
+        headers = {"Authorization": f"Bearer {access_token}"}
+
         # Query first proposal
-        response = client.get(f"/api/v1/offer?proposalId={posted_proposal.id}")
+        response = client.get(
+            f"/api/v1/offer?proposalId={posted_proposal.id}",
+            headers=headers
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert len(data["data"]) == 1
         assert data["data"][0]["proposalId"] == posted_proposal.id
+
+    def test_get_offers_unauthorized(
+        self,
+        client: TestClient,
+        posted_proposal: Proposal
+    ):
+        """Test retrieving offers without authentication."""
+        response = client.get(f"/api/v1/offer?proposalId={posted_proposal.id}")
+
+        assert response.status_code == 401
+
+    def test_get_offers_forbidden_not_orderer(
+        self,
+        client: TestClient,
+        db: Session,
+        posted_proposal: Proposal,
+        sample_runner: User
+    ):
+        """Test retrieving offers by non-orderer user."""
+        # Create auth headers for a runner (not the orderer)
+        from app.core.security import create_access_token
+        access_token = create_access_token({"sub": str(sample_runner.id)})
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        response = client.get(
+            f"/api/v1/offer?proposalId={posted_proposal.id}",
+            headers=headers
+        )
+
+        assert response.status_code == 403
+        data = response.json()
+        assert data["success"] is False
+        assert data["error"]["code"] == "FORBIDDEN"
+        assert "본인의 요청에 대한 제안만 조회할 수 있습니다" in data["error"]["message"]
