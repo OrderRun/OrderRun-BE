@@ -51,7 +51,15 @@ Offer를 생성합니다.
 ### `GET /v1/offer?proposalId={id}`
 특정 Proposal에 연결된 모든 Offer를 조회합니다.
 
+**인증**: Required (JWT Bearer Token)
+**권한**: Proposal의 오도러(작성자)만 조회 가능
+
 **상태 코드**: `200 OK`
+
+**요청 헤더**:
+```
+Authorization: Bearer {access_token}
+```
 
 **쿼리 파라미터**:
 - `proposalId` (required): Offer를 조회할 Proposal ID
@@ -106,6 +114,42 @@ Offer를 생성합니다.
     "details": {
       "estimatedTime": "1 이상이어야 합니다."
     }
+  },
+  "timestamp": "2026-03-10T15:30:00"
+}
+```
+
+---
+
+### 인증 실패 (401 UNAUTHORIZED)
+JWT 토큰이 없거나 유효하지 않은 경우
+
+**응답 예시**:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "인증이 필요합니다.",
+    "details": null
+  },
+  "timestamp": "2026-03-10T15:30:00"
+}
+```
+
+---
+
+### 권한 없음 (403 FORBIDDEN)
+Proposal의 오도러가 아닌 사용자가 Offer 목록을 조회하려는 경우
+
+**응답 예시**:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "본인의 요청에 대한 제안만 조회할 수 있습니다.",
+    "details": null
   },
   "timestamp": "2026-03-10T15:30:00"
 }
