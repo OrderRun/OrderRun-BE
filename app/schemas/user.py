@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
 
-from app.models.user import UserRole, UserStatus, OAuthProvider
+from app.models.user import UserStatus, OAuthProvider
 
 
 class UserBase(BaseModel):
@@ -16,7 +16,7 @@ class UserCreate(UserBase):
     """Schema for creating a new user."""
     oauth_provider: OAuthProvider
     oauth_id: str
-    role: UserRole = UserRole.CUSTOMER
+    is_admin: bool = False
 
 
 class UserUpdate(BaseModel):
@@ -29,8 +29,8 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     """Schema for user response."""
     id: int
-    role: UserRole
     status: UserStatus
+    is_admin: bool
     oauth_provider: OAuthProvider
     created_at: datetime
     updated_at: datetime

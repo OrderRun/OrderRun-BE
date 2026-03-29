@@ -1,17 +1,10 @@
-from sqlalchemy import Column, BigInteger, Integer, String, Enum, DateTime, UniqueConstraint
+from sqlalchemy import Column, BigInteger, Integer, String, Enum, DateTime, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
 import enum
 
 from app.core.database import Base
-
-
-class UserRole(str, enum.Enum):
-    """User role enumeration."""
-    CUSTOMER = "customer"
-    RUNNER = "runner"
-    ADMIN = "admin"
 
 
 class UserStatus(str, enum.Enum):
@@ -28,15 +21,22 @@ class OAuthProvider(str, enum.Enum):
 
 
 class User(Base):
-    """User model representing users in the system."""
+    """User model representing users in the system.
+
+    User roles are determined by their relationships:
+    - Orderer: User who creates Proposals (Proposal.orderer_id)
+    - Runner: User who submits Offers (Offer.runner_id)
+
+    A single user can be both an orderer and a runner.
+    """
 
     __tablename__ = "users"
 
     id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     nickname = Column(String(50), nullable=True)
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.CUSTOMER)
     status = Column(Enum(UserStatus), nullable=False, default=UserStatus.ACTIVE)
+    is_admin = Column(Boolean, nullable=False, default=False)
     phone_number = Column(String(20), nullable=True)
 
     # OAuth fields
