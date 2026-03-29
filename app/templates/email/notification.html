@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}{{ notification_title }} - OrderRun{% endblock %}
+
+{% block header_title %}{{ notification_title|default('알림') }}{% endblock %}
+
+{% block content %}
+<h2>안녕하세요{% if user_name %} {{ user_name }}님{% endif %}!</h2>
+
+<p>{{ notification_message }}</p>
+
+{% if notification_details %}
+<div class="info-box">
+    {% for key, value in notification_details.items() %}
+    <p style="margin: 5px 0;">
+        <strong>{{ key }}:</strong> {{ value }}
+    </p>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if action_url %}
+<p style="text-align: center;">
+    <a href="{{ action_url }}" class="button">{{ action_text|default('자세히 보기') }}</a>
+</p>
+{% endif %}
+
+{% if additional_message %}
+<div class="divider"></div>
+<p style="font-size: 14px; color: #666666;">
+    {{ additional_message }}
+</p>
+{% endif %}
+{% endblock %}

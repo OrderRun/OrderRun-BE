@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}환영합니다 - OrderRun{% endblock %}
+
+{% block header_title %}OrderRun에 오신 것을 환영합니다!{% endblock %}
+
+{% block content %}
+<h2>안녕하세요{% if user_name %} {{ user_name }}님{% endif %}!</h2>
+
+<p>
+    OrderRun에 가입해 주셔서 감사합니다.
+    이제 심부름을 요청하고, 미션을 수행하며, 수익을 창출할 수 있습니다.
+</p>
+
+<div class="info-box">
+    <strong>OrderRun으로 무엇을 할 수 있나요?</strong>
+    <ul style="margin: 10px 0; padding-left: 20px;">
+        <li>심부름 의뢰: 필요한 일을 요청하고 러너를 기다리세요</li>
+        <li>미션 수행: 가까운 의뢰를 찾아 수행하고 수익을 얻으세요</li>
+        <li>실시간 매칭: 빠르고 편리한 실시간 매칭 시스템</li>
+        <li>안전한 결제: 신뢰할 수 있는 결제 시스템</li>
+    </ul>
+</div>
+
+{% if verification_link %}
+<p style="text-align: center;">
+    <a href="{{ verification_link }}" class="button">이메일 인증하기</a>
+</p>
+<p style="font-size: 14px; color: #999999; text-align: center;">
+    위 버튼을 클릭하여 이메일 인증을 완료해주세요.
+</p>
+{% endif %}
+
+<div class="divider"></div>
+
+<p style="font-size: 14px; color: #666666;">
+    <strong>다음 단계:</strong><br>
+    1. 프로필을 완성하세요<br>
+    2. 첫 번째 미션을 시작하거나 의뢰를 등록하세요<br>
+    3. OrderRun 커뮤니티에 참여하세요
+</p>
+
+<p>
+    문의사항이 있으시면 언제든지 문의해주세요.
+    OrderRun 팀이 도와드리겠습니다!
+</p>
+{% endblock %}
