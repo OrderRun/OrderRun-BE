@@ -39,16 +39,23 @@ Mission
 | id | bigint / UUID | PK | 사용자 식별자 |
 | email | varchar(255) | Unique | 로그인 식별자 |
 | nickname | varchar(50) | Unique 후보 | 화면 표시명 |
-| role | enum | Required | `customer`, `runner`, `admin` |
 | status | enum | Required | `active`, `inactive`, `suspended` |
+| is_admin | boolean | Required | 관리자 여부 (기본값: false) |
 | phone_number | varchar(20) | Optional | 연락처 |
 | created_at | datetime | Required | 생성 시각 |
 | updated_at | datetime | Required | 수정 시각 |
 
+역할 정의:
+
+- **오더러(Orderer)**: Proposal을 작성한 사용자 (`Proposal.orderer_id = User.id`)
+- **러너(Runner)**: Offer를 제출한 사용자 (`Offer.runner_id = User.id`)
+- 동일한 사용자가 상황에 따라 오더러와 러너 역할을 모두 수행할 수 있다.
+
 비즈니스 규칙:
 
-- 비활성 또는 정지 사용자는 새로운 제안과 수락을 수행할 수 없다.
-- 역할은 단일 enum으로 시작하고, 필요 시 역할 매핑 테이블로 확장한다.
+- 비활성 또는 정지 사용자는 새로운 Proposal 작성과 Offer 제출을 수행할 수 없다.
+- 오더러는 자신의 Proposal에 러너로 제안할 수 없다.
+- 역할은 관계를 통해 암묵적으로 결정되며, 별도의 역할 테이블은 사용하지 않는다.
 
 ### 3.2 Proposal
 
