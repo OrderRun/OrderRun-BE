@@ -36,5 +36,5 @@
 ## Exit Criteria
 
 - 약관 통합 테스트와 문서 테스트가 통과한다.
-- `docs/api-spec/terms.md`와 `docs/entity/terms-agreement.md`가 구현과 일치한다.
+- `docs/api-spec/README.md`의 Terms 계약과 현재 구현 차이를 설명할 수 있다.
 - FastAPI 마이그레이션 시에도 Java baseline과 동일한 상태 코드, 응답 필드, 에러 코드를 재현할 수 있다.

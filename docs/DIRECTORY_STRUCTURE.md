@@ -30,6 +30,7 @@ docs/
 ├── QUALITY_SCORE.md             # 품질 평가 기준
 ├── RELIABILITY.md               # 신뢰성 기준
 ├── SECURITY.md                  # 보안 기준
+├── domain.md                    # 도메인 상태와 정책 정본
 └── DIRECTORY_STRUCTURE.md       # 본 문서
 ```
 
@@ -179,7 +180,7 @@ docs/references/
 docs/architecture/
 ├── orderrun-master.md           # 통합 설계 마스터
 ├── orderrun-domain-model.md     # 도메인 모델
-├── orderrun-api-contract.md     # API 계약
+├── orderrun-api-contract.md     # API 계약 레거시 진입점
 └── orderrun-fastapi-transition.md
 ```
 
@@ -192,6 +193,19 @@ docs/architecture/
 2. 제품 동작 → `product-specs/`
 3. 실행 계획 → `exec-plans/`
 4. 중복 제거 후 보관 또는 삭제
+
+### API 명세 (api-spec/)
+
+```
+docs/api-spec/
+├── README.md                    # 외부 API 요청/응답 계약 정본
+└── implementation-gaps.md       # 정본과 현재 구현 사이의 갭 추적
+```
+
+**용도:**
+- 외부 클라이언트가 따를 HTTP 요청/응답 계약
+- 공통 응답 래퍼, 에러 형식, 인증 예외, 페이징 규칙
+- API 정본과 구현 사이의 차이 추적
 
 ### 셋업 가이드 (setup/)
 

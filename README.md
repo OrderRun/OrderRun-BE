@@ -26,6 +26,8 @@
 
 - [Design Docs Index](./docs/design-docs/index.md)
 - [Product Specs Index](./docs/product-specs/index.md)
+- [API Spec](./docs/api-spec/README.md)
+- [Domain Policy](./docs/domain.md)
 - [Tech Debt Tracker](./docs/exec-plans/tech-debt-tracker.md)
 - [Generated DB Schema](./docs/generated/db-schema.md)
 - [로컬 개발 환경 세팅](./docs/setup/local-development.md)
@@ -34,7 +36,7 @@
 
 - [통합 설계 마스터](./docs/architecture/orderrun-master.md)
 - [도메인 모델](./docs/architecture/orderrun-domain-model.md)
-- [API 계약](./docs/architecture/orderrun-api-contract.md)
+- [API 계약 레거시 진입점](./docs/architecture/orderrun-api-contract.md)
 - [FastAPI 전환 설계](./docs/architecture/orderrun-fastapi-transition.md)
 
 ## 기본 전제

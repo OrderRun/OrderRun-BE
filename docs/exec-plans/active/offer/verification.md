@@ -58,5 +58,5 @@
 ## Exit Criteria
 
 - Offer integration/docs/entity tests와 Offer accept 관련 Mission integration tests가 통과한다.
-- `docs/api-spec/offer.md`와 `docs/entity/offer.md`가 현재 Java 구현과 일치한다.
+- `docs/api-spec/README.md`와 `docs/domain.md`의 Offer 계약이 현재 구현 갭과 함께 설명되어 있다.
 - FastAPI 구현에서 Java baseline과 동일한 상태 코드, 응답 필드, 에러 코드를 재현할 수 있다.

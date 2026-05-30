@@ -111,7 +111,8 @@
 ## 9. 문서 구성
 
 - [도메인 모델](./orderrun-domain-model.md)
-- [API 계약](./orderrun-api-contract.md)
+- [API 계약](../api-spec/README.md)
+- [도메인 정책](../domain.md)
 - [FastAPI 전환 설계](./orderrun-fastapi-transition.md)
 
 ## 10. 핵심 설계 원칙

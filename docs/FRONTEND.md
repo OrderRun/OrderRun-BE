@@ -24,4 +24,5 @@
 백엔드 변경이 UX 흐름에 영향을 주면 아래 두 문서를 함께 갱신한다.
 
 - `docs/product-specs/`: 사용자 기대 행동
-- `docs/architecture/orderrun-api-contract.md`: 요청과 응답 영향
+- `docs/api-spec/README.md`: 요청과 응답 영향
+- `docs/domain.md`: 상태와 정책 영향
