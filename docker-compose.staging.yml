@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: orderrun-redis-staging
+    profiles:
+      - staging
+    restart: unless-stopped
+    volumes:
+      - redis_staging_data:/data
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    networks:
+      - orderrun-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  app:
+    image: ${DOCKER_IMAGE:-orderrun:latest}
+    container_name: orderrun-app-staging
+    profiles:
+      - staging
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: staging
+      SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST:?MYSQL_HOST is required}:${MYSQL_PORT:-3306}/${MYSQL_DATABASE:?MYSQL_DATABASE is required}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:?MYSQL_USER is required}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      AWS_SNS_REGION: ${AWS_SNS_REGION:-ap-northeast-2}
+      AWS_SNS_ACCESS_KEY_ID: ${AWS_SNS_ACCESS_KEY_ID:-}
+      AWS_SNS_SECRET_ACCESS_KEY: ${AWS_SNS_SECRET_ACCESS_KEY:-}
+      AWS_SNS_SMS_SENDER_ID: ${AWS_SNS_SMS_SENDER_ID:-Kkobongdan}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      JAVA_OPTS: -Xmx512m -Xms256m
+    expose:
+      - "8080"
+    networks:
+      - orderrun-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx:
+    build:
+      context: ./nginx
+    container_name: orderrun-nginx-staging
+    profiles:
+      - staging
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      EC2_PUBLIC_IP: ${EC2_PUBLIC_IP:-43.200.56.9}
+      ENABLE_SSL: ${ENABLE_SSL:-false}
+    ports:
+      - "80:80"
+    volumes:
+      - certbot_staging_www:/var/www/certbot
+      - letsencrypt_staging:/etc/letsencrypt:ro
+    networks:
+      - orderrun-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: orderrun-certbot-staging
+    profiles:
+      - staging-ssl
+    volumes:
+      - certbot_staging_www:/var/www/certbot
+      - letsencrypt_staging:/etc/letsencrypt
+    entrypoint: /bin/sh
+    command: -c "echo 'Set STAGING_DOMAIN and LETSENCRYPT_EMAIL, then run certbot with the ssl profile after DNS is ready.'"
+
+volumes:
+  redis_staging_data:
+    driver: local
+  certbot_staging_www:
+    driver: local
+  letsencrypt_staging:
+    driver: local
+
+networks:
+  orderrun-network:
+    name: orderrun-staging-network
+    driver: bridge
