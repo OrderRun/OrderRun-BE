@@ -29,24 +29,35 @@ services:
       redis:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: staging
-      SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST:?MYSQL_HOST is required}:${MYSQL_PORT:-3306}/${MYSQL_DATABASE:?MYSQL_DATABASE is required}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:?MYSQL_USER is required}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      APP_ENV: ${APP_ENV:-staging}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      DB_HOST: ${MYSQL_HOST:?MYSQL_HOST is required}
+      DB_PORT: ${MYSQL_PORT:-3306}
+      DB_USERNAME: ${MYSQL_USER:?MYSQL_USER is required}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      DB_NAME: ${MYSQL_DATABASE:?MYSQL_DATABASE is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-mock-kakao-client-id}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-mock-kakao-client-secret}
+      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI:-http://localhost:8000/api/v1/auth/kakao/callback}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-mock-apple-client-id}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-mock-apple-team-id}
+      APPLE_KEY_ID: ${APPLE_KEY_ID:-mock-apple-key-id}
+      APPLE_PRIVATE_KEY_PATH: ${APPLE_PRIVATE_KEY_PATH:-./keys/apple-private-key.p8}
+      APPLE_REDIRECT_URI: ${APPLE_REDIRECT_URI:-http://localhost:8000/api/v1/auth/apple/callback}
+      SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
+      SERVER_PORT: ${SERVER_PORT:-8000}
       AWS_SNS_REGION: ${AWS_SNS_REGION:-ap-northeast-2}
       AWS_SNS_ACCESS_KEY_ID: ${AWS_SNS_ACCESS_KEY_ID:-}
       AWS_SNS_SECRET_ACCESS_KEY: ${AWS_SNS_SECRET_ACCESS_KEY:-}
       AWS_SNS_SMS_SENDER_ID: ${AWS_SNS_SMS_SENDER_ID:-Kkobongdan}
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      JAVA_OPTS: -Xmx512m -Xms256m
     expose:
-      - "8080"
+      - "8000"
     networks:
       - orderrun-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "python -c 'import json, urllib.request; data=json.load(urllib.request.urlopen(\"http://127.0.0.1:8000/v1/health\", timeout=5)); assert data[\"success\"] is True and data[\"data\"][\"status\"] == \"UP\"'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -77,12 +88,6 @@ services:
       - letsencrypt_staging:/etc/letsencrypt:ro
     networks:
       - orderrun-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/actuator/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
     logging:
       driver: "json-file"
       options:

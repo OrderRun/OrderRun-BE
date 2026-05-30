@@ -1,0 +1,17 @@
+.git
+.github
+.omx
+.venv
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+test.db
+build
+dist
+*.egg-info
+docs
+tests
