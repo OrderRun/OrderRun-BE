@@ -66,29 +66,34 @@
 
 | Column | Type | Constraints |
 | --- | --- | --- |
-| `id` | `bigint` or `uuid` | PK |
-| `customer_id` | FK -> `users.id` (`varchar(36)`) | not null |
-| `title` | `varchar(100)` | not null |
-| `description` | `text` | not null |
-| `category` | `varchar(50)` | not null |
-| `budget_min` | `decimal(10,2)` | nullable |
-| `budget_max` | `decimal(10,2)` | nullable |
-| `due_at` | `datetime` | nullable |
-| `status` | `enum` | not null |
+| `id` | `bigint` | PK, auto increment |
+| `orderer_id` | `varchar(36)` | not null, indexed |
+| `title` | `varchar(50)` | not null |
+| `content` | `varchar(500)` | not null |
+| `deadline` | `datetime(6)` | not null |
+| `errand_fee` | `int` | not null |
+| `status` | `enum(HOLDING, POSTED, OFFERED, MATCHED, CANCELLED)` | not null |
+| `meeting_at` | `datetime(6)` | not null, API 미노출 호환 컬럼 |
+| `item_price` | `int` | not null, API 미노출 호환 컬럼 |
+| `deposit` | `int` | not null, API 미노출 호환 컬럼 |
 | `created_at` | `datetime` | not null |
 | `updated_at` | `datetime` | not null |
+
+제약:
+
+- DB foreign key 없음
+- `idx_proposals_orderer_id` on `orderer_id`
 
 ### `offers`
 
 | Column | Type | Constraints |
 | --- | --- | --- |
-| `id` | `bigint` or `uuid` | PK |
-| `proposal_id` | FK -> `proposals.id` | not null |
-| `runner_id` | FK -> `users.id` (`varchar(36)`) | not null |
-| `price` | `decimal(10,2)` | not null |
-| `message` | `text` | nullable |
-| `eta_minutes` | `int` | nullable |
-| `status` | `enum` | not null |
+| `id` | `bigint` | PK, auto increment |
+| `proposal_id` | `int` | not null, indexed |
+| `runner_id` | `varchar(36)` | not null, indexed |
+| `estimated_time` | `int` | not null |
+| `message` | `varchar(500)` | nullable |
+| `status` | `enum(WAITING, ACCEPTED, REJECTED)` | not null |
 | `created_at` | `datetime` | not null |
 | `updated_at` | `datetime` | not null |
 

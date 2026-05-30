@@ -31,6 +31,15 @@ class ApiResponse(BaseModel, Generic[T]):
     }
 
 
+class PageResponse(BaseModel, Generic[T]):
+    """Generic paginated response payload."""
+
+    items: list[T] = Field(..., description="현재 페이지 항목")
+    page: int = Field(..., description="현재 페이지 번호")
+    size: int = Field(..., description="페이지 크기")
+    total: int = Field(..., description="전체 항목 수")
+
+
 class ErrorResponse(BaseModel):
     """Error response schema."""
 

@@ -1,95 +1,108 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+"""Proposal API endpoints."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
-from typing import List
-from pydantic import ValidationError
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.models.proposal import ProposalStatus
 from app.models.user import User
-from app.schemas.proposal import ProposalCreate, ProposalResponse
-from app.schemas.common import ApiResponse, ErrorResponse, ErrorDetail
+from app.schemas.common import ApiResponse, PageResponse
+from app.schemas.proposal import (
+    ProposalDetailResponse,
+    ProposalOwnResponse,
+    ProposalRequest,
+    ProposalResponse,
+)
 from app.services.proposal import ProposalService
-from datetime import datetime, timezone
 
-router = APIRouter(prefix="/proposal", tags=["proposal"])
+
+router = APIRouter(prefix="/v1/proposal", tags=["proposal"])
 
 
 @router.get(
     "",
-    response_model=ApiResponse[List[ProposalResponse]],
+    response_model=ApiResponse[PageResponse[ProposalResponse]],
     status_code=status.HTTP_200_OK,
-    summary="전체 제안 목록 조회",
-    description="모든 제안 목록을 조회합니다. 인증이 필요하지 않습니다.",
 )
-async def get_proposals(
-    skip: int = 0,
-    limit: int = 100,
+async def list_proposals(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
-    """Get all proposals."""
-    proposals = ProposalService.get_all_proposals(db, skip=skip, limit=limit)
+) -> ApiResponse[PageResponse[ProposalResponse]]:
+    page_response = ProposalService.list_public(db, page=page, size=size)
+    return ApiResponse(success=True, data=page_response)
 
-    return ApiResponse(
-        success=True,
-        data=[ProposalResponse.model_validate(p) for p in proposals],
-    )
+
+@router.get(
+    "/own",
+    response_model=ApiResponse[list[ProposalOwnResponse]],
+    status_code=status.HTTP_200_OK,
+)
+async def list_own_proposals(
+    status_filter: ProposalStatus | None = Query(None, alias="status"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApiResponse[list[ProposalOwnResponse]]:
+    proposals = ProposalService.list_own(db, user_id=current_user.id, proposal_status=status_filter)
+    return ApiResponse(success=True, data=proposals)
 
 
 @router.get(
     "/{proposal_id}",
-    response_model=ApiResponse[ProposalResponse],
+    response_model=ApiResponse[ProposalDetailResponse],
     status_code=status.HTTP_200_OK,
-    summary="제안 상세 조회",
-    description="특정 제안의 상세 정보를 조회합니다.",
-    responses={
-        404: {
-            "model": ErrorResponse,
-            "description": "제안을 찾을 수 없음",
-        }
-    },
 )
 async def get_proposal(
     proposal_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
-    """Get proposal by ID."""
-    proposal = ProposalService.get_proposal_by_id(db, proposal_id)
-    return ApiResponse(
-        success=True,
-        data=ProposalResponse.model_validate(proposal),
-    )
+) -> ApiResponse[ProposalDetailResponse]:
+    proposal = ProposalService.get_detail(db, proposal_id)
+    return ApiResponse(success=True, data=proposal)
 
 
 @router.post(
     "",
     response_model=ApiResponse[ProposalResponse],
     status_code=status.HTTP_201_CREATED,
-    summary="제안 생성",
-    description="새로운 제안을 생성합니다. JWT 인증이 필요합니다.",
-    responses={
-        400: {
-            "model": ErrorResponse,
-            "description": "유효성 검증 실패",
-        },
-        401: {
-            "model": ErrorResponse,
-            "description": "인증 실패",
-        },
-    },
 )
 async def create_proposal(
-    proposal_data: ProposalCreate,
+    request: ProposalRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
-    """Create a new proposal."""
-    proposal = ProposalService.create_proposal(
-        db=db,
-        proposal_data=proposal_data,
-        orderer_id=current_user.id,
-    )
+) -> ApiResponse[ProposalResponse]:
+    proposal = ProposalService.create(db, request=request, orderer_id=current_user.id)
+    return ApiResponse(success=True, data=proposal, message="요청이 등록되었습니다.")
 
-    return ApiResponse(
-        success=True,
-        data=ProposalResponse.model_validate(proposal),
-    )
+
+@router.put(
+    "/{proposal_id}",
+    response_model=ApiResponse[ProposalResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def update_proposal(
+    proposal_id: int,
+    request: ProposalRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApiResponse[ProposalResponse]:
+    proposal = ProposalService.update(db, proposal_id=proposal_id, request=request, orderer_id=current_user.id)
+    return ApiResponse(success=True, data=proposal, message="제안이 수정되었습니다.")
+
+
+@router.post(
+    "/{proposal_id}/cancel",
+    response_model=ApiResponse[ProposalResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def cancel_proposal(
+    proposal_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApiResponse[ProposalResponse]:
+    proposal = ProposalService.cancel(db, proposal_id=proposal_id, orderer_id=current_user.id)
+    return ApiResponse(success=True, data=proposal, message="제안이 취소되었습니다.")

@@ -86,7 +86,7 @@ async def list_pending_payment_proposals(
     admin_user: User = Depends(get_admin_user),
 ):
     """
-    Get all proposals with PENDING_PAYMENT status.
+    Get all proposals with HOLDING status.
 
     Args:
         skip: Number of records to skip
@@ -101,7 +101,7 @@ async def list_pending_payment_proposals(
 
     proposals = (
         db.query(Proposal)
-        .filter(Proposal.status == ProposalStatus.PENDING_PAYMENT)
+        .filter(Proposal.status == ProposalStatus.HOLDING)
         .offset(skip)
         .limit(limit)
         .all()

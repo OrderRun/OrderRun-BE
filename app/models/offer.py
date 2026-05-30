@@ -19,7 +19,7 @@ class Offer(Base):
 
     __tablename__ = "offers"
 
-    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, index=True, autoincrement=True)
     proposal_id = Column(Integer, nullable=False, index=True)
     runner_id = Column(String(36), nullable=False, index=True)
     estimated_time = Column(Integer, nullable=False)
