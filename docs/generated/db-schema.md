@@ -89,11 +89,9 @@
 | Column | Type | Constraints |
 | --- | --- | --- |
 | `id` | `bigint` | PK, auto increment |
-| `proposal_id` | `int` | not null, indexed |
+| `proposal_id` | `bigint` | not null, indexed |
 | `runner_id` | `varchar(36)` | not null, indexed |
-| `estimated_time` | `int` | not null |
-| `message` | `varchar(500)` | nullable |
-| `status` | `enum(WAITING, ACCEPTED, REJECTED)` | not null |
+| `status` | `enum(WAITING, ACCEPTED, COMPLETED, REJECTED, CANCELLED)` | not null |
 | `created_at` | `datetime` | not null |
 | `updated_at` | `datetime` | not null |
 
@@ -107,15 +105,20 @@
 
 | Column | Type | Constraints |
 | --- | --- | --- |
-| `id` | `bigint` or `uuid` | PK |
-| `proposal_id` | FK -> `proposals.id` | not null |
-| `accepted_offer_id` | FK -> `offers.id` | unique, not null |
-| `customer_id` | FK -> `users.id` (`varchar(36)`) | not null |
+| `id` | `bigint` | PK, auto increment |
+| `proposal_id` | FK -> `proposals.id` | not null, indexed |
+| `offer_id` | FK -> `offers.id` | unique, not null |
+| `orderer_id` | FK -> `users.id` (`varchar(36)`) | not null |
 | `runner_id` | FK -> `users.id` (`varchar(36)`) | not null |
-| `start_at` | `datetime` | nullable |
-| `complete_at` | `datetime` | nullable |
+| `contract_amount` | `int` | not null |
+| `run_fee` | `int` | not null |
+| `item_price` | `int` | not null |
+| `total_amount` | `int` | not null |
 | `status` | `enum` | not null |
 | `created_at` | `datetime` | not null |
+| `started_at` | `datetime` | nullable |
+| `completed_at` | `datetime` | nullable |
+| `settled_at` | `datetime` | nullable |
 | `updated_at` | `datetime` | not null |
 
 ### `payments`

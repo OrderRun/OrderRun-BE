@@ -1,72 +1,61 @@
-"""Offer schemas for request/response validation."""
-from pydantic import BaseModel, Field, field_validator
-from datetime import datetime
-from typing import Optional
+"""Offer request and response schemas."""
 
+from __future__ import annotations
+
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.models.mission import MissionStatus
 from app.models.offer import OfferStatus
+from app.models.proposal import ProposalStatus
 
 
 class OfferCreate(BaseModel):
-    """Schema for creating a new offer."""
-    proposal_id: int = Field(..., gt=0, description="Proposal ID")
-    runner_id: int = Field(..., gt=0, description="Runner user ID")
-    estimated_time: int = Field(..., ge=1, description="Estimated time in minutes")
-    message: Optional[str] = Field(None, max_length=500, description="Offer message")
+    """Request body for creating an offer."""
 
-    @field_validator('message')
-    @classmethod
-    def validate_message(cls, v):
-        if v is not None and len(v) > 500:
-            raise ValueError('Message must not exceed 500 characters')
-        return v
+    proposal_id: int = Field(..., gt=0, validation_alias="proposalId")
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
-class OfferUpdate(BaseModel):
-    """Schema for updating an offer."""
-    estimated_time: Optional[int] = Field(None, ge=1, description="Estimated time in minutes")
-    message: Optional[str] = Field(None, max_length=500, description="Offer message")
+class OfferAcceptRequest(BaseModel):
+    """Request body for accepting an offer and creating a mission."""
 
-    @field_validator('message')
-    @classmethod
-    def validate_message(cls, v):
-        if v is not None and len(v) > 500:
-            raise ValueError('Message must not exceed 500 characters')
-        return v
+    run_fee: int = Field(..., ge=0, validation_alias="runFee")
+    item_price: int = Field(..., ge=0, validation_alias="itemPrice")
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
 class OfferResponse(BaseModel):
-    """Schema for offer response."""
+    """Offer API response."""
+
     id: int
-    proposal_id: int = Field(..., alias="proposalId")
-    runner_id: int = Field(..., alias="runnerId")
-    estimated_time: int = Field(..., alias="estimatedTime")
-    message: Optional[str] = None
+    proposal_id: int = Field(..., serialization_alias="proposalId")
+    runner_id: str = Field(..., serialization_alias="runnerId")
+    runner_name: str = Field(..., serialization_alias="runnerName")
     status: OfferStatus
-    created_at: datetime = Field(..., alias="createdAt")
-    updated_at: datetime = Field(..., alias="updatedAt")
+    created_at: datetime = Field(..., serialization_alias="createdAt")
 
-    model_config = {
-        "from_attributes": True,
-        "populate_by_name": True
-    }
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
-class ApiResponse(BaseModel):
-    """Standard API response wrapper."""
-    success: bool = True
-    data: Optional[dict] = None
-    message: str = "Success"
+class OfferAcceptResponse(BaseModel):
+    """Response body for accepted offer orchestration."""
 
+    proposal_id: int = Field(..., serialization_alias="proposalId")
+    offer_id: int = Field(..., serialization_alias="offerId")
+    mission_id: int = Field(..., serialization_alias="missionId")
+    proposal_status: ProposalStatus = Field(..., serialization_alias="proposalStatus")
+    accepted_offer_status: OfferStatus = Field(..., serialization_alias="acceptedOfferStatus")
+    rejected_offer_count: int = Field(..., serialization_alias="rejectedOfferCount")
+    mission_status: MissionStatus = Field(..., serialization_alias="missionStatus")
+    orderer_id: str = Field(..., serialization_alias="ordererId")
+    runner_id: str = Field(..., serialization_alias="runnerId")
+    run_fee: int = Field(..., serialization_alias="runFee")
+    item_price: int = Field(..., serialization_alias="itemPrice")
+    total_amount: int = Field(..., serialization_alias="totalAmount")
+    created_at: datetime = Field(..., serialization_alias="createdAt")
 
-class ErrorDetail(BaseModel):
-    """Error detail schema."""
-    code: str
-    message: str
-    details: Optional[dict] = None
-
-
-class ErrorResponse(BaseModel):
-    """Standard error response wrapper."""
-    success: bool = False
-    error: ErrorDetail
-    timestamp: datetime
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

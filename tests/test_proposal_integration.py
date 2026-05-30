@@ -99,15 +99,11 @@ def test_list_own_returns_only_current_user_with_offers_and_status_filter(client
     old_offer = Offer(
         proposal_id=own_posted.id,
         runner_id=other_user.id,
-        estimated_time=10,
-        message="old",
         status=OfferStatus.WAITING,
     )
     new_offer = Offer(
         proposal_id=own_posted.id,
         runner_id=make_user(db, "01099990001").id,
-        estimated_time=20,
-        message="new",
         status=OfferStatus.REJECTED,
     )
     db.add_all([old_offer, new_offer])
@@ -201,13 +197,11 @@ def test_cancel_proposal_author_status_rules_and_rejects_waiting_offers(client, 
     waiting_offer = Offer(
         proposal_id=offered.id,
         runner_id=other_user.id,
-        estimated_time=10,
         status=OfferStatus.WAITING,
     )
     cancelled_offer = Offer(
         proposal_id=offered.id,
         runner_id=make_user(db, "01099990002").id,
-        estimated_time=20,
         status=OfferStatus.REJECTED,
     )
     db.add_all([waiting_offer, cancelled_offer])

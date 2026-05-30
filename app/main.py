@@ -33,7 +33,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(terms.router)
 app.include_router(proposal.router)
-app.include_router(offer.router, prefix="/api/v1")
+app.include_router(offer.router)
 app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 

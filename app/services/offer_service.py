@@ -1,243 +1,220 @@
-"""Offer service for business logic."""
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from typing import List
+"""Offer business logic."""
 
+from __future__ import annotations
+
+from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.models.mission import Mission, MissionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
-from app.schemas.offer import OfferCreate, OfferUpdate
+from app.models.user import User
+from app.schemas.common import PageResponse
+from app.schemas.offer import OfferAcceptRequest, OfferAcceptResponse, OfferCreate, OfferResponse
 
 
-class OfferNotFoundError(Exception):
-    """Raised when offer is not found."""
-    pass
+OPEN_PROPOSAL_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)
 
 
-class ProposalNotFoundError(Exception):
-    """Raised when proposal is not found."""
-    pass
-
-
-class DuplicateOfferError(Exception):
-    """Raised when runner tries to create duplicate offer."""
-    pass
-
-
-class ProposalNotOpenError(Exception):
-    """Raised when proposal cannot receive offers."""
-    pass
-
-
-class UnauthorizedAccessError(Exception):
-    """Raised when user tries to access resources they don't own."""
-    pass
-
-
-class SelfOfferNotAllowedError(Exception):
-    """Raised when orderer tries to submit an offer to their own proposal."""
-    pass
+def _error(http_status: int, code: str, message: str, details: str | None = None) -> HTTPException:
+    return HTTPException(
+        status_code=http_status,
+        detail={"code": code, "message": message, "details": details},
+    )
 
 
 class OfferService:
-    """Service for offer-related operations."""
+    """Service layer for Offer commands and queries."""
 
-    def __init__(self, db: Session):
-        self.db = db
+    @staticmethod
+    def _get_proposal(db: Session, proposal_id: int) -> Proposal:
+        proposal = db.query(Proposal).filter(Proposal.id == proposal_id).first()
+        if proposal is None:
+            raise _error(status.HTTP_404_NOT_FOUND, "PROPOSAL_NOT_FOUND", "요청을 찾을 수 없습니다.", None)
+        return proposal
 
-    def create_offer(self, offer_data: OfferCreate) -> Offer:
-        """
-        Create a new offer.
+    @staticmethod
+    def _get_offer(db: Session, offer_id: int) -> Offer:
+        offer = db.query(Offer).filter(Offer.id == offer_id).first()
+        if offer is None:
+            raise _error(status.HTTP_404_NOT_FOUND, "OFFER_NOT_FOUND", "제안을 찾을 수 없습니다.", None)
+        return offer
 
-        Args:
-            offer_data: Offer creation data
+    @staticmethod
+    def _runner_name(db: Session, runner_id: str) -> str:
+        runner = db.query(User).filter(User.id == runner_id).first()
+        return runner.name if runner is not None else ""
 
-        Returns:
-            Created offer
-
-        Raises:
-            ProposalNotFoundError: If proposal doesn't exist
-            SelfOfferNotAllowedError: If orderer tries to offer on their own proposal
-            ProposalNotOpenError: If proposal cannot receive offers
-            DuplicateOfferError: If runner already made an offer for this proposal
-        """
-        # Check if proposal exists
-        proposal = self.db.query(Proposal).filter(
-            Proposal.id == offer_data.proposal_id
-        ).first()
-
-        if not proposal:
-            raise ProposalNotFoundError("요청을 찾을 수 없습니다.")
-
-        # Check if orderer is trying to offer on their own proposal
-        if proposal.orderer_id == offer_data.runner_id:
-            raise SelfOfferNotAllowedError("오더러는 본인의 요청에 러너로 제안할 수 없습니다.")
-
-        # Check if proposal can receive offers
-        if not proposal.can_receive_offers():
-            raise ProposalNotOpenError("제안을 받을 수 없는 요청 상태입니다.")
-
-        # Check for duplicate offer
-        existing_offer = self.db.query(Offer).filter(
-            Offer.proposal_id == offer_data.proposal_id,
-            Offer.runner_id == offer_data.runner_id
-        ).first()
-
-        if existing_offer:
-            raise DuplicateOfferError("이미 해당 요청에 제안을 제출했습니다.")
-
-        # Create offer
-        offer = Offer(
-            proposal_id=offer_data.proposal_id,
-            runner_id=offer_data.runner_id,
-            estimated_time=offer_data.estimated_time,
-            message=offer_data.message,
-            status=OfferStatus.WAITING
+    @staticmethod
+    def _to_response(db: Session, offer: Offer) -> OfferResponse:
+        return OfferResponse(
+            id=offer.id,
+            proposal_id=offer.proposal_id,
+            runner_id=offer.runner_id,
+            runner_name=OfferService._runner_name(db, offer.runner_id),
+            status=offer.status,
+            created_at=offer.created_at,
         )
 
-        try:
-            self.db.add(offer)
+    @staticmethod
+    def create(db: Session, request: OfferCreate, runner_id: str) -> OfferResponse:
+        proposal = OfferService._get_proposal(db, request.proposal_id)
 
-            # Mark proposal as offered if this is the first offer
+        if proposal.orderer_id == runner_id:
+            raise _error(
+                status.HTTP_400_BAD_REQUEST,
+                "SELF_OFFER_NOT_ALLOWED",
+                "오더러는 본인의 요청에 러너로 제안할 수 없습니다.",
+                None,
+            )
+
+        if proposal.status not in OPEN_PROPOSAL_STATUSES:
+            raise _error(status.HTTP_409_CONFLICT, "PROPOSAL_NOT_OPEN", "제안을 받을 수 없는 요청 상태입니다.", None)
+
+        duplicate = (
+            db.query(Offer)
+            .filter(Offer.proposal_id == request.proposal_id, Offer.runner_id == runner_id)
+            .first()
+        )
+        if duplicate is not None:
+            raise _error(status.HTTP_409_CONFLICT, "DUPLICATE_OFFER", "이미 해당 요청에 제안을 제출했습니다.", None)
+
+        offer = Offer(proposal_id=request.proposal_id, runner_id=runner_id, status=OfferStatus.WAITING)
+        try:
+            db.add(offer)
             if proposal.status == ProposalStatus.POSTED:
                 proposal.mark_as_offered()
-
-            self.db.commit()
-            self.db.refresh(offer)
-
-            return offer
-
-        except IntegrityError as e:
-            self.db.rollback()
-            # Handle unique constraint violation
-            if "uq_proposal_runner" in str(e):
-                raise DuplicateOfferError("이미 해당 요청에 제안을 제출했습니다.")
+            db.commit()
+            db.refresh(offer)
+        except IntegrityError as exc:
+            db.rollback()
+            if "uk_proposal_runner" in str(exc) or "uq_proposal_runner" in str(exc):
+                raise _error(status.HTTP_409_CONFLICT, "DUPLICATE_OFFER", "이미 해당 요청에 제안을 제출했습니다.", None) from exc
             raise
 
-    def get_offers_by_proposal(self, proposal_id: int, orderer_id: int = None) -> List[Offer]:
-        """
-        Get all offers for a proposal.
+        return OfferService._to_response(db, offer)
 
-        Args:
-            proposal_id: Proposal ID
-            orderer_id: ID of the user requesting the offers (for authorization)
+    @staticmethod
+    def list_by_proposal(db: Session, proposal_id: int, user_id: str) -> list[OfferResponse]:
+        OfferService._get_proposal(db, proposal_id)
+        offers = (
+            db.query(Offer)
+            .filter(Offer.proposal_id == proposal_id)
+            .order_by(Offer.created_at.desc(), Offer.id.desc())
+            .all()
+        )
+        return [OfferService._to_response(db, offer) for offer in offers]
 
-        Returns:
-            List of offers ordered by created_at desc
+    @staticmethod
+    def get_detail(db: Session, offer_id: int, user_id: str) -> OfferResponse:
+        offer = OfferService._get_offer(db, offer_id)
+        proposal = OfferService._get_proposal(db, offer.proposal_id)
+        if offer.runner_id != user_id and proposal.orderer_id != user_id:
+            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+        return OfferService._to_response(db, offer)
 
-        Raises:
-            ProposalNotFoundError: If proposal doesn't exist
-            UnauthorizedAccessError: If user is not the owner of the proposal
-        """
-        # Check if proposal exists
-        proposal = self.db.query(Proposal).filter(
-            Proposal.id == proposal_id
-        ).first()
+    @staticmethod
+    def list_own(
+        db: Session,
+        runner_id: str,
+        offer_status: OfferStatus | None,
+        page: int,
+        size: int,
+    ) -> PageResponse[OfferResponse]:
+        query = db.query(Offer).filter(Offer.runner_id == runner_id)
+        if offer_status is not None:
+            query = query.filter(Offer.status == offer_status)
 
-        if not proposal:
-            raise ProposalNotFoundError("요청을 찾을 수 없습니다.")
+        total = query.count()
+        offers = (
+            query.order_by(Offer.created_at.desc(), Offer.id.desc())
+            .offset((page - 1) * size)
+            .limit(size)
+            .all()
+        )
+        return PageResponse(
+            items=[OfferService._to_response(db, offer) for offer in offers],
+            page=page,
+            size=size,
+            total=total,
+        )
 
-        # Check if user is the orderer of the proposal
-        if orderer_id is not None and proposal.orderer_id != orderer_id:
-            raise UnauthorizedAccessError("본인의 요청에 대한 제안만 조회할 수 있습니다.")
+    @staticmethod
+    def cancel(db: Session, offer_id: int, runner_id: str) -> None:
+        offer = OfferService._get_offer(db, offer_id)
+        if offer.runner_id != runner_id:
+            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+        if offer.status != OfferStatus.WAITING:
+            raise _error(status.HTTP_409_CONFLICT, "OFFER_NOT_CANCELLABLE", "취소할 수 없는 제안 상태입니다.", None)
 
-        # Get offers ordered by created_at desc, then id desc (newest first)
-        offers = self.db.query(Offer).filter(
-            Offer.proposal_id == proposal_id
-        ).order_by(Offer.created_at.desc(), Offer.id.desc()).all()
+        offer.cancel()
+        db.commit()
 
-        return offers
+    @staticmethod
+    def accept(db: Session, offer_id: int, orderer_id: str, request: OfferAcceptRequest) -> OfferAcceptResponse:
+        offer = OfferService._get_offer(db, offer_id)
+        proposal = OfferService._get_proposal(db, offer.proposal_id)
 
-    def get_offer(self, offer_id: int) -> Offer:
-        """
-        Get an offer by ID.
+        if proposal.orderer_id != orderer_id:
+            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
 
-        Args:
-            offer_id: Offer ID
+        existing_mission = (
+            db.query(Mission)
+            .filter((Mission.proposal_id == proposal.id) | (Mission.offer_id == offer.id))
+            .first()
+        )
+        if existing_mission is not None:
+            raise _error(status.HTTP_409_CONFLICT, "MISSION_ALREADY_EXISTS", "이미 생성된 미션이 있습니다.", None)
 
-        Returns:
-            Offer
+        if offer.status != OfferStatus.WAITING:
+            raise _error(status.HTTP_409_CONFLICT, "OFFER_NOT_ACCEPTABLE", "수락할 수 없는 제안 상태입니다.", None)
 
-        Raises:
-            OfferNotFoundError: If offer doesn't exist
-        """
-        offer = self.db.query(Offer).filter(Offer.id == offer_id).first()
+        if proposal.status != ProposalStatus.OFFERED:
+            raise _error(status.HTTP_409_CONFLICT, "PROPOSAL_NOT_MATCHABLE", "매칭할 수 없는 요청 상태입니다.", None)
 
-        if not offer:
-            raise OfferNotFoundError("제안을 찾을 수 없습니다.")
+        total_amount = request.run_fee + request.item_price
+        mission = Mission(
+            proposal_id=proposal.id,
+            offer_id=offer.id,
+            orderer_id=proposal.orderer_id,
+            runner_id=offer.runner_id,
+            contract_amount=total_amount,
+            run_fee=request.run_fee,
+            item_price=request.item_price,
+            total_amount=total_amount,
+            status=MissionStatus.CREATED,
+        )
 
-        return offer
-
-    def update_offer(self, offer_id: int, offer_data: OfferUpdate) -> Offer:
-        """
-        Update an offer.
-
-        Args:
-            offer_id: Offer ID
-            offer_data: Offer update data
-
-        Returns:
-            Updated offer
-
-        Raises:
-            OfferNotFoundError: If offer doesn't exist
-            ValueError: If offer cannot be modified
-        """
-        offer = self.get_offer(offer_id)
-
-        if not offer.can_modify():
-            raise ValueError("대기 중인 제안만 수정할 수 있습니다.")
-
-        # Update fields
-        if offer_data.estimated_time is not None:
-            offer.estimated_time = offer_data.estimated_time
-        if offer_data.message is not None:
-            offer.message = offer_data.message
-
-        self.db.commit()
-        self.db.refresh(offer)
-
-        return offer
-
-    def accept_offer(self, offer_id: int) -> Offer:
-        """
-        Accept an offer.
-
-        Args:
-            offer_id: Offer ID
-
-        Returns:
-            Accepted offer
-
-        Raises:
-            OfferNotFoundError: If offer doesn't exist
-            ValueError: If offer cannot be modified
-        """
-        offer = self.get_offer(offer_id)
+        db.add(mission)
         offer.accept()
+        proposal.status = ProposalStatus.MATCHED
+        rejected_count = (
+            db.query(Offer)
+            .filter(
+                Offer.proposal_id == proposal.id,
+                Offer.id != offer.id,
+                Offer.status == OfferStatus.WAITING,
+            )
+            .update({Offer.status: OfferStatus.REJECTED}, synchronize_session=False)
+        )
+        db.commit()
+        db.refresh(mission)
+        db.refresh(offer)
+        db.refresh(proposal)
 
-        self.db.commit()
-        self.db.refresh(offer)
-
-        return offer
-
-    def reject_offer(self, offer_id: int) -> Offer:
-        """
-        Reject an offer.
-
-        Args:
-            offer_id: Offer ID
-
-        Returns:
-            Rejected offer
-
-        Raises:
-            OfferNotFoundError: If offer doesn't exist
-            ValueError: If offer cannot be modified
-        """
-        offer = self.get_offer(offer_id)
-        offer.reject()
-
-        self.db.commit()
-        self.db.refresh(offer)
-
-        return offer
+        return OfferAcceptResponse(
+            proposal_id=proposal.id,
+            offer_id=offer.id,
+            mission_id=mission.id,
+            proposal_status=proposal.status,
+            accepted_offer_status=offer.status,
+            rejected_offer_count=rejected_count,
+            mission_status=mission.status,
+            orderer_id=proposal.orderer_id,
+            runner_id=offer.runner_id,
+            run_fee=request.run_fee,
+            item_price=request.item_price,
+            total_amount=mission.total_amount,
+            created_at=mission.created_at,
+        )

@@ -1,6 +1,5 @@
 """Mission model representing the execution contract."""
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Enum, DateTime, ForeignKey, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Enum, DateTime, ForeignKey
 from sqlalchemy.sql import func
 import enum
 
@@ -23,14 +22,17 @@ class Mission(Base):
 
     __tablename__ = "missions"
 
-    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
-    proposal_id = Column(Integer, ForeignKey("proposals.id"), nullable=False, index=True)
-    offer_id = Column(Integer, ForeignKey("offers.id"), nullable=False, unique=True)
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, index=True, autoincrement=True)
+    proposal_id = Column(BigInteger().with_variant(Integer, "sqlite"), ForeignKey("proposals.id"), nullable=False, index=True)
+    offer_id = Column(BigInteger().with_variant(Integer, "sqlite"), ForeignKey("offers.id"), nullable=False, unique=True)
     orderer_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     runner_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
 
     # Contract amount snapshot (immutable after creation)
     contract_amount = Column(Integer, nullable=False)
+    run_fee = Column(Integer, nullable=False, default=0, server_default="0")
+    item_price = Column(Integer, nullable=False, default=0, server_default="0")
+    total_amount = Column(Integer, nullable=False, default=0, server_default="0")
 
     # Mission status
     status = Column(Enum(MissionStatus), nullable=False, default=MissionStatus.CREATED, index=True)

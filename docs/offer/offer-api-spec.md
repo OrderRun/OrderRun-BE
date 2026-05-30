@@ -1,35 +1,36 @@
 # Offer API Spec
 
 ## API 목록
+
 - `POST /v1/offer`: Offer 생성
+- `POST /v1/offer/{offerId}/accept`: Offer 수락 및 Mission 생성
+- `GET /v1/offer/{offerId}`: Offer 상세 조회
 - `GET /v1/offer?proposalId={id}`: Proposal에 연결된 Offer 목록 조회
+- `GET /v1/offer/own`: 현재 러너의 Offer 목록 조회
+- `DELETE /v1/offer/{offerId}`: Offer 취소
 
----
+## 공통
 
-## 성공 응답
+- 모든 Offer API는 JWT Bearer 인증이 필요하다.
+- 성공 응답은 `ApiResponse`로 감싼다. 단, 취소 성공은 `204 No Content`와 빈 본문을 반환한다.
+- 에러 응답은 `ErrorResponse` 형식이다.
 
-### `POST /v1/offer`
+## `POST /v1/offer`
+
 Offer를 생성합니다.
 
 **상태 코드**: `201 Created`
 
 **요청 본문**:
+
 ```json
 {
-  "proposalId": 1,
-  "runnerId": "runner-user-id",
-  "estimatedTime": 30,
-  "message": "30분 안에 가능합니다."
+  "proposalId": 1
 }
 ```
 
-**필드 설명**:
-- `proposalId` (required): Proposal ID (integer)
-- `runnerId` (required): 러너 사용자 ID (string/integer)
-- `estimatedTime` (required): 예상 수행 시간(분, 1 이상의 정수)
-- `message` (optional): 제안 메시지 (최대 500자)
-
 **응답 본문**:
+
 ```json
 {
   "success": true,
@@ -37,8 +38,7 @@ Offer를 생성합니다.
     "id": 10,
     "proposalId": 1,
     "runnerId": "runner-user-id",
-    "estimatedTime": 30,
-    "message": "30분 안에 가능합니다.",
+    "runnerName": "홍길동",
     "status": "WAITING",
     "createdAt": "2026-03-10T15:30:00"
   },
@@ -46,182 +46,80 @@ Offer를 생성합니다.
 }
 ```
 
----
+## `POST /v1/offer/{offerId}/accept`
 
-### `GET /v1/offer?proposalId={id}`
-특정 Proposal에 연결된 모든 Offer를 조회합니다.
+Proposal 작성자가 Offer를 수락하고 Mission을 생성합니다.
 
-**인증**: Required (JWT Bearer Token)
-**권한**: Proposal의 오도러(작성자)만 조회 가능
+**요청 본문**:
 
-**상태 코드**: `200 OK`
-
-**요청 헤더**:
+```json
+{
+  "runFee": 3000,
+  "itemPrice": 2000
+}
 ```
-Authorization: Bearer {access_token}
-```
-
-**쿼리 파라미터**:
-- `proposalId` (required): Offer를 조회할 Proposal ID
 
 **응답 본문**:
+
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": 11,
-      "proposalId": 1,
-      "runnerId": "runner-user-id",
-      "estimatedTime": 25,
-      "message": "25분 안에 가능합니다.",
-      "status": "WAITING",
-      "createdAt": "2026-03-10T15:35:00"
-    },
-    {
-      "id": 10,
-      "proposalId": 1,
-      "runnerId": "another-runner-id",
-      "estimatedTime": 30,
-      "message": "30분 안에 가능합니다.",
-      "status": "WAITING",
-      "createdAt": "2026-03-10T15:30:00"
-    }
-  ],
-  "message": "Success"
-}
-```
-
-**참고**: 결과는 `createdAt` 기준 내림차순(최신순)으로 정렬됩니다.
-
----
-
-## 실패 응답
-
-### 유효성 검증 실패 (400 VALIDATION_ERROR)
-- `proposalId` 누락
-- `runnerId` 누락
-- `estimatedTime < 1` (1 미만)
-- `message` 길이 초과 (500자 초과)
-
-**응답 예시**:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "입력값이 유효하지 않습니다.",
-    "details": {
-      "estimatedTime": "1 이상이어야 합니다."
-    }
+  "data": {
+    "proposalId": 1,
+    "offerId": 10,
+    "missionId": 7,
+    "proposalStatus": "MATCHED",
+    "acceptedOfferStatus": "ACCEPTED",
+    "rejectedOfferCount": 1,
+    "missionStatus": "CREATED",
+    "ordererId": "orderer-user-id",
+    "runnerId": "runner-user-id",
+    "runFee": 3000,
+    "itemPrice": 2000,
+    "totalAmount": 5000,
+    "createdAt": "2026-03-10T15:30:00"
   },
-  "timestamp": "2026-03-10T15:30:00"
+  "message": "제안이 수락되었습니다."
 }
 ```
 
----
+## `GET /v1/offer/{offerId}`
 
-### 인증 실패 (401 UNAUTHORIZED)
-JWT 토큰이 없거나 유효하지 않은 경우
+Offer 제출자 본인 또는 연결 Proposal 작성자가 Offer를 조회합니다.
 
-**응답 예시**:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "인증이 필요합니다.",
-    "details": null
-  },
-  "timestamp": "2026-03-10T15:30:00"
-}
-```
+## `GET /v1/offer?proposalId={id}`
 
----
+특정 Proposal에 연결된 모든 Offer를 `createdAt` 내림차순으로 조회합니다.
 
-### 권한 없음 (403 FORBIDDEN)
-Proposal의 오도러가 아닌 사용자가 Offer 목록을 조회하려는 경우
+## `GET /v1/offer/own`
 
-**응답 예시**:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "FORBIDDEN",
-    "message": "본인의 요청에 대한 제안만 조회할 수 있습니다.",
-    "details": null
-  },
-  "timestamp": "2026-03-10T15:30:00"
-}
-```
+현재 사용자가 runner인 Offer를 PageResponse로 조회합니다.
 
----
+Query:
 
-### 리소스 없음 (404 PROPOSAL_NOT_FOUND)
-존재하지 않는 Proposal에 Offer를 생성하거나 조회한 경우
+- `status` optional: `WAITING`, `ACCEPTED`, `COMPLETED`, `REJECTED`, `CANCELLED`
+- `page` optional, default `1`
+- `size` optional, default `20`, max `100`
 
-**응답 예시**:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "PROPOSAL_NOT_FOUND",
-    "message": "요청을 찾을 수 없습니다.",
-    "details": null
-  },
-  "timestamp": "2026-03-10T15:30:00"
-}
-```
+## `DELETE /v1/offer/{offerId}`
 
----
+Offer 제출자 본인이 `WAITING` Offer를 취소합니다.
 
-### 도메인 예외
+**상태 코드**: `204 No Content`
 
-#### 중복 Offer 생성 (409 DUPLICATE_OFFER)
-같은 Proposal에 같은 러너가 중복으로 Offer를 생성하는 경우
+## 주요 에러
 
-**응답 예시**:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "DUPLICATE_OFFER",
-    "message": "이미 해당 요청에 제안을 제출했습니다.",
-    "details": null
-  },
-  "timestamp": "2026-03-10T15:30:00"
-}
-```
-
-#### Proposal 상태 불일치 (409 PROPOSAL_NOT_OPEN)
-Proposal 상태가 `POSTED` 또는 `OFFERED`가 아닌 경우
-
-**응답 예시**:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "PROPOSAL_NOT_OPEN",
-    "message": "제안을 받을 수 없는 요청 상태입니다.",
-    "details": null
-  },
-  "timestamp": "2026-03-10T15:30:00"
-}
-```
-
----
-
-## 공통 에러 포맷
-모든 에러 응답은 다음 구조를 따릅니다:
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "사용자에게 표시할 메시지",
-    "details": null | object
-  },
-  "timestamp": "2026-03-10T15:30:00"
-}
-```
+| Code | HTTP | 조건 |
+| --- | --- | --- |
+| `INVALID_TOKEN` | 401 | 토큰 없음 또는 유효하지 않음 |
+| `VALIDATION_ERROR` | 400 | 요청 필드 누락 또는 범위 오류 |
+| `SELF_OFFER_NOT_ALLOWED` | 400 | Proposal 작성자가 본인 Proposal에 Offer 생성 |
+| `PROPOSAL_NOT_FOUND` | 404 | Proposal 없음 |
+| `OFFER_NOT_FOUND` | 404 | Offer 없음 |
+| `FORBIDDEN` | 403 | 상세/수락/취소 권한 없음 |
+| `DUPLICATE_OFFER` | 409 | 같은 Proposal에 같은 runner가 중복 생성 |
+| `PROPOSAL_NOT_OPEN` | 409 | Proposal이 `POSTED`/`OFFERED`가 아님 |
+| `MISSION_ALREADY_EXISTS` | 409 | 이미 Mission 존재 |
+| `OFFER_NOT_ACCEPTABLE` | 409 | Offer가 `WAITING`이 아님 |
+| `PROPOSAL_NOT_MATCHABLE` | 409 | Proposal이 `OFFERED`가 아님 |
+| `OFFER_NOT_CANCELLABLE` | 409 | Offer가 `WAITING`이 아님 |
