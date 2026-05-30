@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 
 from app.core.config import settings
-from app.api.v1 import auth, proposal, offer, notifications, admin, users
+from app.api.v1 import auth, proposal, offer, notifications, admin, terms, users
 from app.core.exceptions import http_exception_handler, validation_exception_handler
 
 # Create FastAPI app
@@ -31,6 +31,7 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 # Include routers
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(terms.router)
 app.include_router(proposal.router, prefix="/api/v1")
 app.include_router(offer.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
