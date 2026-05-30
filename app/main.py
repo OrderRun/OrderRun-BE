@@ -3,8 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 
 from app.core.config import settings
-from app.api.v1 import auth, proposal, offer, notifications, admin, terms, users
+from app.api.v1 import auth, mission, proposal, offer, notifications, admin, settlement, terms, users
 from app.core.exceptions import http_exception_handler, validation_exception_handler
+from app.schemas.common import ApiResponse
 
 # Create FastAPI app
 app = FastAPI(
@@ -34,6 +35,8 @@ app.include_router(users.router)
 app.include_router(terms.router)
 app.include_router(proposal.router)
 app.include_router(offer.router)
+app.include_router(mission.router)
+app.include_router(settlement.router)
 app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 
@@ -48,10 +51,10 @@ async def root():
     }
 
 
-@app.get("/health")
+@app.get("/v1/health", response_model=ApiResponse[dict[str, str]])
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy"}
+    return ApiResponse(success=True, data={"status": "UP"}, message="Success")
 
 
 if __name__ == "__main__":
