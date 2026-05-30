@@ -24,10 +24,10 @@ class Mission(Base):
     __tablename__ = "missions"
 
     id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
-    proposal_id = Column(BigInteger, ForeignKey("proposals.id"), nullable=False, index=True)
-    offer_id = Column(BigInteger, ForeignKey("offers.id"), nullable=False, unique=True)
-    orderer_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
-    runner_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
+    proposal_id = Column(Integer, ForeignKey("proposals.id"), nullable=False, index=True)
+    offer_id = Column(Integer, ForeignKey("offers.id"), nullable=False, unique=True)
+    orderer_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    runner_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
 
     # Contract amount snapshot (immutable after creation)
     contract_amount = Column(Integer, nullable=False)

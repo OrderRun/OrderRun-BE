@@ -29,8 +29,8 @@ app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 # Include routers
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(users.router, prefix="/api/v1")
+app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(proposal.router, prefix="/api/v1")
 app.include_router(offer.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")

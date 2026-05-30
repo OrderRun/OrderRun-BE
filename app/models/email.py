@@ -3,7 +3,7 @@ Email log model for tracking email send history.
 """
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Text, DateTime, Enum, Integer, BigInteger, Boolean
+from sqlalchemy import String, Text, DateTime, Enum, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 import enum
 
@@ -50,8 +50,8 @@ class EmailLog(Base):
     template_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     # Optional user association
-    user_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger,
+    user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
         nullable=True,
         index=True,
         comment="Optional user ID if email is sent to a registered user"

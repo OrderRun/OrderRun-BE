@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
-    jwt_refresh_token_expire_days: int = 30
+    jwt_refresh_token_expire_days: int = 7
 
     # OAuth - Kakao
     kakao_client_id: str

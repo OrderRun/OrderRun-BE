@@ -26,7 +26,7 @@ class DeviceTokenCreate(BaseModel):
 class DeviceTokenResponse(BaseModel):
     """Schema for device token response."""
     id: int
-    user_id: int
+    user_id: str
     token: str
     platform: DevicePlatform
     device_id: Optional[str]
@@ -49,7 +49,7 @@ class DeviceTokenUpdate(BaseModel):
 
 class NotificationCreate(BaseModel):
     """Schema for creating a notification (internal use)."""
-    user_id: int = Field(..., description="User ID to send notification to")
+    user_id: str = Field(..., description="User ID to send notification to")
     notification_type: NotificationType = Field(..., description="Type of notification")
     title: str = Field(..., min_length=1, max_length=255, description="Notification title")
     body: str = Field(..., min_length=1, description="Notification body")
@@ -75,7 +75,7 @@ class NotificationSendRequest(BaseModel):
 class NotificationResponse(BaseModel):
     """Schema for notification response."""
     id: int
-    user_id: int
+    user_id: str
     notification_type: NotificationType
     title: str
     body: str
@@ -115,7 +115,7 @@ class NotificationMarkReadRequest(BaseModel):
 class NotificationPreferenceResponse(BaseModel):
     """Schema for notification preference response."""
     id: int
-    user_id: int
+    user_id: str
     enable_proposal_notifications: bool
     enable_offer_notifications: bool
     enable_mission_notifications: bool

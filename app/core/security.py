@@ -1,141 +1,78 @@
+"""JWT helpers and current-user dependency."""
+
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
-from jose import JWTError, jwt
+from typing import Any, Dict, Optional
+
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
 
-# HTTP Bearer token scheme
-security = HTTPBearer()
+
+security = HTTPBearer(auto_error=False)
+
+
+def _token_error(detail: str = "Invalid token") -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail={"code": "INVALID_TOKEN", "message": detail, "details": None},
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Create JWT access token.
-
-    Args:
-        data: Payload data to encode in the token
-        expires_delta: Optional expiration time delta
-
-    Returns:
-        Encoded JWT token string
-    """
-    to_encode = data.copy()
-
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
-
-    to_encode.update({"exp": expire, "type": "access"})
-
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.jwt_secret,
-        algorithm=settings.jwt_algorithm
+    payload = data.copy()
+    expire = datetime.now(timezone.utc) + (
+        expires_delta
+        if expires_delta is not None
+        else timedelta(minutes=settings.jwt_access_token_expire_minutes)
     )
-
-    return encoded_jwt
+    payload.update({"exp": expire, "type": "access"})
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
 def create_refresh_token(data: Dict[str, Any]) -> str:
-    """
-    Create JWT refresh token.
-
-    Args:
-        data: Payload data to encode in the token
-
-    Returns:
-        Encoded JWT refresh token string
-    """
-    to_encode = data.copy()
+    payload = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(days=settings.jwt_refresh_token_expire_days)
-
-    to_encode.update({"exp": expire, "type": "refresh"})
-
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.jwt_secret,
-        algorithm=settings.jwt_algorithm
-    )
-
-    return encoded_jwt
+    payload.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
 def verify_token(token: str, token_type: str = "access") -> Dict[str, Any]:
-    """
-    Verify and decode JWT token.
-
-    Args:
-        token: JWT token string
-        token_type: Expected token type ("access" or "refresh")
-
-    Returns:
-        Decoded token payload
-
-    Raises:
-        HTTPException: If token is invalid or expired
-    """
     try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret,
-            algorithms=[settings.jwt_algorithm]
-        )
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    except JWTError as exc:
+        raise _token_error("Could not validate credentials") from exc
 
-        # Check token type
-        if payload.get("type") != token_type:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token type",
-            )
+    if payload.get("type") != token_type:
+        raise _token_error("Invalid token type")
 
-        return payload
-
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    return payload
 
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> User:
-    """
-    Dependency to get current authenticated user.
+    if credentials is None:
+        raise _token_error("Missing credentials")
 
-    Args:
-        credentials: HTTP Bearer credentials
-        db: Database session
+    payload = verify_token(credentials.credentials, token_type="access")
+    user_id = payload.get("sub")
+    if not user_id:
+        raise _token_error("Invalid authentication credentials")
 
-    Returns:
-        Current user object
-
-    Raises:
-        HTTPException: If authentication fails
-    """
-    token = credentials.credentials
-    payload = verify_token(token, token_type="access")
-
-    user_id: Optional[int] = payload.get("sub")
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-        )
-
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    user = db.query(User).filter(User.id == str(user_id)).first()
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "USER_NOT_FOUND", "message": "User not found", "details": None},
         )
 
     return user

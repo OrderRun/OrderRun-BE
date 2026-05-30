@@ -1,151 +1,91 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+"""Phone-auth endpoints."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.schemas.user import TokenResponse, UserResponse
-from app.services.auth_service import AuthService
-from app.services.oauth.kakao import KakaoOAuthClient
-from app.services.oauth.apple import AppleOAuthClient
 from app.models.user import User
-
-router = APIRouter(prefix="/auth", tags=["Authentication"])
-
-
-# Kakao OAuth
-@router.get("/kakao", summary="Start Kakao OAuth login")
-async def kakao_login():
-    """
-    Redirect to Kakao login page.
-
-    Returns:
-        Authorization URL
-    """
-    client = KakaoOAuthClient()
-    auth_url = client.get_authorization_url()
-    return {"authorization_url": auth_url}
+from app.schemas.user import (
+    ApiResponse,
+    AuthAccessTokenResponse,
+    AuthLoginConfirmRequest,
+    AuthLoginSendRequest,
+    AuthLogoutRequest,
+    AuthPhoneConfirmRequest,
+    AuthRefreshRequest,
+    AuthSignupSendRequest,
+    AuthTokenResponse,
+    AuthVerificationSendResponse,
+)
+from app.services.sms_service import get_sms_sender
+from app.services.user_auth_service import UserAuthService
 
 
-@router.get("/kakao/callback", response_model=TokenResponse, summary="Kakao OAuth callback")
-async def kakao_callback(
-    code: str = Query(..., description="Authorization code from Kakao"),
-    db: Session = Depends(get_db)
+router = APIRouter(prefix="/v1/auth", tags=["auth"])
+
+
+@router.post("/signup/send", response_model=ApiResponse[AuthVerificationSendResponse], response_model_exclude_none=True)
+def signup_send(
+    payload: AuthSignupSendRequest,
+    db: Session = Depends(get_db),
+    sms_sender=Depends(get_sms_sender),
 ):
-    """
-    Handle Kakao OAuth callback.
-
-    Args:
-        code: Authorization code from Kakao
-        db: Database session
-
-    Returns:
-        TokenResponse with JWT tokens
-    """
-    client = KakaoOAuthClient()
-    auth_service = AuthService(db)
-
-    # Exchange code for access token
-    access_token = await client.get_access_token(code)
-
-    # Get user info from Kakao
-    oauth_user_info = await client.get_user_info(access_token)
-
-    # Create/update user and generate JWT tokens
-    return auth_service.authenticate_oauth_user(oauth_user_info)
+    service = UserAuthService(db=db, sms_sender=sms_sender)
+    data = service.send_signup_verification(payload)
+    return {"success": True, "data": data.model_dump(by_alias=True)}
 
 
-# Apple OAuth
-@router.get("/apple", summary="Start Apple OAuth login")
-async def apple_login():
-    """
-    Redirect to Apple login page.
-
-    Returns:
-        Authorization URL
-    """
-    client = AppleOAuthClient()
-    auth_url = client.get_authorization_url()
-    return {"authorization_url": auth_url}
-
-
-@router.post("/apple/callback", response_model=TokenResponse, summary="Apple OAuth callback")
-async def apple_callback(
-    code: str = Query(..., description="Authorization code from Apple"),
-    db: Session = Depends(get_db)
+@router.post("/signup/confirm", response_model=ApiResponse[AuthTokenResponse], response_model_exclude_none=True)
+def signup_confirm(
+    payload: AuthPhoneConfirmRequest,
+    db: Session = Depends(get_db),
+    sms_sender=Depends(get_sms_sender),
 ):
-    """
-    Handle Apple OAuth callback (POST method).
-
-    Args:
-        code: Authorization code from Apple
-        db: Database session
-
-    Returns:
-        TokenResponse with JWT tokens
-    """
-    client = AppleOAuthClient()
-    auth_service = AuthService(db)
-
-    # Exchange code for ID token
-    id_token = await client.get_access_token(code)
-
-    # Get user info from ID token
-    oauth_user_info = await client.get_user_info(id_token)
-
-    # Create/update user and generate JWT tokens
-    return auth_service.authenticate_oauth_user(oauth_user_info)
+    service = UserAuthService(db=db, sms_sender=sms_sender)
+    data = service.confirm_signup(payload)
+    return {"success": True, "data": data.model_dump(by_alias=True)}
 
 
-# Common endpoints
-@router.get("/me", response_model=UserResponse, summary="Get current user")
-async def get_me(current_user: User = Depends(get_current_user)):
-    """
-    Get current authenticated user information.
-
-    Args:
-        current_user: Current user from JWT token
-
-    Returns:
-        UserResponse with user information
-    """
-    return current_user
-
-
-@router.post("/refresh", response_model=TokenResponse, summary="Refresh access token")
-async def refresh_token(
-    refresh_token: str,
-    db: Session = Depends(get_db)
+@router.post("/login/send", response_model=ApiResponse[AuthVerificationSendResponse], response_model_exclude_none=True)
+def login_send(
+    payload: AuthLoginSendRequest,
+    db: Session = Depends(get_db),
+    sms_sender=Depends(get_sms_sender),
 ):
-    """
-    Refresh access token using refresh token.
+    service = UserAuthService(db=db, sms_sender=sms_sender)
+    data = service.send_login_verification(payload)
+    return {"success": True, "data": data.model_dump(by_alias=True)}
 
-    Args:
-        refresh_token: Refresh token
-        db: Database session
 
-    Returns:
-        TokenResponse with new tokens
-    """
-    from app.core.security import verify_token
+@router.post("/login/confirm", response_model=ApiResponse[AuthTokenResponse], response_model_exclude_none=True)
+def login_confirm(
+    payload: AuthLoginConfirmRequest,
+    db: Session = Depends(get_db),
+    sms_sender=Depends(get_sms_sender),
+):
+    service = UserAuthService(db=db, sms_sender=sms_sender)
+    data = service.confirm_login(payload)
+    return {"success": True, "data": data.model_dump(by_alias=True)}
 
-    # Verify refresh token
-    payload = verify_token(refresh_token, token_type="refresh")
-    user_id = payload.get("sub")
 
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token",
-        )
+@router.post("/refresh", response_model=ApiResponse[AuthAccessTokenResponse], response_model_exclude_none=True)
+def refresh_token(
+    payload: AuthRefreshRequest,
+    db: Session = Depends(get_db),
+):
+    service = UserAuthService(db=db)
+    data = service.refresh_access_token(payload)
+    return {"success": True, "data": data.model_dump(by_alias=True)}
 
-    # Get user
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-        )
 
-    # Generate new tokens
-    auth_service = AuthService(db)
-    return auth_service.generate_tokens(user)
+@router.post("/logout")
+def logout(
+    payload: AuthLogoutRequest,
+    current_user: User = Depends(get_current_user),
+):
+    _ = payload
+    _ = current_user
+    return {"success": True, "data": None, "message": "로그아웃 되었습니다."}

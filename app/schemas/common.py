@@ -18,12 +18,14 @@ class ApiResponse(BaseModel, Generic[T]):
 
     success: bool = Field(..., description="성공 여부")
     data: Optional[T] = Field(None, description="응답 데이터")
+    message: Optional[str] = Field(None, description="응답 메시지")
 
     model_config = {
         "json_schema_extra": {
             "example": {
                 "success": True,
                 "data": {"id": 1, "name": "example"},
+                "message": "Success",
             }
         }
     }

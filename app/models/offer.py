@@ -1,5 +1,5 @@
 """Offer model representing runner offers for proposals."""
-from sqlalchemy import Column, BigInteger, Integer, String, Enum, DateTime, UniqueConstraint, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, String, Enum, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -20,8 +20,8 @@ class Offer(Base):
     __tablename__ = "offers"
 
     id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
-    proposal_id = Column(BigInteger, nullable=False, index=True)
-    runner_id = Column(BigInteger, nullable=False, index=True)
+    proposal_id = Column(Integer, nullable=False, index=True)
+    runner_id = Column(String(36), nullable=False, index=True)
     estimated_time = Column(Integer, nullable=False)
     message = Column(String(500), nullable=True)
     status = Column(Enum(OfferStatus), nullable=False, default=OfferStatus.WAITING, index=True)

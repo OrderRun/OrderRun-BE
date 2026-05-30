@@ -21,7 +21,7 @@ class Proposal(Base):
     __tablename__ = "proposals"
 
     id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
-    orderer_id = Column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
+    orderer_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(50), nullable=False)
     content = Column(String(500), nullable=False)
     deadline = Column(DateTime(timezone=True), nullable=False)
@@ -33,7 +33,7 @@ class Proposal(Base):
     payment_deadline = Column(DateTime(timezone=True), nullable=False)
     depositor_name = Column(String(50), nullable=True)
     payment_confirmed_at = Column(DateTime(timezone=True), nullable=True)
-    payment_confirmed_by = Column(BigInteger, ForeignKey("users.id"), nullable=True)
+    payment_confirmed_by = Column(String(36), ForeignKey("users.id"), nullable=True)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
@@ -64,7 +64,7 @@ class Proposal(Base):
         now = datetime.now(timezone.utc)
         return self.is_payment_pending() and self.payment_deadline < now
 
-    def confirm_payment(self, admin_id: int, depositor_name: str = None):
+    def confirm_payment(self, admin_id: str, depositor_name: str = None):
         """Confirm payment and transition to POSTED status."""
         from datetime import datetime, timezone
 

@@ -10,7 +10,7 @@ class ProposalService:
     """Service layer for Proposal business logic."""
 
     @staticmethod
-    def create_proposal(db: Session, proposal_data: ProposalCreate, orderer_id: int) -> Proposal:
+    def create_proposal(db: Session, proposal_data: ProposalCreate, orderer_id: str) -> Proposal:
         """
         Create a new proposal.
 
@@ -126,7 +126,7 @@ class ProposalService:
 
     @staticmethod
     def confirm_payment(
-        db: Session, proposal_id: int, admin_id: int, depositor_name: Optional[str] = None
+        db: Session, proposal_id: int, admin_id: str, depositor_name: Optional[str] = None
     ) -> Proposal:
         """
         Confirm payment for a proposal and transition to POSTED status.
