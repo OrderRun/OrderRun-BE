@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Generic, TypeVar, Optional
 from datetime import datetime, timezone
+from math import ceil
 
 T = TypeVar("T")
 
@@ -34,10 +35,26 @@ class ApiResponse(BaseModel, Generic[T]):
 class PageResponse(BaseModel, Generic[T]):
     """Generic paginated response payload."""
 
-    items: list[T] = Field(..., description="현재 페이지 항목")
-    page: int = Field(..., description="현재 페이지 번호")
-    size: int = Field(..., description="페이지 크기")
-    total: int = Field(..., description="전체 항목 수")
+    content: list[T] = Field(..., description="현재 페이지 항목")
+    total_elements: int = Field(..., serialization_alias="totalElements", description="전체 항목 수")
+    total_pages: int = Field(..., serialization_alias="totalPages", description="전체 페이지 수")
+    page_number: int = Field(..., serialization_alias="pageNumber", description="현재 페이지 번호")
+    page_size: int = Field(..., serialization_alias="pageSize", description="페이지 크기")
+    first: bool = Field(..., description="첫 페이지 여부")
+    last: bool = Field(..., description="마지막 페이지 여부")
+
+    @classmethod
+    def of(cls, content: list[T], page_number: int, page_size: int, total_elements: int) -> "PageResponse[T]":
+        total_pages = ceil(total_elements / page_size) if page_size > 0 and total_elements > 0 else 0
+        return cls(
+            content=content,
+            total_elements=total_elements,
+            total_pages=total_pages,
+            page_number=page_number,
+            page_size=page_size,
+            first=page_number <= 0,
+            last=total_pages == 0 or page_number >= total_pages - 1,
+        )
 
 
 class ErrorResponse(BaseModel):

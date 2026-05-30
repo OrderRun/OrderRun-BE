@@ -108,11 +108,11 @@ class ProposalService:
         total = query.count()
         items = (
             query.order_by(Proposal.created_at.desc(), Proposal.id.desc())
-            .offset((page - 1) * size)
+            .offset(page * size)
             .limit(size)
             .all()
         )
-        return PageResponse(items=items, page=page, size=size, total=total)
+        return PageResponse.of(content=items, page_number=page, page_size=size, total_elements=total)
 
     @staticmethod
     def get_detail(db: Session, proposal_id: int) -> Proposal:
@@ -127,12 +127,24 @@ class ProposalService:
         return proposal
 
     @staticmethod
-    def list_own(db: Session, user_id: str, proposal_status: ProposalStatus | None) -> list[ProposalOwnResponse]:
+    def list_own(
+        db: Session,
+        user_id: str,
+        proposal_status: ProposalStatus | None,
+        page: int,
+        size: int,
+    ) -> PageResponse[ProposalOwnResponse]:
         query = db.query(Proposal).filter(Proposal.orderer_id == user_id)
         if proposal_status is not None:
             query = query.filter(Proposal.status == proposal_status)
 
-        proposals = query.order_by(Proposal.created_at.desc(), Proposal.id.desc()).all()
+        total = query.count()
+        proposals = (
+            query.order_by(Proposal.created_at.desc(), Proposal.id.desc())
+            .offset(page * size)
+            .limit(size)
+            .all()
+        )
         proposal_ids = [proposal.id for proposal in proposals]
         offers_by_proposal: dict[int, list[Offer]] = {proposal_id: [] for proposal_id in proposal_ids}
 
@@ -146,7 +158,7 @@ class ProposalService:
             for offer in offers:
                 offers_by_proposal.setdefault(offer.proposal_id, []).append(offer)
 
-        return [
+        items = [
             ProposalOwnResponse(
                 id=proposal.id,
                 orderer_id=proposal.orderer_id,
@@ -171,6 +183,7 @@ class ProposalService:
             )
             for proposal in proposals
         ]
+        return PageResponse.of(content=items, page_number=page, page_size=size, total_elements=total)
 
     @staticmethod
     def create(db: Session, request: ProposalRequest, orderer_id: str) -> Proposal:

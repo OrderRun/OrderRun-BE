@@ -138,12 +138,12 @@ def test_get_own_offers_supports_paging_and_status_filter(client, db, sample_use
     db.add_all([waiting, accepted, other])
     db.commit()
 
-    response = client.get("/v1/offer/own?status=WAITING&page=1&size=10", headers=headers_for(runner))
+    response = client.get("/v1/offer/own?status=WAITING&page=0&size=10", headers=headers_for(runner))
 
     assert response.status_code == 200
     page = response.json()["data"]
-    assert page["total"] == 1
-    assert [item["id"] for item in page["items"]] == [waiting.id]
+    assert page["totalElements"] == 1
+    assert [item["id"] for item in page["content"]] == [waiting.id]
 
 
 def test_accept_offer_creates_mission_and_updates_states(client, db, sample_user):
@@ -161,7 +161,7 @@ def test_accept_offer_creates_mission_and_updates_states(client, db, sample_user
         headers=headers_for(sample_user),
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     body = response.json()
     assert body["message"] == "제안이 수락되었습니다."
     assert body["data"]["proposalId"] == proposal.id

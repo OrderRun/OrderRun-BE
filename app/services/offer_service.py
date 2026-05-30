@@ -129,15 +129,15 @@ class OfferService:
         total = query.count()
         offers = (
             query.order_by(Offer.created_at.desc(), Offer.id.desc())
-            .offset((page - 1) * size)
+            .offset(page * size)
             .limit(size)
             .all()
         )
-        return PageResponse(
-            items=[OfferService._to_response(db, offer) for offer in offers],
-            page=page,
-            size=size,
-            total=total,
+        return PageResponse.of(
+            content=[OfferService._to_response(db, offer) for offer in offers],
+            page_number=page,
+            page_size=size,
+            total_elements=total,
         )
 
     @staticmethod

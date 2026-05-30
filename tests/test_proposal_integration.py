@@ -70,11 +70,11 @@ def test_list_public_requires_auth_and_exposes_only_posted_or_offered(client, db
     response = client.get("/v1/proposal", headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
-    ids = {item["id"] for item in body["data"]["items"]}
+    ids = {item["id"] for item in body["data"]["content"]}
     assert ids == {posted.id, offered.id}
-    assert body["data"]["page"] == 1
-    assert body["data"]["size"] == 20
-    assert body["data"]["total"] == 2
+    assert body["data"]["pageNumber"] == 0
+    assert body["data"]["pageSize"] == 20
+    assert body["data"]["totalElements"] == 2
 
 
 def test_detail_hides_holding_and_allows_cancelled(client, db, auth_headers, sample_user):
@@ -111,14 +111,14 @@ def test_list_own_returns_only_current_user_with_offers_and_status_filter(client
 
     response = client.get("/v1/proposal/own?status=POSTED", headers=auth_headers)
     assert response.status_code == 200
-    items = response.json()["data"]
+    items = response.json()["data"]["content"]
     assert [item["id"] for item in items] == [own_posted.id]
     assert items[0]["ordererId"] == sample_user.id
     assert items[0]["offerCount"] == 2
     assert [offer["id"] for offer in items[0]["offers"]] == [new_offer.id, old_offer.id]
 
     all_own_response = client.get("/v1/proposal/own", headers=auth_headers)
-    assert {item["id"] for item in all_own_response.json()["data"]} == {own_posted.id, own_holding.id}
+    assert {item["id"] for item in all_own_response.json()["data"]["content"]} == {own_posted.id, own_holding.id}
 
 
 def test_create_proposal_validates_contract_and_stores_holding(client, db, auth_headers, sample_user):

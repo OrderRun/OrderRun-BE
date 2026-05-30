@@ -28,7 +28,7 @@ router = APIRouter(prefix="/v1/proposal", tags=["proposal"])
     status_code=status.HTTP_200_OK,
 )
 async def list_proposals(
-    page: int = Query(1, ge=1),
+    page: int = Query(0, ge=0),
     size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -39,15 +39,23 @@ async def list_proposals(
 
 @router.get(
     "/own",
-    response_model=ApiResponse[list[ProposalOwnResponse]],
+    response_model=ApiResponse[PageResponse[ProposalOwnResponse]],
     status_code=status.HTTP_200_OK,
 )
 async def list_own_proposals(
     status_filter: ProposalStatus | None = Query(None, alias="status"),
+    page: int = Query(0, ge=0),
+    size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> ApiResponse[list[ProposalOwnResponse]]:
-    proposals = ProposalService.list_own(db, user_id=current_user.id, proposal_status=status_filter)
+) -> ApiResponse[PageResponse[ProposalOwnResponse]]:
+    proposals = ProposalService.list_own(
+        db,
+        user_id=current_user.id,
+        proposal_status=status_filter,
+        page=page,
+        size=size,
+    )
     return ApiResponse(success=True, data=proposals)
 
 
