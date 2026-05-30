@@ -1,190 +1,168 @@
-"""Mission service for business logic."""
+"""Mission business logic."""
+
+from __future__ import annotations
+
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.models.mission import Mission, MissionStatus
-from app.models.proposal import Proposal, ProposalStatus
 from app.models.offer import Offer, OfferStatus
+from app.models.user import User
+from app.schemas.common import PageResponse
+from app.schemas.mission import MissionAction, MissionResponse, MissionRole, MissionUpdateRequest, MissionUserSummary
 
 
-class MissionNotFoundError(Exception):
-    """Raised when mission is not found."""
-    pass
-
-
-class OfferNotFoundError(Exception):
-    """Raised when offer is not found."""
-    pass
-
-
-class ProposalNotFoundError(Exception):
-    """Raised when proposal is not found."""
-    pass
-
-
-class UnauthorizedAccessError(Exception):
-    """Raised when user tries to access resources they don't own."""
-    pass
-
-
-class InvalidOfferStatusError(Exception):
-    """Raised when offer status is not valid for the operation."""
-    pass
-
-
-class InvalidProposalStatusError(Exception):
-    """Raised when proposal status is not valid for the operation."""
-    pass
+def _error(http_status: int, code: str, message: str, details: str | None = None) -> HTTPException:
+    return HTTPException(
+        status_code=http_status,
+        detail={"code": code, "message": message, "details": details},
+    )
 
 
 class MissionService:
-    """Service for mission-related operations."""
+    """Service layer for Mission queries and state transitions."""
 
-    def __init__(self, db: Session):
-        self.db = db
-
-    def accept_offer_and_create_mission(self, offer_id: int, orderer_id: int) -> Mission:
-        """
-        Accept an offer and create a mission.
-
-        This operation:
-        1. Validates the offer exists and is in WAITING status
-        2. Validates the proposal exists and belongs to the orderer
-        3. Creates a mission with contract amount snapshot
-        4. Updates offer status to ACCEPTED
-        5. Updates proposal status to MATCHED
-        6. Rejects all other waiting offers for the same proposal
-
-        Args:
-            offer_id: ID of the offer to accept
-            orderer_id: ID of the orderer accepting the offer
-
-        Returns:
-            Created mission
-
-        Raises:
-            OfferNotFoundError: If offer doesn't exist
-            InvalidOfferStatusError: If offer is not in WAITING status
-            ProposalNotFoundError: If proposal doesn't exist
-            UnauthorizedAccessError: If user is not the proposal owner
-            InvalidProposalStatusError: If proposal is not in OFFERED status
-        """
-        # 1. Validate offer
-        offer = self.db.query(Offer).filter(Offer.id == offer_id).first()
-        if not offer:
-            raise OfferNotFoundError("제안을 찾을 수 없습니다.")
-
-        if offer.status != OfferStatus.WAITING:
-            raise InvalidOfferStatusError("이미 처리된 제안입니다.")
-
-        # 2. Validate proposal
-        proposal = self.db.query(Proposal).filter(
-            Proposal.id == offer.proposal_id
-        ).first()
-
-        if not proposal:
-            raise ProposalNotFoundError("요청을 찾을 수 없습니다.")
-
-        if proposal.orderer_id != orderer_id:
-            raise UnauthorizedAccessError("본인의 요청에 대한 제안만 수락할 수 있습니다.")
-
-        if proposal.status != ProposalStatus.OFFERED:
-            raise InvalidProposalStatusError("제안을 받을 수 없는 요청 상태입니다.")
-
-        # 3. Create mission with contract amount snapshot
-        mission = Mission(
-            proposal_id=proposal.id,
-            offer_id=offer.id,
-            orderer_id=proposal.orderer_id,
-            runner_id=offer.runner_id,
-            contract_amount=proposal.errand_fee,  # Snapshot of the contract amount
-            status=MissionStatus.CREATED
-        )
-
-        try:
-            self.db.add(mission)
-
-            # 4. Update offer status to ACCEPTED
-            offer.status = OfferStatus.ACCEPTED
-
-            # 5. Update proposal status to MATCHED
-            proposal.status = ProposalStatus.MATCHED
-
-            # 6. Reject all other waiting offers for the same proposal
-            other_offers = self.db.query(Offer).filter(
-                Offer.proposal_id == proposal.id,
-                Offer.id != offer.id,
-                Offer.status == OfferStatus.WAITING
-            ).all()
-
-            for other_offer in other_offers:
-                other_offer.status = OfferStatus.REJECTED
-
-            self.db.commit()
-            self.db.refresh(mission)
-
-            # TODO: Send notifications to accepted and rejected runners
-            # - Accepted runner: "Your offer has been accepted"
-            # - Rejected runners: "Your offer has been rejected"
-
-            return mission
-
-        except Exception as e:
-            self.db.rollback()
-            raise
-
-    def get_mission_by_id(self, mission_id: int) -> Mission:
-        """
-        Get a mission by ID.
-
-        Args:
-            mission_id: Mission ID
-
-        Returns:
-            Mission
-
-        Raises:
-            MissionNotFoundError: If mission doesn't exist
-        """
-        mission = self.db.query(Mission).filter(Mission.id == mission_id).first()
-
-        if not mission:
-            raise MissionNotFoundError("미션을 찾을 수 없습니다.")
-
+    @staticmethod
+    def _get_mission(db: Session, mission_id: int) -> Mission:
+        mission = db.query(Mission).filter(Mission.id == mission_id).first()
+        if mission is None:
+            raise _error(status.HTTP_404_NOT_FOUND, "MISSION_NOT_FOUND", "미션을 찾을 수 없습니다.", None)
         return mission
 
-    def get_missions_by_orderer(self, orderer_id: int, skip: int = 0, limit: int = 100) -> List[Mission]:
-        """
-        Get all missions for an orderer.
+    @staticmethod
+    def _user_summary(db: Session, user_id: str) -> MissionUserSummary:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            return MissionUserSummary(id=user_id, name="", phone=None)
+        return MissionUserSummary(id=user.id, name=user.name, phone=user.phone)
 
-        Args:
-            orderer_id: Orderer ID
-            skip: Number of records to skip
-            limit: Maximum number of records to return
+    @staticmethod
+    def _to_response(db: Session, mission: Mission) -> MissionResponse:
+        return MissionResponse(
+            id=mission.id,
+            proposal_id=mission.proposal_id,
+            offer_id=mission.offer_id,
+            orderer=MissionService._user_summary(db, mission.orderer_id),
+            runner=MissionService._user_summary(db, mission.runner_id),
+            run_fee=mission.run_fee,
+            item_price=mission.item_price,
+            total_amount=mission.total_amount,
+            delivery_proof_image_url=mission.delivery_proof_image_url,
+            status=mission.status,
+            pickup_at=mission.pickup_at,
+            delivery_completed_at=mission.delivery_completed_at,
+            received_confirmed_at=mission.received_confirmed_at,
+            settled_at=mission.settled_at,
+            dispute_reason=mission.dispute_reason,
+            created_at=mission.created_at,
+        )
 
-        Returns:
-            List of missions
-        """
-        missions = self.db.query(Mission).filter(
-            Mission.orderer_id == orderer_id
-        ).order_by(Mission.created_at.desc()).offset(skip).limit(limit).all()
+    @staticmethod
+    def list_own(
+        db: Session,
+        user_id: str,
+        role: MissionRole,
+        mission_status: MissionStatus | None,
+        page: int,
+        size: int,
+    ) -> PageResponse[MissionResponse]:
+        query = db.query(Mission)
+        if role == MissionRole.ORDERER:
+            query = query.filter(Mission.orderer_id == user_id)
+        elif role == MissionRole.RUNNER:
+            query = query.filter(Mission.runner_id == user_id)
 
-        return missions
+        if mission_status is not None:
+            query = query.filter(Mission.status == mission_status)
 
-    def get_missions_by_runner(self, runner_id: int, skip: int = 0, limit: int = 100) -> List[Mission]:
-        """
-        Get all missions for a runner.
+        total = query.count()
+        missions = (
+            query.order_by(Mission.created_at.desc(), Mission.id.desc())
+            .offset(page * size)
+            .limit(size)
+            .all()
+        )
+        return PageResponse.of(
+            content=[MissionService._to_response(db, mission) for mission in missions],
+            page_number=page,
+            page_size=size,
+            total_elements=total,
+        )
 
-        Args:
-            runner_id: Runner ID
-            skip: Number of records to skip
-            limit: Maximum number of records to return
+    @staticmethod
+    def update_status(
+        db: Session,
+        mission_id: int,
+        user_id: str,
+        request: MissionUpdateRequest,
+    ) -> MissionResponse:
+        mission = MissionService._get_mission(db, mission_id)
 
-        Returns:
-            List of missions
-        """
-        missions = self.db.query(Mission).filter(
-            Mission.runner_id == runner_id
-        ).order_by(Mission.created_at.desc()).offset(skip).limit(limit).all()
+        if user_id not in {mission.orderer_id, mission.runner_id}:
+            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
 
-        return missions
+        if request.action == MissionAction.START_PROGRESS:
+            MissionService._ensure_runner(mission, user_id)
+            if not mission.can_start():
+                raise MissionService._not_updatable()
+            mission.start_progress()
+
+        elif request.action == MissionAction.COMPLETE_DELIVERY:
+            MissionService._ensure_runner(mission, user_id)
+            if not request.proof_image_url:
+                raise _error(
+                    status.HTTP_400_BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "요청 값이 올바르지 않습니다.",
+                    "proofImageUrl: Field required",
+                )
+            if not mission.can_complete_delivery():
+                raise MissionService._not_updatable()
+            mission.complete_delivery(request.proof_image_url)
+            MissionService._complete_offer_if_needed(db, mission)
+
+        elif request.action == MissionAction.CONFIRM_RECEIVED:
+            MissionService._ensure_orderer(mission, user_id)
+            if not mission.can_confirm_receipt():
+                raise MissionService._not_updatable()
+            mission.confirm_receipt()
+            MissionService._complete_offer_if_needed(db, mission)
+
+        elif request.action == MissionAction.DISPUTE:
+            if not request.dispute_reason:
+                raise _error(
+                    status.HTTP_400_BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "요청 값이 올바르지 않습니다.",
+                    "disputeReason: Field required",
+                )
+            if not mission.can_raise_dispute():
+                raise MissionService._not_updatable()
+            mission.raise_dispute(request.dispute_reason)
+
+        db.commit()
+        db.refresh(mission)
+        return MissionService._to_response(db, mission)
+
+    @staticmethod
+    def _ensure_runner(mission: Mission, user_id: str) -> None:
+        if mission.runner_id != user_id:
+            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+
+    @staticmethod
+    def _ensure_orderer(mission: Mission, user_id: str) -> None:
+        if mission.orderer_id != user_id:
+            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+
+    @staticmethod
+    def _not_updatable() -> HTTPException:
+        return _error(status.HTTP_409_CONFLICT, "MISSION_NOT_UPDATABLE", "업데이트할 수 없는 미션 상태입니다.", None)
+
+    @staticmethod
+    def _complete_offer_if_needed(db: Session, mission: Mission) -> None:
+        if mission.status != MissionStatus.COMPLETED:
+            return
+
+        offer = db.query(Offer).filter(Offer.id == mission.offer_id).first()
+        if offer is not None and offer.status == OfferStatus.ACCEPTED:
+            offer.status = OfferStatus.COMPLETED

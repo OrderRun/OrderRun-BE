@@ -88,7 +88,7 @@ async def get_offer(
 @router.post(
     "/{offer_id}/accept",
     response_model=ApiResponse[OfferAcceptResponse],
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_201_CREATED,
     summary="Accept offer and create mission",
 )
 async def accept_offer(

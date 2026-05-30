@@ -2,142 +2,257 @@
 
 ## 목적
 
-현재 아키텍처 문서를 기준으로 정리한 파생 스키마 뷰다.
-도메인 모델이나 API 계약이 의미 있게 바뀌면 함께 갱신한다.
+이 문서는 목표 영속성 스키마의 파생 스냅샷이다.
+정본 결정은 [`docs/design-docs/persistence-schema-canonicalization.md`](../design-docs/persistence-schema-canonicalization.md)를 따른다.
 
-## Tables
+현재 코드와 다른 항목은 구현 완료 상태가 아니라 목표 정본 또는 legacy 기준으로 기록한다.
 
-### `users`
+## 전체 테이블
 
-| Column | Type | Constraints |
-| --- | --- | --- |
-| `id` | `varchar(36)` | PK |
-| `password_hash` | `varchar(255)` | nullable |
-| `name` | `varchar(100)` | not null |
-| `phone` | `varchar(20)` | unique, nullable |
-| `phone_verified_at` | `datetime` | nullable |
-| `last_login_at` | `datetime` | nullable |
-| `alarm_enabled` | `boolean` | not null |
-| `created_at` | `datetime` | not null |
-| `updated_at` | `datetime` | not null |
+| 테이블 | 담당 도메인 | ORM 매핑 | 세부 문서 | 설명 |
+|--------|-------------|----------|-----------|------|
+| `users` | user/auth | O | `docs/exec-plans/active/user-auth/model.md` | 사용자 계정 |
+| `auth_phone_verifications` | auth | O | `docs/exec-plans/active/user-auth/model.md` | 회원가입/로그인 전화번호 인증 |
+| `phone_verifications` | user legacy | X | 이 문서 | 구 전화번호 인증 테이블. 현재 코드 미사용 |
+| `user_fcm_tokens` | user | O | `docs/exec-plans/active/user-auth/model.md` | 사용자별 FCM 토큰 |
+| `terms_agreements` | terms | O | `docs/exec-plans/active/terms-agreement/model.md` | 사용자별 필수 약관 동의 |
+| `proposals` | bidding/proposal | O | `docs/exec-plans/active/proposal/model.md` | 심부름 모집 공고 |
+| `offers` | bidding/offer | O | `docs/exec-plans/active/offer/model.md` | 러너 지원서 |
+| `missions` | execution | O | `docs/exec-plans/active/mission/model.md` | 매칭 후 수행 계약 |
+| `payments` | settlement | 목표 O / 현재 미구현 | 이 문서 | 결제/정산 처리 |
+| `settlement_accounts` | settlement | O | 이 문서 | 러너 정산 계좌 |
 
-### `auth_phone_verifications`
+## 관계 요약
 
-| Column | Type | Constraints |
-| --- | --- | --- |
-| `id` | `bigint` | PK, auto increment |
-| `purpose` | `enum` | not null |
-| `phone` | `varchar(20)` | not null |
-| `name` | `varchar(100)` | nullable |
-| `carrier` | `varchar(50)` | nullable |
-| `code_hash` | `varchar(100)` | not null |
-| `status` | `enum` | not null |
-| `expires_at` | `datetime` | not null |
-| `sent_at` | `datetime` | not null |
-| `verified_at` | `datetime` | nullable |
-| `attempt_count` | `int` | not null |
-| `created_at` | `datetime` | not null |
-| `updated_at` | `datetime` | not null |
+```text
+users 1 -> N proposals(orderer_id)
+users 1 -> N offers(runner_id)
+users 1 -> N missions(orderer_id, runner_id)
+users 1 -> 1 user_fcm_tokens
+users 1 -> 1 terms_agreements
+users 1 -> 1 settlement_accounts
 
-### `user_fcm_tokens`
+proposals 1 -> N offers
+proposals 1 -> 1 missions
+offers 1 -> 1 missions
+missions 1 -> 1 payments
+```
 
-| Column | Type | Constraints |
-| --- | --- | --- |
-| `id` | `bigint` | PK, auto increment |
-| `user_id` | `varchar(36)` | unique, not null |
-| `fcm_token` | `varchar(4096)` | not null |
-| `created_at` | `datetime` | not null |
-| `updated_at` | `datetime` | not null |
+위 관계는 애플리케이션 레벨 관계다. 목표 정본 기준으로 실제 MySQL FK constraint는 없다.
 
-### `terms_agreements`
+## 공통 컬럼 규칙
 
-| Column | Type | Constraints |
-| --- | --- | --- |
-| `id` | `bigint` | PK, auto increment |
-| `user_id` | `varchar(36)` | unique, not null |
-| `terms_of_service` | `boolean` | not null |
-| `privacy_policy` | `boolean` | not null |
-| `payment_refund_policy` | `boolean` | not null |
-| `agreed_at` | `datetime(6)` | not null |
-| `created_at` | `datetime(6)` | not null |
-| `updated_at` | `datetime(6)` | not null |
+| 컬럼 | 타입 | Null | 설명 |
+|------|------|------|------|
+| `created_at` | `datetime(6)` | NO | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO | 수정 시각 |
 
-### `proposals`
+예외 없이 모든 현재 ORM 대상 테이블은 위 감사 컬럼을 가진다.
+Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 
-| Column | Type | Constraints |
-| --- | --- | --- |
-| `id` | `bigint` | PK, auto increment |
-| `orderer_id` | `varchar(36)` | not null, indexed |
-| `title` | `varchar(50)` | not null |
-| `content` | `varchar(500)` | not null |
-| `deadline` | `datetime(6)` | not null |
-| `errand_fee` | `int` | not null |
-| `status` | `enum(HOLDING, POSTED, OFFERED, MATCHED, CANCELLED)` | not null |
-| `meeting_at` | `datetime(6)` | not null, API 미노출 호환 컬럼 |
-| `item_price` | `int` | not null, API 미노출 호환 컬럼 |
-| `deposit` | `int` | not null, API 미노출 호환 컬럼 |
-| `created_at` | `datetime` | not null |
-| `updated_at` | `datetime` | not null |
+## `users`
 
-제약:
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `varchar(36)` | NO | PK | 사용자 UUID |
+| `password_hash` | `varchar(255)` | YES |  | 비밀번호 해시. 현재 phone-auth 흐름에서는 null 가능 |
+| `name` | `varchar(100)` | NO |  | 사용자 이름 |
+| `phone` | `varchar(20)` | YES | UNIQUE `uk_users_phone` | 정규화된 전화번호 |
+| `phone_verified_at` | `datetime(6)` | YES |  | 전화번호 인증 완료 시각 |
+| `last_login_at` | `datetime(6)` | YES |  | 마지막 로그인 시각 |
+| `alarm_enabled` | `boolean` | NO |  | 알림 수신 동의 여부 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
-- DB foreign key 없음
-- `idx_proposals_orderer_id` on `orderer_id`
+메모:
 
-### `offers`
+- `id`는 애플리케이션에서 UUID로 생성한다.
+- `phone`은 하이픈/공백 제거 및 `+82` -> `0` 변환 후 저장한다.
 
-| Column | Type | Constraints |
-| --- | --- | --- |
-| `id` | `bigint` | PK, auto increment |
-| `proposal_id` | `bigint` | not null, indexed |
-| `runner_id` | `varchar(36)` | not null, indexed |
-| `status` | `enum(WAITING, ACCEPTED, COMPLETED, REJECTED, CANCELLED)` | not null |
-| `created_at` | `datetime` | not null |
-| `updated_at` | `datetime` | not null |
+## `auth_phone_verifications`
 
-권장 인덱스:
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 인증 요청 ID |
+| `purpose` | `varchar(20)` | NO | `idx_auth_phone_verifications_purpose_phone_status_expires`, `idx_auth_phone_verifications_purpose_phone_status` | `SIGNUP`, `LOGIN` |
+| `phone` | `varchar(20)` | NO | 같은 복합 인덱스 | 정규화된 전화번호 |
+| `name` | `varchar(100)` | YES |  | 회원가입 요청 이름 |
+| `carrier` | `varchar(50)` | YES |  | 통신사 |
+| `code_hash` | `varchar(100)` | NO |  | 인증 코드 해시 |
+| `status` | `varchar(20)` | NO | 같은 복합 인덱스 | `PENDING`, `VERIFIED`, `EXPIRED` |
+| `expires_at` | `datetime(6)` | NO | 같은 복합 인덱스 | 만료 시각 |
+| `sent_at` | `datetime(6)` | NO |  | 발송 시각 |
+| `verified_at` | `datetime(6)` | YES |  | 인증 완료 시각 |
+| `attempt_count` | `integer` | NO |  | 코드 확인 실패 횟수 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
-- `idx_offers_proposal_id`
-- `idx_offers_runner_id`
-- `uk_offers_proposal_runner`
+현재 코드 메모:
 
-### `missions`
+- SQLAlchemy 인덱스명은 `idx_auth_phone_verifications_purpose_phone_status_expires_at`로 선언되어 있다.
 
-| Column | Type | Constraints |
-| --- | --- | --- |
-| `id` | `bigint` | PK, auto increment |
-| `proposal_id` | FK -> `proposals.id` | not null, indexed |
-| `offer_id` | FK -> `offers.id` | unique, not null |
-| `orderer_id` | FK -> `users.id` (`varchar(36)`) | not null |
-| `runner_id` | FK -> `users.id` (`varchar(36)`) | not null |
-| `contract_amount` | `int` | not null |
-| `run_fee` | `int` | not null |
-| `item_price` | `int` | not null |
-| `total_amount` | `int` | not null |
-| `status` | `enum` | not null |
-| `created_at` | `datetime` | not null |
-| `started_at` | `datetime` | nullable |
-| `completed_at` | `datetime` | nullable |
-| `settled_at` | `datetime` | nullable |
-| `updated_at` | `datetime` | not null |
+## `phone_verifications`
 
-### `payments`
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 인증 요청 ID |
+| `user_id` | `varchar(36)` | NO | `idx_phone_verifications_user_status_expires` | 사용자 ID |
+| `phone` | `varchar(20)` | NO | `idx_phone_verifications_phone_status` | 인증 대상 전화번호 |
+| `code_hash` | `varchar(100)` | NO |  | 인증 코드 해시 |
+| `status` | `varchar(20)` | NO | 복합 인덱스 | 인증 상태 |
+| `expires_at` | `datetime(6)` | NO | 복합 인덱스 | 만료 시각 |
+| `sent_at` | `datetime(6)` | NO |  | 발송 시각 |
+| `verified_at` | `datetime(6)` | YES |  | 인증 완료 시각 |
+| `attempt_count` | `integer` | NO |  | 코드 확인 실패 횟수 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
-| Column | Type | Constraints |
-| --- | --- | --- |
-| `id` | `bigint` or `uuid` | PK |
-| `mission_id` | FK -> `missions.id` | unique, not null |
-| `payer_id` | FK -> `users.id` (`varchar(36)`) | not null |
-| `payee_id` | FK -> `users.id` (`varchar(36)`) | not null |
-| `amount` | `decimal(10,2)` | not null |
-| `currency` | `varchar(10)` | not null |
-| `status` | `enum` | not null |
-| `provider` | `varchar(50)` | nullable |
-| `external_tx_id` | `varchar(100)` | nullable |
-| `created_at` | `datetime` | not null |
-| `updated_at` | `datetime` | not null |
+메모:
+
+- Legacy 전화번호 인증 테이블이다.
+- 현재 ORM 모델과 repository가 없으며, 신규 인증 흐름은 `auth_phone_verifications`를 사용한다.
+
+## `user_fcm_tokens`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 토큰 row ID |
+| `user_id` | `varchar(36)` | NO | UNIQUE `uk_user_fcm_tokens_user_id` | 사용자 ID |
+| `fcm_token` | `varchar(4096)` | NO |  | FCM 등록 토큰 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+## `terms_agreements`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 약관 동의 row ID |
+| `user_id` | `varchar(36)` | NO | UNIQUE `uk_terms_agreements_user_id`, INDEX `idx_terms_agreements_user_id` | 사용자 ID |
+| `terms_of_service` | `boolean` | NO |  | 이용약관 동의 |
+| `privacy_policy` | `boolean` | NO |  | 개인정보처리방침 동의 |
+| `payment_refund_policy` | `boolean` | NO |  | 결제/환불지급정책 동의 |
+| `agreed_at` | `datetime(6)` | NO |  | 동의 시각 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+## `proposals`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 공고 ID |
+| `orderer_id` | `varchar(36)` | NO | INDEX `idx_proposals_orderer_id` | 요청 작성자 사용자 ID |
+| `title` | `varchar(50)` | NO |  | 공고 제목 |
+| `content` | `varchar(500)` | NO |  | 요청 상세 내용 |
+| `deadline` | `datetime(6)` | NO |  | UTC 기준 수행 마감 시각 |
+| `meeting_at` | `datetime(6)` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
+| `errand_fee` | `integer` | NO |  | 심부름비 |
+| `item_price` | `integer` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
+| `deposit` | `integer` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
+| `status` | `varchar(20)` | NO |  | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `CANCELLED` |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+## `offers`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | Offer ID |
+| `proposal_id` | `bigint` | NO | UNIQUE `uk_proposal_runner` 일부 | 대상 Proposal ID |
+| `runner_id` | `varchar(36)` | NO | UNIQUE `uk_proposal_runner` 일부, INDEX `idx_offers_runner_id` | 지원자 사용자 ID |
+| `status` | `varchar(20)` | NO |  | `WAITING`, `ACCEPTED`, `COMPLETED`, `REJECTED`, `CANCELLED` |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+## `missions`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | Mission ID |
+| `proposal_id` | `bigint` | NO | UNIQUE `uk_proposal_id` | 연관 Proposal ID |
+| `offer_id` | `bigint` | NO | UNIQUE `uk_offer_id` | 연관 Offer ID |
+| `orderer_id` | `varchar(36)` | NO | INDEX `idx_missions_orderer_id` | 요청자 사용자 ID 스냅샷 |
+| `runner_id` | `varchar(36)` | NO | INDEX `idx_missions_runner_id` | 수행자 사용자 ID 스냅샷 |
+| `run_fee` | `decimal(10,2)` | NO |  | 수행 수수료 |
+| `item_price` | `decimal(10,2)` | NO |  | 물품 금액 |
+| `total_amount` | `decimal(10,2)` | NO |  | 총 계약 금액 |
+| `delivery_proof_image_url` | `varchar(500)` | YES |  | 전달 인증 사진 URL |
+| `status` | `varchar(30)` | NO |  | Mission 상태 |
+| `pickup_at` | `datetime(6)` | YES |  | 수행 시작 시각 |
+| `delivery_completed_at` | `datetime(6)` | YES |  | 전달 완료 시각 |
+| `received_confirmed_at` | `datetime(6)` | YES |  | 수령 확인 시각 |
+| `settled_at` | `datetime(6)` | YES |  | 정산 완료 시각 |
+| `dispute_reason` | `text` | YES |  | 분쟁 사유 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+현재 코드 갭:
+
+- `contract_amount`, `started_at`, `completed_at` 컬럼을 사용한다.
+- 금액 타입은 `Integer`다.
+- SQLAlchemy `ForeignKey`가 선언되어 있다.
+- `proposal_id`는 현재 unique가 아니다.
+
+## `payments`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | Payment ID |
+| `mission_id` | `bigint` | NO | UNIQUE `uk_mission_id` | 연관 Mission ID |
+| `orderer_id` | `varchar(36)` | NO | INDEX `idx_payments_orderer_id` | 요청자 사용자 ID 스냅샷 |
+| `runner_id` | `varchar(36)` | NO | INDEX `idx_payments_runner_id` | 수행자 사용자 ID 스냅샷 |
+| `run_fee` | `decimal(10,2)` | NO |  | 수행 수수료 |
+| `item_price` | `decimal(10,2)` | NO |  | 물품 금액 |
+| `total_amount` | `decimal(10,2)` | NO |  | 총 결제 금액 |
+| `settlement_amount` | `decimal(10,2)` | NO |  | 러너 정산 금액 |
+| `pg_transaction_id` | `varchar(100)` | YES |  | PG 거래 ID |
+| `pg_response` | `text` | YES |  | PG 응답 원문 |
+| `status` | `varchar(20)` | NO |  | `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, `REFUNDED` |
+| `processing_started_at` | `datetime(6)` | YES |  | 결제 처리 시작 시각 |
+| `completed_at` | `datetime(6)` | YES |  | 결제 완료 시각 |
+| `failed_at` | `datetime(6)` | YES |  | 결제 실패 시각 |
+| `refunded_at` | `datetime(6)` | YES |  | 환불 완료 시각 |
+| `failure_reason` | `text` | YES |  | 실패 사유 |
+| `retry_count` | `integer` | NO |  | 결제 재시도 횟수 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+현재 코드 메모:
+
+- `payments` ORM 모델은 아직 없다.
+- 기존 문서의 `payer_id`, `payee_id`, `amount`, `currency`, `provider`, `external_tx_id` 기준은 이 목표 정본으로 대체한다.
+
+## `settlement_accounts`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 정산 계좌 row ID |
+| `user_id` | `varchar(36)` | NO | UNIQUE `uk_settlement_accounts_user_id`, INDEX `idx_settlement_accounts_user_id` | 계좌 소유 사용자 ID |
+| `bank_code` | `varchar(10)` | NO |  | 은행 코드 |
+| `bank_name` | `varchar(50)` | NO |  | 은행명 |
+| `account_holder` | `varchar(100)` | NO |  | 예금주명 |
+| `encrypted_account_number` | `varchar(500)` | NO |  | 암호화된 계좌번호 |
+| `masked_account_number` | `varchar(50)` | NO |  | 표시용 마스킹 계좌번호 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+현재 코드 메모:
+
+- `settlement_accounts` ORM 모델은 `app/models/settlement.py`에 있다.
+- 운영 전 `encrypted_account_number` 저장 방식은 KMS 또는 별도 암호화 유틸로 교체해야 한다.
+
+## 목표 정본 외 현재 보조 테이블
+
+아래 테이블은 현재 코드에 있지만 핵심 목표 정본 10개 테이블에는 포함하지 않는다. 별도 알림/이메일 문서에서 관리한다.
+
+| 테이블 | 모델 | 설명 |
+|--------|------|------|
+| `device_tokens` | `app/models/notification.py` | 다중 디바이스 FCM 토큰 |
+| `notifications` | `app/models/notification.py` | 알림 발송/상태 로그 |
+| `notification_preferences` | `app/models/notification.py` | 사용자 알림 선호 설정 |
+| `email_logs` | `app/models/email.py` | 이메일 발송 로그 |
 
 ## 기준 문서
 
-- `docs/architecture/orderrun-domain-model.md`
-- `docs/architecture/orderrun-fastapi-transition.md`
+- [`docs/design-docs/persistence-schema-canonicalization.md`](../design-docs/persistence-schema-canonicalization.md)
+- [`docs/architecture/orderrun-domain-model.md`](../architecture/orderrun-domain-model.md)
+- [`docs/architecture/orderrun-fastapi-transition.md`](../architecture/orderrun-fastapi-transition.md)
