@@ -1,10 +1,10 @@
 """Admin API endpoints."""
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from typing import Optional
 
 from app.core.database import get_db
+from app.core.errors import AppError
+from app.core.openapi import error_responses
 from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.proposal import ProposalResponse
@@ -12,12 +12,7 @@ from app.schemas.common import ApiResponse
 from app.services.proposal import ProposalService
 
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
-
-
-class PaymentConfirmRequest(BaseModel):
-    """Request schema for payment confirmation."""
-    depositor_name: Optional[str] = None
+router = APIRouter(prefix="/admin", tags=["관리자"])
 
 
 def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
@@ -37,10 +32,15 @@ def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
     status_code=status.HTTP_200_OK,
     summary="입금 확인 (관리자 전용)",
     description="관리자가 오더러의 입금을 확인하여 제안을 POSTED 상태로 전환합니다.",
+    responses=error_responses(
+        AppError.INVALID_TOKEN,
+        AppError.VALIDATION_ERROR,
+        AppError.PROPOSAL_NOT_FOUND,
+        AppError.INVALID_STATUS,
+    ),
 )
 async def confirm_payment(
     proposal_id: int,
-    request: PaymentConfirmRequest,
     db: Session = Depends(get_db),
     admin_user: User = Depends(get_admin_user),
 ):
@@ -49,18 +49,16 @@ async def confirm_payment(
 
     Args:
         proposal_id: Proposal ID
-        request: Payment confirmation request with optional depositor name
         db: Database session
         admin_user: Current admin user
 
     Returns:
         ApiResponse with updated proposal
     """
+    _ = admin_user
     proposal = ProposalService.confirm_payment(
         db=db,
         proposal_id=proposal_id,
-        admin_id=admin_user.id,
-        depositor_name=request.depositor_name,
     )
 
     return ApiResponse(
@@ -73,6 +71,7 @@ async def confirm_payment(
     "/proposal/pending-payment",
     summary="입금 대기 중인 제안 목록 조회 (관리자 전용)",
     description="관리자가 입금 대기 중인 모든 제안을 조회합니다.",
+    responses=error_responses(AppError.INVALID_TOKEN),
 )
 async def list_pending_payment_proposals(
     skip: int = 0,
@@ -92,6 +91,7 @@ async def list_pending_payment_proposals(
     Returns:
         List of pending payment proposals
     """
+    _ = admin_user
     from app.models.proposal import Proposal, ProposalStatus
 
     proposals = (

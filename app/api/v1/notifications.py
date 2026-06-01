@@ -1,6 +1,4 @@
-"""
-Notification API endpoints for managing device tokens and notifications.
-"""
+"""Push notification API endpoints."""
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
@@ -8,6 +6,7 @@ from sqlalchemy import desc
 
 from app.core.database import get_db
 from app.core.errors import AppError, api_error
+from app.core.openapi import AUTH_ERROR_RESPONSES, error_responses
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.notification import (
@@ -33,7 +32,7 @@ from app.core.config import settings
 from datetime import datetime
 
 
-router = APIRouter(prefix="/notifications", tags=["notifications"])
+router = APIRouter(prefix="/notifications", tags=["알림"])
 
 
 # Dependency for FCM service
@@ -57,20 +56,16 @@ def get_notification_dispatcher(
     "/device-tokens",
     response_model=DeviceTokenResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Register device token for push notifications"
+    summary="디바이스 토큰 등록",
+    description="현재 사용자의 푸시 알림 수신용 FCM 디바이스 토큰을 등록합니다.",
+    responses=error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
 )
 def register_device_token(
     token_data: DeviceTokenCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> DeviceToken:
-    """
-    Register a device token for the current user to receive push notifications.
-
-    - **token**: FCM device token
-    - **platform**: Device platform (ios, android, web)
-    - **device_id**: Optional device identifier for tracking
-    """
+    """현재 사용자의 FCM 디바이스 토큰을 등록합니다."""
     # Check if token already exists
     existing_token = db.query(DeviceToken).filter(
         DeviceToken.token == token_data.token
@@ -104,7 +99,9 @@ def register_device_token(
 @router.get(
     "/device-tokens",
     response_model=List[DeviceTokenResponse],
-    summary="Get all device tokens for current user"
+    summary="디바이스 토큰 목록 조회",
+    description="현재 사용자에게 등록된 모든 디바이스 토큰을 조회합니다.",
+    responses=AUTH_ERROR_RESPONSES,
 )
 def list_device_tokens(
     db: Session = Depends(get_db),
@@ -120,7 +117,9 @@ def list_device_tokens(
 @router.patch(
     "/device-tokens/{token_id}",
     response_model=DeviceTokenResponse,
-    summary="Update device token (e.g., deactivate)"
+    summary="디바이스 토큰 수정",
+    description="디바이스 토큰의 활성 상태를 수정합니다.",
+    responses=error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR, AppError.DEVICE_TOKEN_NOT_FOUND),
 )
 def update_device_token(
     token_id: int,
@@ -149,7 +148,9 @@ def update_device_token(
 @router.delete(
     "/device-tokens/{token_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete device token"
+    summary="디바이스 토큰 삭제",
+    description="현재 사용자에게 등록된 디바이스 토큰을 삭제합니다.",
+    responses=error_responses(AppError.INVALID_TOKEN, AppError.DEVICE_TOKEN_NOT_FOUND),
 )
 def delete_device_token(
     token_id: int,
@@ -174,22 +175,18 @@ def delete_device_token(
 @router.get(
     "",
     response_model=NotificationListResponse,
-    summary="Get notifications for current user"
+    summary="알림 목록 조회",
+    description="현재 사용자의 알림 목록을 페이지 단위로 조회합니다.",
+    responses=AUTH_ERROR_RESPONSES,
 )
 def list_notifications(
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    unread_only: bool = Query(False, description="Show only unread notifications"),
+    page: int = Query(1, ge=1, description="페이지 번호(1부터 시작)"),
+    page_size: int = Query(20, ge=1, le=100, description="페이지 크기"),
+    unread_only: bool = Query(False, description="읽지 않은 알림만 조회할지 여부"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> NotificationListResponse:
-    """
-    Get paginated list of notifications for the current user.
-
-    - **page**: Page number (starts at 1)
-    - **page_size**: Number of items per page (max 100)
-    - **unread_only**: Filter to show only unread notifications
-    """
+    """현재 사용자의 알림 목록을 조회합니다."""
     query = db.query(Notification).filter(
         Notification.user_id == current_user.id
     )
@@ -216,7 +213,9 @@ def list_notifications(
 @router.get(
     "/{notification_id}",
     response_model=NotificationResponse,
-    summary="Get a specific notification"
+    summary="알림 상세 조회",
+    description="알림 ID로 알림 상세 정보를 조회합니다.",
+    responses=error_responses(AppError.INVALID_TOKEN, AppError.NOTIFICATION_NOT_FOUND),
 )
 def get_notification(
     notification_id: int,
@@ -238,7 +237,9 @@ def get_notification(
 @router.post(
     "/mark-read",
     status_code=status.HTTP_200_OK,
-    summary="Mark notifications as read"
+    summary="알림 읽음 처리",
+    description="하나 이상의 알림을 읽음 상태로 변경합니다.",
+    responses=error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
 )
 def mark_notifications_read(
     request: NotificationMarkReadRequest,
@@ -272,7 +273,9 @@ def mark_notifications_read(
     "/send",
     response_model=NotificationResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Send a custom notification to current user (for testing)"
+    summary="테스트 알림 발송",
+    description="현재 사용자에게 테스트용 커스텀 알림을 발송합니다.",
+    responses=error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
 )
 def send_notification(
     notification_request: NotificationSendRequest,
@@ -280,12 +283,7 @@ def send_notification(
     current_user: User = Depends(get_current_user),
     dispatcher: NotificationDispatcher = Depends(get_notification_dispatcher)
 ) -> Notification:
-    """
-    Send a custom notification to the current user.
-
-    This endpoint is primarily for testing purposes.
-    In production, notifications are typically triggered by business events.
-    """
+    """현재 사용자에게 테스트용 알림을 발송합니다."""
     dispatcher.send_custom_notification(
         db=db,
         user_id=current_user.id,
@@ -309,7 +307,9 @@ def send_notification(
 @router.get(
     "/preferences/me",
     response_model=NotificationPreferenceResponse,
-    summary="Get notification preferences for current user"
+    summary="알림 설정 조회",
+    description="현재 사용자의 알림 수신 설정을 조회합니다.",
+    responses=AUTH_ERROR_RESPONSES,
 )
 def get_notification_preferences(
     db: Session = Depends(get_db),
@@ -333,7 +333,9 @@ def get_notification_preferences(
 @router.patch(
     "/preferences/me",
     response_model=NotificationPreferenceResponse,
-    summary="Update notification preferences"
+    summary="알림 설정 수정",
+    description="현재 사용자의 알림 수신 설정을 수정합니다.",
+    responses=error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
 )
 def update_notification_preferences(
     preference_update: NotificationPreferenceUpdate,
@@ -366,7 +368,9 @@ def update_notification_preferences(
 
 @router.get(
     "/stats/me",
-    summary="Get notification statistics for current user"
+    summary="알림 통계 조회",
+    description="현재 사용자의 전체/읽지 않음/실패/읽음 알림 수를 조회합니다.",
+    responses=AUTH_ERROR_RESPONSES,
 )
 def get_notification_stats(
     db: Session = Depends(get_db),

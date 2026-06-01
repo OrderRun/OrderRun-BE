@@ -117,6 +117,8 @@ Client
 - `repository.py`에는 비즈니스 규칙을 넣지 않는다.
 - `model.py`에는 상태 전이와 권한 검증 로직을 넣지 않는다.
 - `service.py`는 FastAPI 객체에 직접 의존하지 않는다.
+- API Request/Response DTO는 다른 API DTO를 상속하지 않는다. 각 endpoint의 요청/응답 스키마는 필드를 명시적으로 선언하고, API 계약의 변경 독립성을 중복 제거보다 우선한다.
+- 허용되는 상속은 `BaseModel`, `Enum`, `Generic[T]`, `ApiResponse`, `PageResponse`처럼 프레임워크나 공통 envelope 목적의 상속으로 제한한다.
 - 초기 버전에서는 `async`보다 동기 `SQLAlchemy 2.x` 구성을 우선 권장한다.
 
 비권장 구조 예시:

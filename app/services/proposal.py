@@ -206,9 +206,7 @@ class ProposalService:
         return proposal
 
     @staticmethod
-    def confirm_payment(
-        db: Session, proposal_id: int, admin_id: str, depositor_name: str | None = None
-    ) -> Proposal:
+    def confirm_payment(db: Session, proposal_id: int) -> Proposal:
         proposal = ProposalService._get_proposal(db, proposal_id)
         if proposal.status != ProposalStatus.HOLDING:
             raise api_error(AppError.INVALID_STATUS, f"current status: {proposal.status.value}")

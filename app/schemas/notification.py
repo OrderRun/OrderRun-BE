@@ -1,6 +1,4 @@
-"""
-Pydantic schemas for notification-related request/response models.
-"""
+"""Notification request and response schemas."""
 from datetime import datetime
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict
@@ -16,9 +14,9 @@ from app.models.notification import (
 
 class DeviceTokenCreate(BaseModel):
     """Schema for creating a new device token."""
-    token: str = Field(..., min_length=1, max_length=255, description="FCM device token")
-    platform: DevicePlatform = Field(..., description="Device platform (ios, android, web)")
-    device_id: Optional[str] = Field(None, max_length=255, description="Optional device identifier")
+    token: str = Field(..., min_length=1, max_length=255, description="FCM 디바이스 토큰")
+    platform: DevicePlatform = Field(..., description="디바이스 플랫폼(ios, android, web)")
+    device_id: Optional[str] = Field(None, max_length=255, description="디바이스 식별자")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,7 +38,7 @@ class DeviceTokenResponse(BaseModel):
 
 class DeviceTokenUpdate(BaseModel):
     """Schema for updating a device token."""
-    is_active: Optional[bool] = Field(None, description="Set to false to deactivate token")
+    is_active: Optional[bool] = Field(None, description="토큰 활성 여부")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -49,25 +47,25 @@ class DeviceTokenUpdate(BaseModel):
 
 class NotificationCreate(BaseModel):
     """Schema for creating a notification (internal use)."""
-    user_id: str = Field(..., description="User ID to send notification to")
-    notification_type: NotificationType = Field(..., description="Type of notification")
-    title: str = Field(..., min_length=1, max_length=255, description="Notification title")
-    body: str = Field(..., min_length=1, description="Notification body")
-    data: Optional[Dict[str, Any]] = Field(None, description="Optional payload data")
-    related_entity_type: Optional[str] = Field(None, max_length=50, description="Related entity type (e.g., 'proposal', 'offer')")
-    related_entity_id: Optional[int] = Field(None, description="Related entity ID")
+    user_id: str = Field(..., description="알림을 받을 사용자 ID")
+    notification_type: NotificationType = Field(..., description="알림 유형")
+    title: str = Field(..., min_length=1, max_length=255, description="알림 제목")
+    body: str = Field(..., min_length=1, description="알림 본문")
+    data: Optional[Dict[str, Any]] = Field(None, description="추가 payload 데이터")
+    related_entity_type: Optional[str] = Field(None, max_length=50, description="관련 엔티티 유형")
+    related_entity_id: Optional[int] = Field(None, description="관련 엔티티 ID")
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class NotificationSendRequest(BaseModel):
     """Schema for sending a notification via API."""
-    notification_type: NotificationType = Field(..., description="Type of notification")
-    title: str = Field(..., min_length=1, max_length=255, description="Notification title")
-    body: str = Field(..., min_length=1, description="Notification body")
-    data: Optional[Dict[str, Any]] = Field(None, description="Optional payload data")
-    related_entity_type: Optional[str] = Field(None, max_length=50, description="Related entity type")
-    related_entity_id: Optional[int] = Field(None, description="Related entity ID")
+    notification_type: NotificationType = Field(..., description="알림 유형")
+    title: str = Field(..., min_length=1, max_length=255, description="알림 제목")
+    body: str = Field(..., min_length=1, description="알림 본문")
+    data: Optional[Dict[str, Any]] = Field(None, description="추가 payload 데이터")
+    related_entity_type: Optional[str] = Field(None, max_length=50, description="관련 엔티티 유형")
+    related_entity_id: Optional[int] = Field(None, description="관련 엔티티 ID")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -105,7 +103,7 @@ class NotificationListResponse(BaseModel):
 
 class NotificationMarkReadRequest(BaseModel):
     """Schema for marking notification(s) as read."""
-    notification_ids: list[int] = Field(..., min_length=1, description="List of notification IDs to mark as read")
+    notification_ids: list[int] = Field(..., min_length=1, description="읽음 처리할 알림 ID 목록")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -138,8 +136,8 @@ class NotificationPreferenceUpdate(BaseModel):
     enable_payment_notifications: Optional[bool] = None
     enable_system_notifications: Optional[bool] = None
     enable_quiet_hours: Optional[bool] = None
-    quiet_hours_start: Optional[int] = Field(None, ge=0, le=23, description="Quiet hours start (0-23)")
-    quiet_hours_end: Optional[int] = Field(None, ge=0, le=23, description="Quiet hours end (0-23)")
+    quiet_hours_start: Optional[int] = Field(None, ge=0, le=23, description="방해 금지 시작 시각(0-23)")
+    quiet_hours_end: Optional[int] = Field(None, ge=0, le=23, description="방해 금지 종료 시각(0-23)")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -148,29 +146,29 @@ class NotificationPreferenceUpdate(BaseModel):
 
 class FCMNotificationPayload(BaseModel):
     """Schema for FCM notification payload."""
-    title: str = Field(..., description="Notification title")
-    body: str = Field(..., description="Notification body")
-    image: Optional[str] = Field(None, description="Optional notification image URL")
+    title: str = Field(..., description="알림 제목")
+    body: str = Field(..., description="알림 본문")
+    image: Optional[str] = Field(None, description="알림 이미지 URL")
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class FCMDataPayload(BaseModel):
     """Schema for FCM data payload."""
-    notification_id: str = Field(..., description="Internal notification ID")
-    notification_type: str = Field(..., description="Type of notification")
-    related_entity_type: Optional[str] = Field(None, description="Related entity type")
-    related_entity_id: Optional[str] = Field(None, description="Related entity ID")
-    custom_data: Optional[Dict[str, str]] = Field(None, description="Additional custom data")
+    notification_id: str = Field(..., description="내부 알림 ID")
+    notification_type: str = Field(..., description="알림 유형")
+    related_entity_type: Optional[str] = Field(None, description="관련 엔티티 유형")
+    related_entity_id: Optional[str] = Field(None, description="관련 엔티티 ID")
+    custom_data: Optional[Dict[str, str]] = Field(None, description="추가 데이터")
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class FCMSendResult(BaseModel):
     """Schema for FCM send result."""
-    success: bool = Field(..., description="Whether the send was successful")
-    message_id: Optional[str] = Field(None, description="FCM message ID if successful")
-    error_code: Optional[str] = Field(None, description="Error code if failed")
-    error_message: Optional[str] = Field(None, description="Error message if failed")
+    success: bool = Field(..., description="발송 성공 여부")
+    message_id: Optional[str] = Field(None, description="FCM 메시지 ID")
+    error_code: Optional[str] = Field(None, description="실패 시 에러 코드")
+    error_message: Optional[str] = Field(None, description="실패 시 에러 메시지")
 
     model_config = ConfigDict(from_attributes=True)

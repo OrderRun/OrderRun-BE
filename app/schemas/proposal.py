@@ -41,8 +41,17 @@ class ProposalResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
-class ProposalDetailResponse(ProposalResponse):
+class ProposalDetailResponse(BaseModel):
     """Proposal detail response."""
+
+    id: int
+    title: str
+    content: str
+    deadline: datetime
+    errand_fee: int = Field(..., serialization_alias="errandFee")
+    status: ProposalStatus
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class ProposalOwnOfferResponse(BaseModel):
@@ -57,10 +66,16 @@ class ProposalOwnOfferResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
-class ProposalOwnResponse(ProposalResponse):
+class ProposalOwnResponse(BaseModel):
     """Proposal response for the orderer including offer summaries."""
 
+    id: int
     orderer_id: str = Field(..., serialization_alias="ordererId")
+    title: str
+    content: str
+    deadline: datetime
+    errand_fee: int = Field(..., serialization_alias="errandFee")
+    status: ProposalStatus
     offer_count: int = Field(..., serialization_alias="offerCount")
     offers: list[ProposalOwnOfferResponse]
     created_at: datetime = Field(..., serialization_alias="createdAt")

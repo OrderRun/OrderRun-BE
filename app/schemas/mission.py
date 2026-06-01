@@ -70,4 +70,4 @@ class MissionResponse(BaseModel):
 class DisputeCreate(BaseModel):
     """Dispute creation request schema."""
 
-    reason: str = Field(..., min_length=1, max_length=1000, description="Dispute reason")
+    reason: str = Field(..., min_length=1, max_length=1000, description="분쟁 사유")

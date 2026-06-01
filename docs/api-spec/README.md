@@ -64,6 +64,17 @@
 | error.details | string, object, null | 상세 정보. 없을 수 있음 |
 | timestamp | string | 에러 발생 시각 |
 
+### Swagger 문서화 규칙
+
+Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
+
+- API 제목과 전체 설명은 `app/main.py`의 `FastAPI(...)` 설정을 사용한다.
+- API별 요약과 설명은 `app/api/v1/*` 라우터 데코레이터의 `summary`, `description`을 사용한다.
+- 요청/응답 필드 설명은 `app/schemas/*`의 Pydantic `Field(description=...)`을 사용한다.
+- 각 API 요청/응답은 endpoint별 독립 DTO를 기준으로 문서화하며, API DTO가 다른 API DTO를 상속해 계약을 공유하지 않는다.
+- 실패 응답 예시는 `app/core/openapi.py`의 `error_responses()`로 생성하며, 에러 코드와 메시지는 `app/core/errors.py`의 `AppError` 카탈로그를 기준으로 한다.
+- Swagger 실패 응답 예시는 실제 예외 핸들러 응답과 같은 `success/error/timestamp` 형태를 유지한다.
+
 ### 인증 예외
 
 아래 API는 인증 없이 호출할 수 있다.
