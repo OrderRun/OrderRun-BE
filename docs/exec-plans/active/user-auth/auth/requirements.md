@@ -18,6 +18,7 @@
 - FastAPI 구현은 현재 Java 구현과 같은 요청/응답/에러 코드/상태 전이를 그대로 제공한다.
 - 회원가입과 로그인은 SMS 인증 절차를 반드시 통과해야 한다.
 - phone normalization, code TTL, attempt count, token type 검증, user creation 시점은 현재 구현과 동일해야 한다.
+- 단, `development`/`local`/`staging` 환경의 `POST /v1/auth/login/confirm` 은 기존 사용자에 한해 테스트 코드 `123456` 을 SMS pending 없이 허용한다.
 
 ## In Scope
 
@@ -84,6 +85,8 @@
 ### `POST /v1/auth/login/confirm`
 
 - 요청은 `phone`, `code`, `fcmToken?` 를 받는다.
+- `development`/`local`/`staging` 에서 `code=123456` 이고 기존 사용자가 있으면 로그인 인증 레코드 없이도 성공한다.
+- 위 테스트 코드 우회는 로그인 확인 API 전용이며 `production` 과 회원가입 확인에는 적용되지 않는다.
 - 최신 `PENDING` 로그인 인증을 찾는다.
 - 인증이 없으면 404 `PHONE_VERIFICATION_NOT_FOUND` 를 반환한다.
 - 만료되었으면 400 `PHONE_VERIFICATION_EXPIRED` 를 반환하고 해당 인증을 `EXPIRED` 로 바꾼다.
@@ -93,6 +96,7 @@
 - 성공 시 JWT access/refresh token 이 함께 발급된다.
 - 성공 응답 `data` 는 `accessToken`, `refreshToken`, `tokenType`, `expiresIn`, `userId` 를 가진다.
 - `tokenType` 은 항상 `Bearer` 다.
+- 가입되지 않은 전화번호는 확인 단계에서 404 `USER_NOT_FOUND` 로 거부된다.
 - 가입되지 않은 전화번호는 인증 발송 단계에서 401 `INVALID_CREDENTIALS` 로 거부된다.
 
 ### `POST /v1/auth/refresh`

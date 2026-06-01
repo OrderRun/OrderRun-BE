@@ -37,6 +37,9 @@ from app.services.sms_service import SmsSender
 
 logger = logging.getLogger(__name__)
 
+LOCAL_TEST_VERIFICATION_CODE = "123456"
+LOGIN_TEST_CODE_ALLOWED_ENVS = {"development", "local", "staging"}
+
 
 class UserAuthService:
     def __init__(self, db: Session, sms_sender: SmsSender | None = None):
@@ -63,6 +66,10 @@ class UserAuthService:
     def _hash_code(code: str) -> str:
         digest = hashlib.sha256(f"{settings.secret_key}:{code}".encode("utf-8")).hexdigest()
         return digest
+
+    @staticmethod
+    def _is_login_test_code_allowed(code: str) -> bool:
+        return code == LOCAL_TEST_VERIFICATION_CODE and settings.app_env.lower() in LOGIN_TEST_CODE_ALLOWED_ENVS
 
     @staticmethod
     def _message(code: str) -> str:
@@ -250,11 +257,12 @@ class UserAuthService:
 
     def confirm_login(self, payload: AuthLoginConfirmRequest) -> AuthTokenResponse:
         phone = normalize_phone(payload.phone)
-        self._confirm_verification(PhoneVerificationPurpose.LOGIN, phone, payload.code)
-
         user = self._find_user_by_phone(phone)
         if user is None:
             raise api_error(AppError.USER_NOT_FOUND)
+
+        if not self._is_login_test_code_allowed(payload.code):
+            self._confirm_verification(PhoneVerificationPurpose.LOGIN, phone, payload.code)
 
         now = self._now()
         user.update_last_login_at(now)

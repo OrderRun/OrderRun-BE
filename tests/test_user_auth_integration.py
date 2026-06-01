@@ -82,6 +82,113 @@ def test_signup_login_refresh_and_logout_flow(client, db, sms_sender):
     assert logout.json()["data"] is None
 
 
+def test_login_confirm_accepts_test_code_in_development(client, sms_sender, monkeypatch):
+    _signup(client, sms_sender)
+    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "development")
+    sent_count = len(sms_sender.sent_messages)
+
+    login_confirm = client.post(
+        "/v1/auth/login/confirm",
+        json={"phone": "010-1234-5678", "code": "123456"},
+    )
+
+    assert login_confirm.status_code == 200
+    assert login_confirm.json()["data"]["accessToken"]
+    assert len(sms_sender.sent_messages) == sent_count
+
+
+def test_login_confirm_accepts_test_code_in_staging(client, sms_sender, monkeypatch):
+    _signup(client, sms_sender)
+    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "staging")
+
+    login_confirm = client.post(
+        "/v1/auth/login/confirm",
+        json={"phone": "010-1234-5678", "code": "123456"},
+    )
+
+    assert login_confirm.status_code == 200
+    assert login_confirm.json()["data"]["accessToken"]
+
+
+def test_login_confirm_rejects_test_code_for_missing_user_in_development(client, monkeypatch):
+    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "development")
+
+    login_confirm = client.post(
+        "/v1/auth/login/confirm",
+        json={"phone": "010-9999-8888", "code": "123456"},
+    )
+
+    assert login_confirm.status_code == 404
+    assert login_confirm.json()["error"]["code"] == "USER_NOT_FOUND"
+
+
+def test_login_confirm_rejects_test_code_without_pending_verification_in_production(client, sms_sender, monkeypatch):
+    _signup(client, sms_sender)
+    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "production")
+
+    login_confirm = client.post(
+        "/v1/auth/login/confirm",
+        json={"phone": "010-1234-5678", "code": "123456"},
+    )
+
+    assert login_confirm.status_code == 404
+    assert login_confirm.json()["error"]["code"] == "PHONE_VERIFICATION_NOT_FOUND"
+
+
+def test_login_confirm_rejects_test_code_in_production(client, db, sms_sender, monkeypatch):
+    _signup(client, sms_sender)
+    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "production")
+
+    login_send = client.post("/v1/auth/login/send", json={"phone": "010-1234-5678"})
+    assert login_send.status_code == 200
+    actual_code = _extract_code(sms_sender.sent_messages[-1]["message"])
+    if actual_code == "123456":
+        verification = db.query(AuthPhoneVerification).filter(
+            AuthPhoneVerification.phone == "01012345678",
+            AuthPhoneVerification.purpose == PhoneVerificationPurpose.LOGIN,
+            AuthPhoneVerification.status == PhoneVerificationStatus.PENDING,
+        ).order_by(AuthPhoneVerification.id.desc()).first()
+        assert verification is not None
+        verification.code_hash = "not-the-test-code-hash"
+        db.commit()
+
+    login_confirm = client.post(
+        "/v1/auth/login/confirm",
+        json={"phone": "010-1234-5678", "code": "123456"},
+    )
+
+    assert login_confirm.status_code == 400
+    assert login_confirm.json()["error"]["code"] == "PHONE_VERIFICATION_CODE_MISMATCH"
+
+
+def test_signup_confirm_does_not_accept_login_test_code(client, db, sms_sender, monkeypatch):
+    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "development")
+
+    signup_send = client.post(
+        "/v1/auth/signup/send",
+        json={"name": "홍길동", "phone": "010-5555-6666", "carrier": "SKT"},
+    )
+    assert signup_send.status_code == 200
+    actual_code = _extract_code(sms_sender.sent_messages[-1]["message"])
+    if actual_code == "123456":
+        verification = db.query(AuthPhoneVerification).filter(
+            AuthPhoneVerification.phone == "01055556666",
+            AuthPhoneVerification.purpose == PhoneVerificationPurpose.SIGNUP,
+            AuthPhoneVerification.status == PhoneVerificationStatus.PENDING,
+        ).first()
+        assert verification is not None
+        verification.code_hash = "not-the-test-code-hash"
+        db.commit()
+
+    signup_confirm = client.post(
+        "/v1/auth/signup/confirm",
+        json={"phone": "010-5555-6666", "code": "123456"},
+    )
+
+    assert signup_confirm.status_code == 400
+    assert signup_confirm.json()["error"]["code"] == "PHONE_VERIFICATION_CODE_MISMATCH"
+
+
 def test_user_detail_alarm_and_fcm_token_flow(client, db, sms_sender):
     _signup(client, sms_sender)
     user = db.query(User).filter(User.phone == "01012345678").first()
