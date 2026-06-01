@@ -30,30 +30,15 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
 
-    # OAuth - Kakao
-    kakao_client_id: str
-    kakao_client_secret: str
-    kakao_redirect_uri: str
-
-    # OAuth - Apple
-    apple_client_id: str
-    apple_team_id: str
-    apple_key_id: str
-    apple_private_key_path: str
-    apple_redirect_uri: str
-
     # FCM (Firebase Cloud Messaging)
     fcm_credentials_path: Optional[str] = None
 
-    # Email (SMTP)
-    smtp_host: str = "smtp.gmail.com"
-    smtp_port: int = 587
-    smtp_username: Optional[str] = None
-    smtp_password: Optional[str] = None
-    smtp_use_tls: bool = True
-    smtp_use_ssl: bool = False
-    email_from: Optional[str] = None  # Default sender email
-    email_from_name: Optional[str] = "OrderRun"  # Default sender name
+    # AWS SNS (SMS)
+    aws_sns_region: str = "ap-northeast-2"
+    aws_sns_access_key_id: str
+    aws_sns_secret_access_key: str
+    aws_sns_sms_sender_id: str
+    aws_sns_sms_type: str = "Transactional"
 
     # Server
     server_host: str = "0.0.0.0"

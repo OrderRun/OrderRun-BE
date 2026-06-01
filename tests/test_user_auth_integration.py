@@ -3,7 +3,9 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 
+from app.main import app
 from app.models.user import AuthPhoneVerification, PhoneVerificationPurpose, PhoneVerificationStatus, User, UserFCMToken
+from app.services.sms_service import get_sms_sender
 
 
 def _extract_code(message: str) -> str:
@@ -165,6 +167,7 @@ def test_verification_state_rules(client, db, sms_sender):
     ).first()
     assert verification is not None
     assert verification.status == PhoneVerificationStatus.PENDING
+    assert verification.carrier == "KT"
 
     mismatch = client.post(
         "/v1/auth/signup/confirm",
@@ -208,6 +211,29 @@ def test_verification_state_rules(client, db, sms_sender):
     )
     assert expired_confirm.status_code == 400
     assert expired_confirm.json()["error"]["code"] == "PHONE_VERIFICATION_EXPIRED"
+
+
+def test_signup_send_persists_verification_even_if_background_sms_fails(client, db):
+    class FailingSmsSender:
+        def send(self, phone: str, message: str) -> None:
+            raise RuntimeError("sms failed")
+
+    app.dependency_overrides[get_sms_sender] = lambda: FailingSmsSender()
+
+    response = client.post(
+        "/v1/auth/signup/send",
+        json={"name": "홍길동", "phone": "010-3333-4444", "carrier": "SKT"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["phone"] == "01033334444"
+
+    verification = db.query(AuthPhoneVerification).filter(
+        AuthPhoneVerification.phone == "01033334444",
+        AuthPhoneVerification.purpose == PhoneVerificationPurpose.SIGNUP,
+    ).first()
+    assert verification is not None
+    assert verification.status == PhoneVerificationStatus.PENDING
 
 
 def test_model_spec_matches_user_auth_docs():

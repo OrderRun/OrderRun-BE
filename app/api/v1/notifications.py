@@ -2,11 +2,12 @@
 Notification API endpoints for managing device tokens and notifications.
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.core.database import get_db
+from app.core.errors import AppError, api_error
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.notification import (
@@ -134,10 +135,7 @@ def update_device_token(
     ).first()
 
     if not device_token:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Device token not found"
-        )
+        raise api_error(AppError.DEVICE_TOKEN_NOT_FOUND)
 
     if token_update.is_active is not None:
         device_token.is_active = token_update.is_active
@@ -165,10 +163,7 @@ def delete_device_token(
     ).first()
 
     if not device_token:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Device token not found"
-        )
+        raise api_error(AppError.DEVICE_TOKEN_NOT_FOUND)
 
     db.delete(device_token)
     db.commit()
@@ -235,10 +230,7 @@ def get_notification(
     ).first()
 
     if not notification:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notification not found"
-        )
+        raise api_error(AppError.NOTIFICATION_NOT_FOUND)
 
     return notification
 

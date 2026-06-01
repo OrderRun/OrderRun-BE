@@ -4,19 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.errors import AppError, api_error
 from app.models.terms import TermsAgreement, TermsType
 from app.models.user import User
 from app.schemas.terms import TermsAgreementRequest, TermsAgreementResponse
-
-
-def _error(status_code: int, code: str, message: str) -> HTTPException:
-    return HTTPException(
-        status_code=status_code,
-        detail={"code": code, "message": message, "details": None},
-    )
 
 
 class TermsAgreementService:
@@ -30,7 +23,7 @@ class TermsAgreementService:
     def agree(self, user: User, payload: TermsAgreementRequest) -> TermsAgreementResponse:
         existing_user = self.db.query(User).filter(User.id == str(user.id)).first()
         if existing_user is None:
-            raise _error(status.HTTP_404_NOT_FOUND, "USER_NOT_FOUND", "User not found")
+            raise api_error(AppError.USER_NOT_FOUND)
 
         payload_by_field = {
             TermsType.TERMS_OF_SERVICE.field_name: payload.terms_of_service,
@@ -39,7 +32,7 @@ class TermsAgreementService:
         }
         for terms_type in TermsType:
             if terms_type.required and payload_by_field.get(terms_type.field_name) is not True:
-                raise _error(status.HTTP_400_BAD_REQUEST, "VALIDATION_ERROR", "Required terms must be true")
+                raise api_error(AppError.REQUIRED_TERMS_INVALID)
 
         now = self._now()
         agreement = (

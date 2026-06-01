@@ -4,6 +4,8 @@ from fastapi.exceptions import RequestValidationError
 from datetime import datetime, timezone
 from pydantic import ValidationError
 
+from app.core.errors import AppError, error_detail
+
 
 async def http_exception_handler(request: Request, exc: Exception):
     """Handle HTTPException and return custom error response."""
@@ -53,14 +55,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         details = "Validation error"
 
     return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={
-            "success": False,
-            "error": {
-                "code": "VALIDATION_ERROR",
-                "message": "요청 값이 올바르지 않습니다.",
-                "details": details,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "success": False,
+                "error": error_detail(AppError.VALIDATION_ERROR, details),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        },
-    )
+        )

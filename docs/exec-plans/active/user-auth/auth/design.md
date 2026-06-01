@@ -37,7 +37,8 @@
 ### SMS Layer
 
 - SMS 발송은 인프라 어댑터로 분리한다.
-- 실제 provider 의 예외는 `SMS_SEND_FAILED` 로 변환한다.
+- SMS 발송은 인증 코드 레코드 저장 이후 백그라운드 작업으로 실행한다.
+- 실제 provider 의 예외는 요청 응답으로 변환하지 않고 서버 로그로 남긴다.
 - 발송 문자에는 인증 코드와 5분 내 입력 안내가 들어간다.
 
 ## Data/State Impact
@@ -67,8 +68,8 @@
 ### `POST /v1/auth/signup/send`
 
 - 입력 검증 후 `PHONE_ALREADY_EXISTS` 와 `PHONE_VERIFICATION_ALREADY_SENT` 를 먼저 검사한다.
-- 레코드 저장이 먼저, SMS 전송이 다음이다.
-- SMS 전송 실패 시 전체 요청은 실패로 처리한다.
+- 인증 코드 레코드를 먼저 저장하고 커밋한다.
+- SMS 전송은 응답 흐름과 분리된 백그라운드 작업으로 예약한다.
 
 ### `POST /v1/auth/signup/confirm`
 

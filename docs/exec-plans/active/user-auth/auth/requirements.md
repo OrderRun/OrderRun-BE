@@ -48,11 +48,11 @@
 - `phone` 은 공백/하이픈 제거 후 `+82` 를 `0` 으로 바꾸는 정규화 규칙을 적용한다.
 - 이미 사용 중인 전화번호가 있으면 409 `PHONE_ALREADY_EXISTS` 를 반환한다.
 - 동일한 `purpose=SIGNUP` 의 활성 `PENDING` 인증이 있으면 409 `PHONE_VERIFICATION_ALREADY_SENT` 를 반환한다.
-- 성공 시 인증 코드 레코드를 생성하고 SMS 를 1회 전송한다.
+- 성공 시 인증 코드 레코드를 생성하고 SMS 발송을 백그라운드 작업으로 예약한다.
 - 성공 응답 `data` 는 `phone`, `expiresAt` 을 가진다.
 - `phone` 은 정규화된 전화번호다.
 - `expiresAt` 은 현재 시각 + 5분이다.
-- SMS provider 오류는 502 `SMS_SEND_FAILED` 로 반환한다.
+- SMS provider 오류는 요청 응답을 실패시키지 않으며 서버 로그로 남긴다.
 
 ### `POST /v1/auth/signup/confirm`
 
@@ -76,10 +76,10 @@
 - 정규화된 전화번호로 기존 사용자를 찾아야 한다.
 - 사용자가 없으면 401 `INVALID_CREDENTIALS` 를 반환한다.
 - 동일한 `purpose=LOGIN` 의 활성 `PENDING` 인증이 있으면 409 `PHONE_VERIFICATION_ALREADY_SENT` 를 반환한다.
-- 성공 시 인증 코드 레코드를 생성하고 SMS 를 1회 전송한다.
+- 성공 시 인증 코드 레코드를 생성하고 SMS 발송을 백그라운드 작업으로 예약한다.
 - 성공 응답 `data` 는 `phone`, `expiresAt` 을 가진다.
 - `phone` 은 정규화된 전화번호다.
-- SMS provider 오류는 502 `SMS_SEND_FAILED` 로 반환한다.
+- SMS provider 오류는 요청 응답을 실패시키지 않으며 서버 로그로 남긴다.
 
 ### `POST /v1/auth/login/confirm`
 

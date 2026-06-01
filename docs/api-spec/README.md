@@ -517,7 +517,6 @@
 | 409 | `MISSION_ALREADY_EXISTS` | 이미 Mission이 생성됨 |
 | 409 | `MISSION_NOT_UPDATABLE` | 변경할 수 없는 Mission 상태 |
 | 500 | `INTERNAL_SERVER_ERROR` | 알 수 없는 서버 오류 |
-| 502 | `SMS_SEND_FAILED` | SMS 발송 실패 |
 
 ## 문서 정본 규칙
 

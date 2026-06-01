@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -30,11 +30,12 @@ router = APIRouter(prefix="/v1/auth", tags=["auth"])
 @router.post("/signup/send", response_model=ApiResponse[AuthVerificationSendResponse], response_model_exclude_none=True)
 def signup_send(
     payload: AuthSignupSendRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     sms_sender=Depends(get_sms_sender),
 ):
     service = UserAuthService(db=db, sms_sender=sms_sender)
-    data = service.send_signup_verification(payload)
+    data = service.send_signup_verification(payload, background_tasks=background_tasks)
     return {"success": True, "data": data.model_dump(by_alias=True)}
 
 
@@ -52,11 +53,12 @@ def signup_confirm(
 @router.post("/login/send", response_model=ApiResponse[AuthVerificationSendResponse], response_model_exclude_none=True)
 def login_send(
     payload: AuthLoginSendRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     sms_sender=Depends(get_sms_sender),
 ):
     service = UserAuthService(db=db, sms_sender=sms_sender)
-    data = service.send_login_verification(payload)
+    data = service.send_login_verification(payload, background_tasks=background_tasks)
     return {"success": True, "data": data.model_dump(by_alias=True)}
 
 

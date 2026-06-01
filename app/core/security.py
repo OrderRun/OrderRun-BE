@@ -5,25 +5,22 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.errors import AppError, api_error
 from app.models.user import User
 
 
 security = HTTPBearer(auto_error=False)
 
 
-def _token_error(detail: str = "Invalid token") -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail={"code": "INVALID_TOKEN", "message": detail, "details": None},
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+def _token_error(error: AppError = AppError.INVALID_TOKEN):
+    return api_error(error, headers={"WWW-Authenticate": "Bearer"})
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
@@ -48,10 +45,10 @@ def verify_token(token: str, token_type: str = "access") -> Dict[str, Any]:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
     except JWTError as exc:
-        raise _token_error("Could not validate credentials") from exc
+        raise _token_error(AppError.INVALID_TOKEN_CREDENTIALS) from exc
 
     if payload.get("type") != token_type:
-        raise _token_error("Invalid token type")
+        raise _token_error(AppError.INVALID_TOKEN_TYPE)
 
     return payload
 
@@ -61,18 +58,15 @@ async def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     if credentials is None:
-        raise _token_error("Missing credentials")
+        raise _token_error(AppError.MISSING_CREDENTIALS)
 
     payload = verify_token(credentials.credentials, token_type="access")
     user_id = payload.get("sub")
     if not user_id:
-        raise _token_error("Invalid authentication credentials")
+        raise _token_error(AppError.INVALID_AUTHENTICATION_CREDENTIALS)
 
     user = db.query(User).filter(User.id == str(user_id)).first()
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "USER_NOT_FOUND", "message": "User not found", "details": None},
-        )
+        raise api_error(AppError.USER_NOT_FOUND)
 
     return user

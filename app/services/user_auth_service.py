@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.errors import AppError, api_error
 from app.core.phone import normalize_phone
 from app.core.security import create_access_token, create_refresh_token, verify_token
 from app.models.user import (
@@ -30,20 +32,16 @@ from app.schemas.user import (
     AuthVerificationSendResponse,
     UserDetailResponse,
 )
-from app.services.sms_service import NoopSmsSender, SmsSender
+from app.services.sms_service import SmsSender
 
 
-def _error(status_code: int, code: str, message: str) -> HTTPException:
-    return HTTPException(
-        status_code=status_code,
-        detail={"code": code, "message": message, "details": None},
-    )
+logger = logging.getLogger(__name__)
 
 
 class UserAuthService:
     def __init__(self, db: Session, sms_sender: SmsSender | None = None):
         self.db = db
-        self.sms_sender = sms_sender or NoopSmsSender()
+        self.sms_sender = sms_sender
 
     @staticmethod
     def _now() -> datetime:
@@ -69,6 +67,15 @@ class UserAuthService:
     @staticmethod
     def _message(code: str) -> str:
         return f"[OrderRun] 인증번호는 {code} 입니다. 5분 내 입력해 주세요."
+
+    def _send_sms_safely(self, phone: str, message: str) -> None:
+        if self.sms_sender is None:
+            logger.error("SMS sender not configured")
+            return
+        try:
+            self.sms_sender.send(phone, message)
+        except Exception:
+            logger.exception("SMS sending failed")
 
     def _find_user_by_phone(self, phone: str) -> User | None:
         return self.db.query(User).filter(User.phone == phone).first()
@@ -113,8 +120,13 @@ class UserAuthService:
         phone: str,
         name: str | None = None,
         carrier: str | None = None,
+        background_tasks: BackgroundTasks | None = None,
     ) -> AuthVerificationSendResponse:
+        if self.sms_sender is None:
+            raise api_error(AppError.SMS_SENDER_NOT_CONFIGURED)
+
         code = self._generate_code()
+        message = self._message(code)
         now = self._now()
         verification = AuthPhoneVerification(
             purpose=purpose,
@@ -129,45 +141,48 @@ class UserAuthService:
         )
         self.db.add(verification)
 
-        try:
-            self.sms_sender.send(phone, self._message(code))
-        except Exception as exc:  # pragma: no cover - provider failure is injected in tests
-            self.db.rollback()
-            raise _error(status.HTTP_502_BAD_GATEWAY, "SMS_SEND_FAILED", "SMS sending failed") from exc
-
         self.db.commit()
         self.db.refresh(verification)
+        if background_tasks is not None:
+            background_tasks.add_task(self._send_sms_safely, phone, message)
+        else:
+            self._send_sms_safely(phone, message)
         return AuthVerificationSendResponse(phone=phone, expires_at=verification.expires_at)
 
-    def send_signup_verification(self, payload: AuthSignupSendRequest) -> AuthVerificationSendResponse:
+    def send_signup_verification(
+        self,
+        payload: AuthSignupSendRequest,
+        background_tasks: BackgroundTasks | None = None,
+    ) -> AuthVerificationSendResponse:
         phone = normalize_phone(payload.phone)
         if self._find_user_by_phone(phone) is not None:
-            raise _error(status.HTTP_409_CONFLICT, "PHONE_ALREADY_EXISTS", "Phone number already exists")
+            raise api_error(AppError.PHONE_ALREADY_EXISTS)
         if self._has_active_pending_verification(PhoneVerificationPurpose.SIGNUP, phone):
-            raise _error(
-                status.HTTP_409_CONFLICT,
-                "PHONE_VERIFICATION_ALREADY_SENT",
-                "Verification already sent",
-            )
+            raise api_error(AppError.PHONE_VERIFICATION_ALREADY_SENT)
         return self._send_verification(
             purpose=PhoneVerificationPurpose.SIGNUP,
             phone=phone,
             name=payload.name.strip(),
             carrier=payload.carrier.strip(),
+            background_tasks=background_tasks,
         )
 
-    def send_login_verification(self, payload: AuthLoginSendRequest) -> AuthVerificationSendResponse:
+    def send_login_verification(
+        self,
+        payload: AuthLoginSendRequest,
+        background_tasks: BackgroundTasks | None = None,
+    ) -> AuthVerificationSendResponse:
         phone = normalize_phone(payload.phone)
         user = self._find_user_by_phone(phone)
         if user is None:
-            raise _error(status.HTTP_401_UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid credentials")
+            raise api_error(AppError.INVALID_CREDENTIALS)
         if self._has_active_pending_verification(PhoneVerificationPurpose.LOGIN, phone):
-            raise _error(
-                status.HTTP_409_CONFLICT,
-                "PHONE_VERIFICATION_ALREADY_SENT",
-                "Verification already sent",
-            )
-        return self._send_verification(purpose=PhoneVerificationPurpose.LOGIN, phone=phone)
+            raise api_error(AppError.PHONE_VERIFICATION_ALREADY_SENT)
+        return self._send_verification(
+            purpose=PhoneVerificationPurpose.LOGIN,
+            phone=phone,
+            background_tasks=background_tasks,
+        )
 
     def _confirm_verification(
         self,
@@ -177,32 +192,20 @@ class UserAuthService:
     ) -> AuthPhoneVerification:
         verification = self._latest_pending_verification(purpose, phone)
         if verification is None:
-            raise _error(
-                status.HTTP_404_NOT_FOUND,
-                "PHONE_VERIFICATION_NOT_FOUND",
-                "Phone verification not found",
-            )
+            raise api_error(AppError.PHONE_VERIFICATION_NOT_FOUND)
 
         now = self._now()
         if verification.expires_at <= now:
             verification.status = PhoneVerificationStatus.EXPIRED
             self.db.commit()
-            raise _error(
-                status.HTTP_400_BAD_REQUEST,
-                "PHONE_VERIFICATION_EXPIRED",
-                "Phone verification expired",
-            )
+            raise api_error(AppError.PHONE_VERIFICATION_EXPIRED)
 
         if verification.code_hash != self._hash_code(code):
             verification.attempt_count += 1
             if verification.attempt_count >= 5:
                 verification.status = PhoneVerificationStatus.EXPIRED
             self.db.commit()
-            raise _error(
-                status.HTTP_400_BAD_REQUEST,
-                "PHONE_VERIFICATION_CODE_MISMATCH",
-                "Phone verification code mismatch",
-            )
+            raise api_error(AppError.PHONE_VERIFICATION_CODE_MISMATCH)
 
         verification.status = PhoneVerificationStatus.VERIFIED
         verification.verified_at = now
@@ -225,7 +228,7 @@ class UserAuthService:
 
         if self._find_user_by_phone(phone) is not None:
             self.db.rollback()
-            raise _error(status.HTTP_409_CONFLICT, "PHONE_ALREADY_EXISTS", "Phone number already exists")
+            raise api_error(AppError.PHONE_ALREADY_EXISTS)
 
         now = self._now()
         user = User(
@@ -240,7 +243,7 @@ class UserAuthService:
             self.db.commit()
         except Exception as exc:  # pragma: no cover - defensive transactional guard
             self.db.rollback()
-            raise _error(status.HTTP_409_CONFLICT, "PHONE_ALREADY_EXISTS", "Phone number already exists") from exc
+            raise api_error(AppError.PHONE_ALREADY_EXISTS) from exc
 
         self.db.refresh(user)
         return self._build_tokens(user)
@@ -251,7 +254,7 @@ class UserAuthService:
 
         user = self._find_user_by_phone(phone)
         if user is None:
-            raise _error(status.HTTP_404_NOT_FOUND, "USER_NOT_FOUND", "User not found")
+            raise api_error(AppError.USER_NOT_FOUND)
 
         now = self._now()
         user.update_last_login_at(now)
@@ -266,11 +269,11 @@ class UserAuthService:
         token_payload = verify_token(payload.refresh_token, token_type="refresh")
         user_id = token_payload.get("sub")
         if not user_id:
-            raise _error(status.HTTP_401_UNAUTHORIZED, "INVALID_TOKEN", "Invalid token")
+            raise api_error(AppError.INVALID_TOKEN)
 
         user = self.db.query(User).filter(User.id == str(user_id)).first()
         if user is None:
-            raise _error(status.HTTP_404_NOT_FOUND, "USER_NOT_FOUND", "User not found")
+            raise api_error(AppError.USER_NOT_FOUND)
 
         access_token = create_access_token({"sub": str(user.id)})
         return AuthAccessTokenResponse(access_token=access_token, expires_in=self._access_expires_in_ms())
@@ -278,7 +281,7 @@ class UserAuthService:
     def get_user_detail(self, user: User) -> UserDetailResponse:
         fresh_user = self.db.query(User).filter(User.id == str(user.id)).first()
         if fresh_user is None:
-            raise _error(status.HTTP_404_NOT_FOUND, "USER_NOT_FOUND", "User not found")
+            raise api_error(AppError.USER_NOT_FOUND)
 
         return UserDetailResponse(
             id=str(fresh_user.id),
@@ -293,7 +296,7 @@ class UserAuthService:
     def update_alarm(self, user: User, alarm_enabled: bool) -> None:
         fresh_user = self.db.query(User).filter(User.id == str(user.id)).first()
         if fresh_user is None:
-            raise _error(status.HTTP_404_NOT_FOUND, "USER_NOT_FOUND", "User not found")
+            raise api_error(AppError.USER_NOT_FOUND)
 
         fresh_user.update_alarm_setting(alarm_enabled)
         self.db.commit()
@@ -301,7 +304,7 @@ class UserAuthService:
     def upsert_fcm_token(self, user: User, fcm_token: str) -> None:
         fresh_user = self.db.query(User).filter(User.id == str(user.id)).first()
         if fresh_user is None:
-            raise _error(status.HTTP_404_NOT_FOUND, "USER_NOT_FOUND", "User not found")
+            raise api_error(AppError.USER_NOT_FOUND)
 
         self._upsert_fcm_token(fresh_user.id, fcm_token.strip())
         self.db.commit()

@@ -11,7 +11,7 @@
   - 정규화된 전화번호로 verification 이 생성되고 SMS 가 1회 호출된다.
   - 기존 전화번호면 409 `PHONE_ALREADY_EXISTS` 이다.
   - 활성 pending 이 있으면 409 `PHONE_VERIFICATION_ALREADY_SENT` 이다.
-  - SMS provider 실패는 502 `SMS_SEND_FAILED` 이다.
+  - SMS provider 실패는 요청 응답을 실패시키지 않고 verification 을 유지한다.
 - `POST /v1/auth/signup/confirm`
   - 성공 시 `users` 가 생성되고 JWT 가 반환된다.
   - 코드 mismatch 는 400 `PHONE_VERIFICATION_CODE_MISMATCH` 이다.
@@ -21,7 +21,7 @@
 - `POST /v1/auth/login/send`
   - 기존 사용자에게만 SMS 가 발송된다.
   - 미가입 전화번호는 401 `INVALID_CREDENTIALS` 이다.
-  - SMS provider 실패는 502 `SMS_SEND_FAILED` 이다.
+  - SMS provider 실패는 요청 응답을 실패시키지 않고 verification 을 유지한다.
 - `POST /v1/auth/login/confirm`
   - 성공 시 `lastLoginAt` 이 갱신되고, `fcmToken` 이 있으면 저장된다.
   - 코드 mismatch / 만료 / 없음 에 대한 에러 코드가 정확히 반환된다.

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.errors import AppError, api_error
 from app.models.mission import Mission, MissionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
@@ -17,13 +17,6 @@ from app.schemas.offer import OfferAcceptRequest, OfferAcceptResponse, OfferCrea
 OPEN_PROPOSAL_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)
 
 
-def _error(http_status: int, code: str, message: str, details: str | None = None) -> HTTPException:
-    return HTTPException(
-        status_code=http_status,
-        detail={"code": code, "message": message, "details": details},
-    )
-
-
 class OfferService:
     """Service layer for Offer commands and queries."""
 
@@ -31,14 +24,14 @@ class OfferService:
     def _get_proposal(db: Session, proposal_id: int) -> Proposal:
         proposal = db.query(Proposal).filter(Proposal.id == proposal_id).first()
         if proposal is None:
-            raise _error(status.HTTP_404_NOT_FOUND, "PROPOSAL_NOT_FOUND", "요청을 찾을 수 없습니다.", None)
+            raise api_error(AppError.OFFER_PROPOSAL_NOT_FOUND)
         return proposal
 
     @staticmethod
     def _get_offer(db: Session, offer_id: int) -> Offer:
         offer = db.query(Offer).filter(Offer.id == offer_id).first()
         if offer is None:
-            raise _error(status.HTTP_404_NOT_FOUND, "OFFER_NOT_FOUND", "제안을 찾을 수 없습니다.", None)
+            raise api_error(AppError.OFFER_NOT_FOUND)
         return offer
 
     @staticmethod
@@ -62,15 +55,10 @@ class OfferService:
         proposal = OfferService._get_proposal(db, request.proposal_id)
 
         if proposal.orderer_id == runner_id:
-            raise _error(
-                status.HTTP_400_BAD_REQUEST,
-                "SELF_OFFER_NOT_ALLOWED",
-                "오더러는 본인의 요청에 러너로 제안할 수 없습니다.",
-                None,
-            )
+            raise api_error(AppError.SELF_OFFER_NOT_ALLOWED)
 
         if proposal.status not in OPEN_PROPOSAL_STATUSES:
-            raise _error(status.HTTP_409_CONFLICT, "PROPOSAL_NOT_OPEN", "제안을 받을 수 없는 요청 상태입니다.", None)
+            raise api_error(AppError.PROPOSAL_NOT_OPEN)
 
         duplicate = (
             db.query(Offer)
@@ -78,7 +66,7 @@ class OfferService:
             .first()
         )
         if duplicate is not None:
-            raise _error(status.HTTP_409_CONFLICT, "DUPLICATE_OFFER", "이미 해당 요청에 제안을 제출했습니다.", None)
+            raise api_error(AppError.DUPLICATE_OFFER)
 
         offer = Offer(proposal_id=request.proposal_id, runner_id=runner_id, status=OfferStatus.WAITING)
         try:
@@ -90,7 +78,7 @@ class OfferService:
         except IntegrityError as exc:
             db.rollback()
             if "uk_proposal_runner" in str(exc) or "uq_proposal_runner" in str(exc):
-                raise _error(status.HTTP_409_CONFLICT, "DUPLICATE_OFFER", "이미 해당 요청에 제안을 제출했습니다.", None) from exc
+                raise api_error(AppError.DUPLICATE_OFFER) from exc
             raise
 
         return OfferService._to_response(db, offer)
@@ -111,7 +99,7 @@ class OfferService:
         offer = OfferService._get_offer(db, offer_id)
         proposal = OfferService._get_proposal(db, offer.proposal_id)
         if offer.runner_id != user_id and proposal.orderer_id != user_id:
-            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+            raise api_error(AppError.FORBIDDEN)
         return OfferService._to_response(db, offer)
 
     @staticmethod
@@ -144,9 +132,9 @@ class OfferService:
     def cancel(db: Session, offer_id: int, runner_id: str) -> None:
         offer = OfferService._get_offer(db, offer_id)
         if offer.runner_id != runner_id:
-            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+            raise api_error(AppError.FORBIDDEN)
         if offer.status != OfferStatus.WAITING:
-            raise _error(status.HTTP_409_CONFLICT, "OFFER_NOT_CANCELLABLE", "취소할 수 없는 제안 상태입니다.", None)
+            raise api_error(AppError.OFFER_NOT_CANCELLABLE)
 
         offer.cancel()
         db.commit()
@@ -157,7 +145,7 @@ class OfferService:
         proposal = OfferService._get_proposal(db, offer.proposal_id)
 
         if proposal.orderer_id != orderer_id:
-            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+            raise api_error(AppError.FORBIDDEN)
 
         existing_mission = (
             db.query(Mission)
@@ -165,13 +153,13 @@ class OfferService:
             .first()
         )
         if existing_mission is not None:
-            raise _error(status.HTTP_409_CONFLICT, "MISSION_ALREADY_EXISTS", "이미 생성된 미션이 있습니다.", None)
+            raise api_error(AppError.MISSION_ALREADY_EXISTS)
 
         if offer.status != OfferStatus.WAITING:
-            raise _error(status.HTTP_409_CONFLICT, "OFFER_NOT_ACCEPTABLE", "수락할 수 없는 제안 상태입니다.", None)
+            raise api_error(AppError.OFFER_NOT_ACCEPTABLE)
 
         if proposal.status != ProposalStatus.OFFERED:
-            raise _error(status.HTTP_409_CONFLICT, "PROPOSAL_NOT_MATCHABLE", "매칭할 수 없는 요청 상태입니다.", None)
+            raise api_error(AppError.PROPOSAL_NOT_MATCHABLE)
 
         total_amount = request.run_fee + request.item_price
         mission = Mission(

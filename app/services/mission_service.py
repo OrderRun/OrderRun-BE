@@ -2,21 +2,14 @@
 
 from __future__ import annotations
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.errors import AppError, api_error
 from app.models.mission import Mission, MissionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
 from app.schemas.mission import MissionAction, MissionResponse, MissionRole, MissionUpdateRequest, MissionUserSummary
-
-
-def _error(http_status: int, code: str, message: str, details: str | None = None) -> HTTPException:
-    return HTTPException(
-        status_code=http_status,
-        detail={"code": code, "message": message, "details": details},
-    )
 
 
 class MissionService:
@@ -26,7 +19,7 @@ class MissionService:
     def _get_mission(db: Session, mission_id: int) -> Mission:
         mission = db.query(Mission).filter(Mission.id == mission_id).first()
         if mission is None:
-            raise _error(status.HTTP_404_NOT_FOUND, "MISSION_NOT_FOUND", "미션을 찾을 수 없습니다.", None)
+            raise api_error(AppError.MISSION_NOT_FOUND)
         return mission
 
     @staticmethod
@@ -99,7 +92,7 @@ class MissionService:
         mission = MissionService._get_mission(db, mission_id)
 
         if user_id not in {mission.orderer_id, mission.runner_id}:
-            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+            raise api_error(AppError.FORBIDDEN)
 
         if request.action == MissionAction.START_PROGRESS:
             MissionService._ensure_runner(mission, user_id)
@@ -110,12 +103,7 @@ class MissionService:
         elif request.action == MissionAction.COMPLETE_DELIVERY:
             MissionService._ensure_runner(mission, user_id)
             if not request.proof_image_url:
-                raise _error(
-                    status.HTTP_400_BAD_REQUEST,
-                    "VALIDATION_ERROR",
-                    "요청 값이 올바르지 않습니다.",
-                    "proofImageUrl: Field required",
-                )
+                raise api_error(AppError.MISSION_PROOF_IMAGE_REQUIRED, "proofImageUrl: Field required")
             if not mission.can_complete_delivery():
                 raise MissionService._not_updatable()
             mission.complete_delivery(request.proof_image_url)
@@ -130,12 +118,7 @@ class MissionService:
 
         elif request.action == MissionAction.DISPUTE:
             if not request.dispute_reason:
-                raise _error(
-                    status.HTTP_400_BAD_REQUEST,
-                    "VALIDATION_ERROR",
-                    "요청 값이 올바르지 않습니다.",
-                    "disputeReason: Field required",
-                )
+                raise api_error(AppError.MISSION_DISPUTE_REASON_REQUIRED, "disputeReason: Field required")
             if not mission.can_raise_dispute():
                 raise MissionService._not_updatable()
             mission.raise_dispute(request.dispute_reason)
@@ -147,16 +130,16 @@ class MissionService:
     @staticmethod
     def _ensure_runner(mission: Mission, user_id: str) -> None:
         if mission.runner_id != user_id:
-            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+            raise api_error(AppError.FORBIDDEN)
 
     @staticmethod
     def _ensure_orderer(mission: Mission, user_id: str) -> None:
         if mission.orderer_id != user_id:
-            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+            raise api_error(AppError.FORBIDDEN)
 
     @staticmethod
-    def _not_updatable() -> HTTPException:
-        return _error(status.HTTP_409_CONFLICT, "MISSION_NOT_UPDATABLE", "업데이트할 수 없는 미션 상태입니다.", None)
+    def _not_updatable():
+        return api_error(AppError.MISSION_NOT_UPDATABLE)
 
     @staticmethod
     def _complete_offer_if_needed(db: Session, mission: Mission) -> None:

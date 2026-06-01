@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.errors import AppError, api_error
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
@@ -25,13 +25,6 @@ EDITABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED)
 CANCELLABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED, ProposalStatus.OFFERED)
 
 
-def _error(http_status: int, code: str, message: str, details: str | None = None) -> HTTPException:
-    return HTTPException(
-        status_code=http_status,
-        detail={"code": code, "message": message, "details": details},
-    )
-
-
 class ProposalService:
     """Service layer for Proposal commands and queries."""
 
@@ -40,29 +33,14 @@ class ProposalService:
         try:
             parsed = datetime.fromisoformat(raw_deadline.replace("Z", "+00:00"))
         except ValueError as exc:
-            raise _error(
-                status.HTTP_400_BAD_REQUEST,
-                "INVALID_DATE_TIME_FORMAT",
-                "deadline 형식이 올바르지 않습니다.",
-                "deadline must be ISO-8601 with offset",
-            ) from exc
+            raise api_error(AppError.INVALID_DATE_TIME_FORMAT, "deadline must be ISO-8601 with offset") from exc
 
         if parsed.tzinfo is None or parsed.utcoffset() is None:
-            raise _error(
-                status.HTTP_400_BAD_REQUEST,
-                "INVALID_DATE_TIME_FORMAT",
-                "deadline 형식이 올바르지 않습니다.",
-                "deadline must include timezone offset",
-            )
+            raise api_error(AppError.INVALID_DATE_TIME_FORMAT, "deadline must include timezone offset")
 
         deadline = parsed.astimezone(timezone.utc)
         if deadline <= datetime.now(timezone.utc):
-            raise _error(
-                status.HTTP_400_BAD_REQUEST,
-                "PROPOSAL_DEADLINE_INVALID",
-                "마감 시각은 현재 시각보다 이후여야 합니다.",
-                None,
-            )
+            raise api_error(AppError.PROPOSAL_DEADLINE_INVALID)
 
         return deadline
 
@@ -70,37 +48,27 @@ class ProposalService:
     def _validate_request(request: ProposalRequest) -> datetime:
         deadline = ProposalService.parse_deadline(request.deadline)
         if request.errand_fee < 1000:
-            raise _error(
-                status.HTTP_400_BAD_REQUEST,
-                "PROPOSAL_ERRAND_FEE_INVALID",
-                "심부름비는 1000원 이상이어야 합니다.",
-                "errandFee must be greater than or equal to 1000",
-            )
+            raise api_error(AppError.PROPOSAL_ERRAND_FEE_INVALID, "errandFee must be greater than or equal to 1000")
         return deadline
 
     @staticmethod
     def _get_existing_user(db: Session, user_id: str) -> User:
         user = db.query(User).filter(User.id == user_id).first()
         if user is None:
-            raise _error(status.HTTP_404_NOT_FOUND, "USER_NOT_FOUND", "User not found", None)
+            raise api_error(AppError.USER_NOT_FOUND)
         return user
 
     @staticmethod
     def _get_proposal(db: Session, proposal_id: int) -> Proposal:
         proposal = db.query(Proposal).filter(Proposal.id == proposal_id).first()
         if proposal is None:
-            raise _error(
-                status.HTTP_404_NOT_FOUND,
-                "PROPOSAL_NOT_FOUND",
-                "제안을 찾을 수 없습니다.",
-                f"id: {proposal_id}",
-            )
+            raise api_error(AppError.PROPOSAL_NOT_FOUND, f"id: {proposal_id}")
         return proposal
 
     @staticmethod
     def _ensure_owner(proposal: Proposal, user_id: str) -> None:
         if proposal.orderer_id != user_id:
-            raise _error(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다.", None)
+            raise api_error(AppError.FORBIDDEN)
 
     @staticmethod
     def list_public(db: Session, page: int, size: int) -> PageResponse[Proposal]:
@@ -118,12 +86,7 @@ class ProposalService:
     def get_detail(db: Session, proposal_id: int) -> Proposal:
         proposal = ProposalService._get_proposal(db, proposal_id)
         if proposal.status not in DETAIL_VISIBLE_STATUSES:
-            raise _error(
-                status.HTTP_404_NOT_FOUND,
-                "PROPOSAL_NOT_FOUND",
-                "제안을 찾을 수 없습니다.",
-                f"id: {proposal_id}",
-            )
+            raise api_error(AppError.PROPOSAL_NOT_FOUND, f"id: {proposal_id}")
         return proposal
 
     @staticmethod
@@ -210,12 +173,7 @@ class ProposalService:
         proposal = ProposalService._get_proposal(db, proposal_id)
         ProposalService._ensure_owner(proposal, orderer_id)
         if proposal.status not in EDITABLE_STATUSES:
-            raise _error(
-                status.HTTP_409_CONFLICT,
-                "PROPOSAL_NOT_EDITABLE",
-                "수정할 수 없는 제안 상태입니다.",
-                f"status: {proposal.status.value}",
-            )
+            raise api_error(AppError.PROPOSAL_NOT_EDITABLE, f"status: {proposal.status.value}")
 
         deadline = ProposalService._validate_request(request)
         proposal.title = request.title
@@ -232,12 +190,7 @@ class ProposalService:
         proposal = ProposalService._get_proposal(db, proposal_id)
         ProposalService._ensure_owner(proposal, orderer_id)
         if proposal.status not in CANCELLABLE_STATUSES:
-            raise _error(
-                status.HTTP_409_CONFLICT,
-                "PROPOSAL_NOT_CANCELLABLE",
-                "취소할 수 없는 제안 상태입니다.",
-                f"status: {proposal.status.value}",
-            )
+            raise api_error(AppError.PROPOSAL_NOT_CANCELLABLE, f"status: {proposal.status.value}")
 
         should_reject_waiting_offers = proposal.status == ProposalStatus.OFFERED
         proposal.status = ProposalStatus.CANCELLED
@@ -258,12 +211,7 @@ class ProposalService:
     ) -> Proposal:
         proposal = ProposalService._get_proposal(db, proposal_id)
         if proposal.status != ProposalStatus.HOLDING:
-            raise _error(
-                status.HTTP_400_BAD_REQUEST,
-                "INVALID_STATUS",
-                "입금 확인 대기 상태가 아닙니다.",
-                f"current status: {proposal.status.value}",
-            )
+            raise api_error(AppError.INVALID_STATUS, f"current status: {proposal.status.value}")
         proposal.status = ProposalStatus.POSTED
         db.commit()
         db.refresh(proposal)

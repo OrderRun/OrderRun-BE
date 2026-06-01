@@ -1,5 +1,5 @@
 """Admin API endpoints."""
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -27,12 +27,7 @@ def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
     TODO: Implement proper role-based access control.
     For now, this is a placeholder that should be replaced with actual admin role check.
     """
-    # TODO: Check if user has admin role
-    # if not current_user.is_admin:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="관리자 권한이 필요합니다."
-    #     )
+    # TODO: Check if user has admin role and raise a centralized API error.
     return current_user
 
 
