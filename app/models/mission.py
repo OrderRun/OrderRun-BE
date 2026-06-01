@@ -31,12 +31,6 @@ class Mission(Base):
     orderer_id = Column(String(36), nullable=False, index=True)
     runner_id = Column(String(36), nullable=False, index=True)
 
-    # Contract amount snapshot (immutable after creation)
-    contract_amount = Column(Integer, nullable=False)
-    run_fee = Column(Integer, nullable=False, default=0, server_default="0")
-    item_price = Column(Integer, nullable=False, default=0, server_default="0")
-    total_amount = Column(Integer, nullable=False, default=0, server_default="0")
-
     # Mission status
     status = Column(Enum(MissionStatus), nullable=False, default=MissionStatus.CREATED, index=True)
 

@@ -40,13 +40,12 @@
 ### 수락 성공
 
 - 엔드포인트: `POST /v1/offer/{offerId}/accept`
-- 요청: `{ "runFee": 3000, "itemPrice": 2000 }`
+- 요청: 본문 없음
 - 검증:
   - Mission `CREATED` 생성
   - 선택 Offer `ACCEPTED`
   - 같은 Proposal의 다른 `WAITING` Offer `REJECTED`
   - Proposal `MATCHED`
-  - `totalAmount = runFee + itemPrice`
 
 ### 취소 성공
 
@@ -64,7 +63,6 @@
 - 중복 생성: 409 `DUPLICATE_OFFER`
 - 생성 불가능 Proposal 상태: 409 `PROPOSAL_NOT_OPEN`
 - 상세/수락/취소 권한 없음: 403 `FORBIDDEN`
-- `runFee`, `itemPrice` 누락 또는 음수: 400 `VALIDATION_ERROR`
 - 수락 불가능 Offer 상태: 409 `OFFER_NOT_ACCEPTABLE`
 - 매칭 불가능 Proposal 상태: 409 `PROPOSAL_NOT_MATCHABLE`
 - 기존 Mission 존재: 409 `MISSION_ALREADY_EXISTS`

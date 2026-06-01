@@ -15,7 +15,7 @@
   - 이미 Mission이 있으면 409 `MISSION_ALREADY_EXISTS`다.
   - 토큰이 없으면 401이다.
   - Proposal 작성자가 아니면 403 `FORBIDDEN`이다.
-  - `runFee`, `itemPrice` 누락 또는 음수는 400 `VALIDATION_ERROR`다.
+  - 요청 본문 없이 성공한다.
 - `GET /v1/mission`
   - `role` 기본값은 `ORDERER`다.
   - `role=ORDERER`는 현재 사용자가 orderer인 Mission만 반환한다.
@@ -37,7 +37,7 @@
 - Mission 생성 실패 시 Offer/Proposal 상태가 변경되지 않는지 확인한다.
 - Mission 완료 전에는 Offer가 `ACCEPTED`로 유지되는지 확인한다.
 - Mission 완료 시에만 Offer가 `COMPLETED`로 전이되는지 확인한다.
-- Mission 스냅샷 필드가 상태 업데이트로 변경되지 않는지 확인한다.
+- Mission actor 스냅샷 필드가 상태 업데이트로 변경되지 않는지 확인한다.
 - 현재 구현에 없는 `PATCH /v1/mission/{id}`를 FastAPI에 추가하지 않았는지 확인한다.
 
 ## Commands

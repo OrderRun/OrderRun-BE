@@ -87,19 +87,14 @@ missions 1 -> 1 payments
 
 - 실제 MySQL FK constraint 없음
 - `proposal_id`, `offer_id`, `orderer_id`, `runner_id`는 애플리케이션 레벨 관계
-- 금액 필드는 `decimal(10,2)`
 - 진행 시각 컬럼은 `pickup_at`, `delivery_completed_at`, `received_confirmed_at`, `settled_at`
 - `proposal_id`, `offer_id`는 각각 unique
 
 현재 SQLAlchemy 모델은 다음 차이가 있다.
 
-- `ForeignKey("proposals.id")`, `ForeignKey("offers.id")`, `ForeignKey("users.id")` 선언이 있음
-- `contract_amount` 컬럼이 있음
-- 금액 필드가 `Integer`
-- 시각 컬럼이 `started_at`, `completed_at`, `settled_at`
-- `proposal_id`는 index만 있고 unique가 아님
+- 없음.
 
-Mission 구현 정렬은 별도 코드/마이그레이션 작업으로 분리한다.
+Mission 금액 스냅샷 컬럼은 2026-06-01 기준 제거 대상이며 신규 API/모델에서 사용하지 않는다.
 
 ### Payment / Settlement
 

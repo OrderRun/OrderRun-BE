@@ -54,9 +54,6 @@ class MissionResponse(BaseModel):
     offer_id: int = Field(..., serialization_alias="offerId")
     orderer: MissionUserSummary
     runner: MissionUserSummary
-    run_fee: int = Field(..., serialization_alias="runFee")
-    item_price: int = Field(..., serialization_alias="itemPrice")
-    total_amount: int = Field(..., serialization_alias="totalAmount")
     status: MissionStatus = Field(..., serialization_alias="status")
     delivery_proof_image_url: Optional[str] = Field(None, serialization_alias="deliveryProofImageUrl")
     dispute_reason: Optional[str] = Field(None, serialization_alias="disputeReason")

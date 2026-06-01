@@ -21,9 +21,6 @@
 | `offer_id` | BIGINT | NO | 수락된 Offer ID |
 | `orderer_id` | VARCHAR(36) | NO | 오더 User UUID 스냅샷 |
 | `runner_id` | VARCHAR(36) | NO | 러너 User UUID 스냅샷 |
-| `run_fee` | DECIMAL(10,2) | NO | 러너 수행 수수료 |
-| `item_price` | DECIMAL(10,2) | NO | 물품 구매 대금 |
-| `total_amount` | DECIMAL(10,2) | NO | 총 계약 금액. `run_fee + item_price` |
 | `delivery_proof_image_url` | VARCHAR(500) | YES | 전달 완료 인증 이미지 URL |
 | `status` | VARCHAR(30) | NO | Mission 상태 |
 | `pickup_at` | DATETIME(6) | YES | 러너 수행 시작 시각 |
@@ -52,10 +49,8 @@
 - 생성 조건은 Proposal `OFFERED`, Offer `WAITING`이다.
 - 하나의 Proposal에는 최대 하나의 Mission만 생성할 수 있다.
 - 하나의 Offer에는 최대 하나의 Mission만 연결할 수 있다.
-- `run_fee`, `item_price`는 0 이상이어야 한다.
-- `total_amount`는 `run_fee + item_price`로 저장한다.
 - 생성 상태는 `CREATED`다.
-- `proposal_id`, `offer_id`, `orderer_id`, `runner_id`, 금액 필드는 생성 후 수정하지 않는다.
+- `proposal_id`, `offer_id`, `orderer_id`, `runner_id`는 생성 후 수정하지 않는다.
 
 ## 2. `MissionStatus`
 

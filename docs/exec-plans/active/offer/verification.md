@@ -22,7 +22,7 @@
   - POSTED/MATCHED/CANCELLED Proposal은 409 `PROPOSAL_NOT_MATCHABLE`이다.
   - 기존 Mission이 있으면 409 `MISSION_ALREADY_EXISTS`다.
   - 러너 또는 다른 사용자는 403이다.
-  - `runFee`, `itemPrice` 누락/음수는 400 `VALIDATION_ERROR`다.
+  - 요청 본문 없이 성공한다.
 - `GET /v1/offer/{offerId}`
   - 러너 본인과 Proposal 오더는 조회할 수 있다.
   - 그 외 사용자는 403이다.
@@ -45,7 +45,7 @@
 - `ApiResponse`, `PageResponse`, `ErrorResponse` 구조가 유지되는지 확인한다.
 - Offer 생성 후 Proposal 상태 전이가 유지되는지 확인한다.
 - Offer 수락의 transaction boundary가 유지되는지 확인한다.
-- Mission 생성 금액 스냅샷이 `runFee + itemPrice = totalAmount`를 만족하는지 확인한다.
+- Offer 수락의 Mission 생성과 상태 전이가 한 트랜잭션으로 유지되는지 확인한다.
 - `runnerName` 응답 필드가 유지되는지 확인한다.
 
 ## Commands

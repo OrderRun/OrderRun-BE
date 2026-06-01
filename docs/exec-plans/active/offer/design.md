@@ -55,4 +55,4 @@
 ## API Behavior Notes
 
 - `OfferResponse`: `id`, `proposalId`, `runnerId`, `runnerName`, `status`, `createdAt`
-- `OfferAcceptResponse`: `proposalId`, `offerId`, `missionId`, `proposalStatus`, `acceptedOfferStatus`, `rejectedOfferCount`, `missionStatus`, `ordererId`, `runnerId`, `runFee`, `itemPrice`, `totalAmount`, `createdAt`
+- `OfferAcceptResponse`: `proposalId`, `offerId`, `missionId`, `proposalStatus`, `acceptedOfferStatus`, `rejectedOfferCount`, `missionStatus`, `ordererId`, `runnerId`, `createdAt`

@@ -5,7 +5,7 @@
 - Mission은 Execution context의 aggregate로 구현한다.
 - Mission 생성은 Offer 수락 흐름에 포함하고, 별도 Mission 생성 API는 만들지 않는다.
 - Mission 상태 업데이트는 current user id와 Mission의 `orderer_id`/`runner_id` 스냅샷 비교로 권한을 검증한다.
-- 금액과 actor id는 생성 시점 스냅샷이며 Mission 상태 업데이트로 변경하지 않는다.
+- actor id는 생성 시점 스냅샷이며 Mission 상태 업데이트로 변경하지 않는다.
 - 정산과 Payment 생성은 후속 settlement migration에서 연결한다.
 
 ## Responsibilities
@@ -35,7 +35,7 @@
 
 - `missions`는 DB FK 없이 Proposal, Offer, User를 참조한다.
 - `proposal_id`, `offer_id`는 각각 unique 제약으로 1:1 연결을 보장한다.
-- `orderer_id`, `runner_id`, 금액 필드는 생성 후 수정하지 않는다.
+- `orderer_id`, `runner_id`는 생성 후 수정하지 않는다.
 
 ## Data/State Impact
 
@@ -56,8 +56,8 @@
 
 ## API Behavior Notes
 
-- `OfferAcceptRequest`: `runFee`, `itemPrice`
-- `OfferAcceptResponse`: `proposalId`, `offerId`, `missionId`, `proposalStatus`, `acceptedOfferStatus`, `rejectedOfferCount`, `missionStatus`, `ordererId`, `runnerId`, `runFee`, `itemPrice`, `totalAmount`, `createdAt`
+- `POST /v1/offer/{offerId}/accept`: 요청 본문 없음
+- `OfferAcceptResponse`: `proposalId`, `offerId`, `missionId`, `proposalStatus`, `acceptedOfferStatus`, `rejectedOfferCount`, `missionStatus`, `ordererId`, `runnerId`, `createdAt`
 - `MissionUpdateRequest`: `action`, `proofImageUrl`, `disputeReason`
-- `MissionResponse`: `id`, `proposalId`, `offerId`, `orderer`, `runner`, `runFee`, `itemPrice`, `totalAmount`, `deliveryProofImageUrl`, `status`, `pickupAt`, `deliveryCompletedAt`, `receivedConfirmedAt`, `settledAt`, `disputeReason`, `createdAt`
+- `MissionResponse`: `id`, `proposalId`, `offerId`, `orderer`, `runner`, `deliveryProofImageUrl`, `status`, `pickupAt`, `deliveryCompletedAt`, `receivedConfirmedAt`, `settledAt`, `disputeReason`, `createdAt`
 - `MissionResponse.orderer`/`runner`: `id`, `name`, `phone`

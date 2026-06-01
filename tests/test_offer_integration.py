@@ -157,7 +157,6 @@ def test_accept_offer_creates_mission_and_updates_states(client, db, sample_user
 
     response = client.post(
         f"/v1/offer/{selected.id}/accept",
-        json={"runFee": 3000, "itemPrice": 2000},
         headers=headers_for(sample_user),
     )
 
@@ -170,9 +169,9 @@ def test_accept_offer_creates_mission_and_updates_states(client, db, sample_user
     assert body["data"]["acceptedOfferStatus"] == "ACCEPTED"
     assert body["data"]["rejectedOfferCount"] == 1
     assert body["data"]["missionStatus"] == "CREATED"
-    assert body["data"]["runFee"] == 3000
-    assert body["data"]["itemPrice"] == 2000
-    assert body["data"]["totalAmount"] == 5000
+    assert "runFee" not in body["data"]
+    assert "itemPrice" not in body["data"]
+    assert "totalAmount" not in body["data"]
 
     db.refresh(proposal)
     db.refresh(selected)
@@ -182,8 +181,6 @@ def test_accept_offer_creates_mission_and_updates_states(client, db, sample_user
     assert selected.status == OfferStatus.ACCEPTED
     assert other.status == OfferStatus.REJECTED
     assert mission.status == MissionStatus.CREATED
-    assert mission.contract_amount == 5000
-    assert mission.total_amount == 5000
 
 
 def test_accept_offer_domain_and_validation_errors(client, db, sample_user):
@@ -196,25 +193,19 @@ def test_accept_offer_domain_and_validation_errors(client, db, sample_user):
     db.add_all([accepted_offer, posted_offer])
     db.commit()
 
-    missing_body = client.post(f"/v1/offer/{posted_offer.id}/accept", json={}, headers=headers_for(sample_user))
     forbidden = client.post(
         f"/v1/offer/{posted_offer.id}/accept",
-        json={"runFee": 1, "itemPrice": 1},
         headers=headers_for(other_user),
     )
     not_acceptable = client.post(
         f"/v1/offer/{accepted_offer.id}/accept",
-        json={"runFee": 1, "itemPrice": 1},
         headers=headers_for(sample_user),
     )
     not_matchable = client.post(
         f"/v1/offer/{posted_offer.id}/accept",
-        json={"runFee": 1, "itemPrice": 1},
         headers=headers_for(sample_user),
     )
 
-    assert missing_body.status_code == 400
-    assert missing_body.json()["error"]["code"] == "VALIDATION_ERROR"
     assert forbidden.status_code == 403
     assert forbidden.json()["error"]["code"] == "FORBIDDEN"
     assert not_acceptable.status_code == 409
@@ -234,10 +225,6 @@ def test_duplicate_mission_blocks_accept(client, db, sample_user):
         offer_id=offer.id,
         orderer_id=sample_user.id,
         runner_id=runner.id,
-        contract_amount=100,
-        run_fee=50,
-        item_price=50,
-        total_amount=100,
         status=MissionStatus.CREATED,
     )
     db.add(mission)
@@ -245,7 +232,6 @@ def test_duplicate_mission_blocks_accept(client, db, sample_user):
 
     response = client.post(
         f"/v1/offer/{offer.id}/accept",
-        json={"runFee": 1, "itemPrice": 1},
         headers=headers_for(sample_user),
     )
 

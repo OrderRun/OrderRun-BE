@@ -51,7 +51,7 @@
 ### `POST /v1/offer/{offerId}/accept`
 
 - 연결 Proposal 작성자만 호출할 수 있다.
-- `runFee`, `itemPrice`는 필수이며 0 이상이어야 한다.
+- 요청 본문은 받지 않는다.
 - Offer가 없으면 404 `OFFER_NOT_FOUND`다.
 - 요청자가 Proposal 작성자가 아니면 403 `FORBIDDEN`이다.
 - 이미 Mission이 있으면 409 `MISSION_ALREADY_EXISTS`다.

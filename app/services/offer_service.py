@@ -11,7 +11,7 @@ from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
-from app.schemas.offer import OfferAcceptRequest, OfferAcceptResponse, OfferCreate, OfferResponse
+from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferResponse
 
 
 OPEN_PROPOSAL_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)
@@ -140,7 +140,7 @@ class OfferService:
         db.commit()
 
     @staticmethod
-    def accept(db: Session, offer_id: int, orderer_id: str, request: OfferAcceptRequest) -> OfferAcceptResponse:
+    def accept(db: Session, offer_id: int, orderer_id: str) -> OfferAcceptResponse:
         offer = OfferService._get_offer(db, offer_id)
         proposal = OfferService._get_proposal(db, offer.proposal_id)
 
@@ -161,16 +161,11 @@ class OfferService:
         if proposal.status != ProposalStatus.OFFERED:
             raise api_error(AppError.PROPOSAL_NOT_MATCHABLE)
 
-        total_amount = request.run_fee + request.item_price
         mission = Mission(
             proposal_id=proposal.id,
             offer_id=offer.id,
             orderer_id=proposal.orderer_id,
             runner_id=offer.runner_id,
-            contract_amount=total_amount,
-            run_fee=request.run_fee,
-            item_price=request.item_price,
-            total_amount=total_amount,
             status=MissionStatus.CREATED,
         )
 
@@ -201,8 +196,5 @@ class OfferService:
             mission_status=mission.status,
             orderer_id=proposal.orderer_id,
             runner_id=offer.runner_id,
-            run_fee=request.run_fee,
-            item_price=request.item_price,
-            total_amount=mission.total_amount,
             created_at=mission.created_at,
         )

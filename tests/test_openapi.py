@@ -64,6 +64,20 @@ def test_admin_confirm_payment_has_no_request_body():
     assert "requestBody" not in operation
 
 
+def test_offer_accept_has_no_request_body_or_amount_response_fields():
+    operation = app.openapi()["paths"]["/v1/offer/{offer_id}/accept"]["post"]
+
+    assert "requestBody" not in operation
+    response_ref = operation["responses"]["201"]["content"]["application/json"]["schema"]["$ref"]
+    response_name = response_ref.rsplit("/", 1)[-1]
+    data_schema = app.openapi()["components"]["schemas"][response_name]["properties"]["data"]
+    accept_ref = next(item["$ref"] for item in data_schema["anyOf"] if "$ref" in item)
+    accept_name = accept_ref.rsplit("/", 1)[-1]
+    accept_schema = app.openapi()["components"]["schemas"][accept_name]
+
+    assert {"runFee", "itemPrice", "totalAmount"}.isdisjoint(accept_schema["properties"])
+
+
 def test_api_schemas_do_not_inherit_from_other_api_dtos():
     schema_dir = Path(__file__).resolve().parents[1] / "app" / "schemas"
     violations: list[str] = []

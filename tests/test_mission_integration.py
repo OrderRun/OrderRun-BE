@@ -57,10 +57,6 @@ def make_mission(
         offer_id=offer.id,
         orderer_id=orderer.id,
         runner_id=runner.id,
-        contract_amount=5000,
-        run_fee=3000,
-        item_price=2000,
-        total_amount=5000,
         status=status,
     )
     db.add(mission)

@@ -199,9 +199,6 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | missionStatus | string | 생성된 Mission 상태 |
 | ordererId | string | 오더 사용자 ID 스냅샷 |
 | runnerId | string | 러너 사용자 ID 스냅샷 |
-| runFee | number | 러너 수행 수수료 |
-| itemPrice | number | 물품 구매 대금 |
-| totalAmount | number | `runFee + itemPrice` |
 | createdAt | string | Mission 생성 시각 |
 
 ### MissionResponse
@@ -213,9 +210,6 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | offerId | number, null | 수락된 Offer ID |
 | orderer | object, null | 오더 사용자 정보 스냅샷 |
 | runner | object, null | 러너 사용자 정보 스냅샷 |
-| runFee | number | 러너 수행 수수료 |
-| itemPrice | number | 물품 구매 대금 |
-| totalAmount | number | 총 결제/정산 기준 금액 |
 | deliveryProofImageUrl | string, null | 전달 완료 인증 이미지 URL |
 | status | string | Mission 상태 |
 | pickupAt | string, null | 러너 수행 시작 시각 |
@@ -409,10 +403,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 #### `POST /v1/offer/{offerId}/accept`
 
-| 필드 | 타입 | 필수 | 제약 |
-|------|------|------|------|
-| runFee | number | O | 0 이상 |
-| itemPrice | number | O | 0 이상 |
+요청 본문 없음.
 
 #### `GET /v1/offer`
 

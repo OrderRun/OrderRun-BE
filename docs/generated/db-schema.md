@@ -173,9 +173,6 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `offer_id` | `bigint` | NO | UNIQUE `uk_offer_id` | 연관 Offer ID |
 | `orderer_id` | `varchar(36)` | NO | INDEX `idx_missions_orderer_id` | 요청자 사용자 ID 스냅샷 |
 | `runner_id` | `varchar(36)` | NO | INDEX `idx_missions_runner_id` | 수행자 사용자 ID 스냅샷 |
-| `run_fee` | `decimal(10,2)` | NO |  | 수행 수수료 |
-| `item_price` | `decimal(10,2)` | NO |  | 물품 금액 |
-| `total_amount` | `decimal(10,2)` | NO |  | 총 계약 금액 |
 | `delivery_proof_image_url` | `varchar(500)` | YES |  | 전달 인증 사진 URL |
 | `status` | `varchar(30)` | NO |  | Mission 상태 |
 | `pickup_at` | `datetime(6)` | YES |  | 수행 시작 시각 |
@@ -188,10 +185,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 
 현재 코드 갭:
 
-- `contract_amount`, `started_at`, `completed_at` 컬럼을 사용한다.
-- 금액 타입은 `Integer`다.
-- SQLAlchemy `ForeignKey`가 선언되어 있다.
-- `proposal_id`는 현재 unique가 아니다.
+- 없음.
 
 ## `payments`
 

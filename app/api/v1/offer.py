@@ -12,7 +12,7 @@ from app.core.security import get_current_user
 from app.models.offer import OfferStatus
 from app.models.user import User
 from app.schemas.common import ApiResponse, PageResponse
-from app.schemas.offer import OfferAcceptRequest, OfferAcceptResponse, OfferCreate, OfferResponse
+from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferResponse
 from app.services.offer_service import OfferService
 
 
@@ -120,11 +120,10 @@ def get_offer(
 )
 def accept_offer(
     offer_id: int,
-    request: OfferAcceptRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[OfferAcceptResponse]:
-    accepted = OfferService.accept(db, offer_id=offer_id, orderer_id=current_user.id, request=request)
+    accepted = OfferService.accept(db, offer_id=offer_id, orderer_id=current_user.id)
     return ApiResponse(success=True, data=accepted, message="제안이 수락되었습니다.")
 
 

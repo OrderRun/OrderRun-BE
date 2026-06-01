@@ -19,15 +19,6 @@ class OfferCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
-class OfferAcceptRequest(BaseModel):
-    """Request body for accepting an offer and creating a mission."""
-
-    run_fee: int = Field(..., ge=0, validation_alias="runFee")
-    item_price: int = Field(..., ge=0, validation_alias="itemPrice")
-
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-
 class OfferResponse(BaseModel):
     """Offer API response."""
 
@@ -53,9 +44,6 @@ class OfferAcceptResponse(BaseModel):
     mission_status: MissionStatus = Field(..., serialization_alias="missionStatus")
     orderer_id: str = Field(..., serialization_alias="ordererId")
     runner_id: str = Field(..., serialization_alias="runnerId")
-    run_fee: int = Field(..., serialization_alias="runFee")
-    item_price: int = Field(..., serialization_alias="itemPrice")
-    total_amount: int = Field(..., serialization_alias="totalAmount")
     created_at: datetime = Field(..., serialization_alias="createdAt")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
