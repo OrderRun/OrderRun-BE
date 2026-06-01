@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from sqlalchemy import BigInteger, Column, DateTime, Integer, String, UniqueConstraint
-from sqlalchemy.sql import func
 
+from app.core.time import utcnow_naive
 from app.core.database import Base
 
 
@@ -20,7 +20,7 @@ class SettlementAccount(Base):
     account_holder = Column(String(100), nullable=False)
     encrypted_account_number = Column(String(500), nullable=False)
     masked_account_number = Column(String(50), nullable=False)
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
     __table_args__ = (UniqueConstraint("user_id", name="uk_settlement_accounts_user_id"),)

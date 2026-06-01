@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
 from app.core.database import Base
+from app.core.time import utcnow_naive
 
 
 class DevicePlatform(str, enum.Enum):
@@ -64,11 +65,11 @@ class DeviceToken(Base):
     )
     device_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Optional device identifier
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utcnow_naive,
+        onupdate=utcnow_naive,
         nullable=False
     )
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -121,7 +122,7 @@ class Notification(Base):
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive, nullable=False, index=True)
     sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     read_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -162,11 +163,11 @@ class NotificationPreference(Base):
     quiet_hours_start: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Hour 0-23
     quiet_hours_end: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Hour 0-23
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utcnow_naive,
+        onupdate=utcnow_naive,
         nullable=False
     )
 

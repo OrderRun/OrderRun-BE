@@ -87,17 +87,19 @@ pytest tests/test_user_auth_integration.py::test_phone_verification_flow
 ### Database
 
 ```bash
-# This project uses MANUAL SQL migrations in migrations/ directory
-# NOT Alembic - manual SQL scripts only
+# This project uses Alembic migrations for FastAPI schema changes
 
 # Initialize database (using docker-compose)
 docker-compose up -d
 
-# Run migration scripts manually
-mysql -h localhost -u orderrun_user -p orderrun < migrations/script_name.sql
+# Existing staging databases should be baselined once
+alembic stamp 0001_baseline
+
+# Apply new migrations
+alembic upgrade head
 ```
 
-**Important**: Migrations are SQL files, not Alembic versions. Run them manually in chronological order.
+**Important**: `flyway_schema_history` may exist from the legacy Java stack, but FastAPI uses Alembic's `alembic_version`.
 
 ### Code Quality
 
@@ -257,10 +259,10 @@ Custom exceptions are defined in `app/core/exceptions.py`. Use standard FastAPI 
 
 ## Important Constraints
 
-1. **No Alembic**: Use manual SQL migration scripts in `migrations/` directory
+1. **Alembic migrations**: Use Alembic for FastAPI schema changes
 2. **Phone verification only**: OAuth code exists but is deprecated
 3. **MySQL only**: SQLite used for tests, but production is MySQL
-4. **Manual migrations**: Database schema changes must be SQL scripts, run manually
+4. **Baseline first**: Existing staging databases should be stamped to `0001_baseline` before new migrations
 5. **Document first**: Code changes without documentation will be rejected
 
 ## Git Workflow
@@ -283,8 +285,8 @@ Custom exceptions are defined in `app/core/exceptions.py`. Use standard FastAPI 
 ### Adding a new domain model
 
 1. Create SQLAlchemy model in `app/models/`
-2. Write SQL migration script in `migrations/`
-3. Run migration manually
+2. Create an Alembic revision
+3. Run `alembic upgrade head`
 4. Update `docs/generated/db-schema.md`
 5. Create corresponding Pydantic schemas
 

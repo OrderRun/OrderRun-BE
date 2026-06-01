@@ -52,7 +52,7 @@ offers 1 -> 1 missions
 missions 1 -> 1 payments
 ```
 
-공통 감사 컬럼은 모든 현재 JPA/ORM 대상 테이블에 `created_at`, `updated_at`을 `datetime(6) NOT NULL` 기준으로 둔다. Legacy `phone_verifications`도 migration 기준으로 감사 컬럼을 가진 것으로 기록한다.
+공통 감사 컬럼은 모든 현재 JPA/ORM 대상 테이블에 `created_at`, `updated_at`을 `datetime(6) NOT NULL` 기준으로 둔다. 스테이징 DB 기준으로 DB default는 두지 않고, SQLAlchemy ORM의 `default`/`onupdate`에서 UTC timestamp를 채운다. Legacy `phone_verifications`도 migration 기준으로 감사 컬럼을 가진 것으로 기록한다.
 
 ## 현재 확인 결과
 
@@ -78,7 +78,6 @@ missions 1 -> 1 payments
 | `device_tokens` | `app/models/notification.py` | 알림 시스템 보조 테이블로 별도 문서화 |
 | `notifications` | `app/models/notification.py` | 알림 시스템 보조 테이블로 별도 문서화 |
 | `notification_preferences` | `app/models/notification.py` | 알림 시스템 보조 테이블로 별도 문서화 |
-| `email_logs` | `app/models/email.py` | 이메일 발송 로그로 별도 문서화 |
 
 ## 주요 갭
 
@@ -139,7 +138,7 @@ Mission 구현 정렬은 별도 코드/마이그레이션 작업으로 분리한
 2. 도메인별 `docs/exec-plans/active/*/model.md`에서 목표 정본과 다른 표현을 정리한다.
 3. Mission 정렬 작업은 테스트로 현재 API 동작을 잠근 뒤 컬럼/타입/FK/unique 정책을 별도 마이그레이션 계획으로 진행한다.
 4. Payment/Settlement 구현은 새 실행 계획에서 `payments`, `settlement_accounts` 모델과 integration test를 함께 정의한다.
-5. 목표 정본 외 알림/이메일 보조 테이블은 별도 생성 스키마 섹션으로 분리해 핵심 정본과 섞이지 않게 한다.
+5. 목표 정본 외 알림 보조 테이블은 별도 생성 스키마 섹션으로 분리해 핵심 정본과 섞이지 않게 한다.
 
 ## 리스크와 열린 질문
 

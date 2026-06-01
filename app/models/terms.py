@@ -6,8 +6,8 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, Index, Integer, String
-from sqlalchemy.sql import func
 
+from app.core.time import utcnow_naive
 from app.core.database import Base
 
 
@@ -36,8 +36,8 @@ class TermsAgreement(Base):
     privacy_policy = Column(Boolean, nullable=False)
     payment_refund_policy = Column(Boolean, nullable=False)
     agreed_at = Column(DateTime(timezone=True), nullable=False)
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
     __table_args__ = (
         Index("idx_terms_agreements_user_id", "user_id"),

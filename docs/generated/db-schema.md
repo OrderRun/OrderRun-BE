@@ -90,6 +90,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 현재 코드 메모:
 
 - SQLAlchemy 인덱스명은 `idx_auth_phone_verifications_purpose_phone_status_expires_at`로 선언되어 있다.
+- `created_at`, `updated_at`은 DB default 없이 ORM에서 insert/update 시 채운다.
 
 ## `phone_verifications`
 
@@ -242,14 +243,13 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 
 ## 목표 정본 외 현재 보조 테이블
 
-아래 테이블은 현재 코드에 있지만 핵심 목표 정본 10개 테이블에는 포함하지 않는다. 별도 알림/이메일 문서에서 관리한다.
+아래 테이블은 현재 코드에 있지만 핵심 목표 정본 10개 테이블에는 포함하지 않는다. 별도 알림 문서에서 관리한다.
 
 | 테이블 | 모델 | 설명 |
 |--------|------|------|
 | `device_tokens` | `app/models/notification.py` | 다중 디바이스 FCM 토큰 |
 | `notifications` | `app/models/notification.py` | 알림 발송/상태 로그 |
 | `notification_preferences` | `app/models/notification.py` | 사용자 알림 선호 설정 |
-| `email_logs` | `app/models/email.py` | 이메일 발송 로그 |
 
 ## 기준 문서
 

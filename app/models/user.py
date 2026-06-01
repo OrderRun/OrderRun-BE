@@ -8,9 +8,9 @@ from datetime import datetime
 
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, Index, Integer, String
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 
 from app.core.database import Base
+from app.core.time import utcnow_naive
 
 
 class PhoneVerificationPurpose(str, enum.Enum):
@@ -36,8 +36,8 @@ class User(Base):
     phone_verified_at = Column(DateTime(timezone=True), nullable=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     alarm_enabled = Column(Boolean, nullable=False, default=False, server_default="0")
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
     device_tokens = relationship("DeviceToken", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
@@ -75,8 +75,8 @@ class AuthPhoneVerification(Base):
     sent_at = Column(DateTime(timezone=True), nullable=False)
     verified_at = Column(DateTime(timezone=True), nullable=True)
     attempt_count = Column(Integer, nullable=False, default=0, server_default="0")
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
     __table_args__ = (
         Index("idx_auth_phone_verifications_purpose_phone_status_expires_at", "purpose", "phone", "status", "expires_at"),
@@ -92,8 +92,8 @@ class UserFCMToken(Base):
     id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     user_id = Column(String(36), nullable=False, unique=True, index=True)
     fcm_token = Column(String(4096), nullable=False)
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
 __all__ = [
     "AuthPhoneVerification",

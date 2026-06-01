@@ -5,8 +5,8 @@ from __future__ import annotations
 import enum
 
 from sqlalchemy import BigInteger, Column, DateTime, Enum, Integer, String, UniqueConstraint
-from sqlalchemy.sql import func
 
+from app.core.time import utcnow_naive
 from app.core.database import Base
 
 
@@ -30,8 +30,8 @@ class Offer(Base):
     runner_id = Column(String(36), nullable=False, index=True)
     status = Column(Enum(OfferStatus), nullable=False, default=OfferStatus.WAITING, index=True)
 
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
     __table_args__ = (
         UniqueConstraint("proposal_id", "runner_id", name="uk_proposal_runner"),

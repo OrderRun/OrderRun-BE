@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 import enum
 
 from sqlalchemy import BigInteger, Column, DateTime, Enum, Integer, String, Text, UniqueConstraint
-from sqlalchemy.sql import func
 
+from app.core.time import utcnow_naive
 from app.core.database import Base
 
 
@@ -47,12 +47,12 @@ class Mission(Base):
     dispute_reason = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
     pickup_at = Column(DateTime(timezone=True), nullable=True)
     delivery_completed_at = Column(DateTime(timezone=True), nullable=True)
     received_confirmed_at = Column(DateTime(timezone=True), nullable=True)
     settled_at = Column(DateTime(timezone=True), nullable=True)
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
     __table_args__ = (
         UniqueConstraint("proposal_id", name="uk_proposal_id"),
