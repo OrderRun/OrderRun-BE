@@ -119,6 +119,7 @@ Client
 - `service.py`는 FastAPI 객체에 직접 의존하지 않는다.
 - API Request/Response DTO는 다른 API DTO를 상속하지 않는다. 각 endpoint의 요청/응답 스키마는 필드를 명시적으로 선언하고, API 계약의 변경 독립성을 중복 제거보다 우선한다.
 - 허용되는 상속은 `BaseModel`, `Enum`, `Generic[T]`, `ApiResponse`, `PageResponse`처럼 프레임워크나 공통 envelope 목적의 상속으로 제한한다.
+- 동기 `SQLAlchemy Session`을 사용하는 동안 라우터 endpoint는 기본적으로 `def`를 사용한다. `async def`는 async DB/session/client처럼 호출 경로 전체가 비동기 I/O일 때만 도입한다.
 - 초기 버전에서는 `async`보다 동기 `SQLAlchemy 2.x` 구성을 우선 권장한다.
 
 비권장 구조 예시:

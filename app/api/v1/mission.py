@@ -27,7 +27,7 @@ router = APIRouter(prefix="/v1/mission", tags=["미션"])
     description="현재 사용자의 미션 목록을 역할, 상태, 페이지 조건으로 조회합니다.",
     responses=AUTH_ERROR_RESPONSES,
 )
-async def get_missions(
+def get_missions(
     role: MissionRole = Query(MissionRole.ORDERER, description="조회 역할"),
     status_filter: MissionStatus | None = Query(None, alias="status", description="미션 상태 필터"),
     page: int = Query(0, ge=0, description="페이지 번호(0부터 시작)"),
@@ -62,7 +62,7 @@ async def get_missions(
         AppError.MISSION_DISPUTE_REASON_REQUIRED,
     ),
 )
-async def update_mission(
+def update_mission(
     mission_id: int,
     request: MissionUpdateRequest,
     current_user: User = Depends(get_current_user),

@@ -34,7 +34,7 @@ router = APIRouter(prefix="/v1/offer", tags=["제안"])
         AppError.DUPLICATE_OFFER,
     ),
 )
-async def create_offer(
+def create_offer(
     offer_data: OfferCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -51,7 +51,7 @@ async def create_offer(
     description="현재 러너가 등록한 제안 목록을 상태와 페이지 조건으로 조회합니다.",
     responses=AUTH_ERROR_RESPONSES,
 )
-async def get_own_offers(
+def get_own_offers(
     status_filter: OfferStatus | None = Query(None, alias="status", description="제안 상태 필터"),
     page: int = Query(0, ge=0, description="페이지 번호(0부터 시작)"),
     size: int = Query(20, ge=1, le=100, description="페이지 크기"),
@@ -76,7 +76,7 @@ async def get_own_offers(
     description="특정 요청에 등록된 제안 목록을 조회합니다.",
     responses=error_responses(AppError.INVALID_TOKEN, AppError.OFFER_PROPOSAL_NOT_FOUND),
 )
-async def get_offers(
+def get_offers(
     proposal_id: int = Query(..., gt=0, alias="proposalId", description="요청 ID"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -93,7 +93,7 @@ async def get_offers(
     description="제안 ID로 제안 상세 정보를 조회합니다.",
     responses=error_responses(AppError.INVALID_TOKEN, AppError.OFFER_NOT_FOUND, AppError.FORBIDDEN),
 )
-async def get_offer(
+def get_offer(
     offer_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -118,7 +118,7 @@ async def get_offer(
         AppError.PROPOSAL_NOT_MATCHABLE,
     ),
 )
-async def accept_offer(
+def accept_offer(
     offer_id: int,
     request: OfferAcceptRequest,
     current_user: User = Depends(get_current_user),
@@ -140,7 +140,7 @@ async def accept_offer(
         AppError.OFFER_NOT_CANCELLABLE,
     ),
 )
-async def cancel_offer(
+def cancel_offer(
     offer_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

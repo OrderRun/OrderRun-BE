@@ -26,7 +26,7 @@ router = APIRouter(prefix="/v1/settlement", tags=["정산"])
     description="현재 사용자의 정산 계좌 정보를 조회합니다.",
     responses=error_responses(AppError.INVALID_TOKEN),
 )
-async def get_settlement_account(
+def get_settlement_account(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[SettlementAccountResponse]:
@@ -42,7 +42,7 @@ async def get_settlement_account(
     description="현재 사용자의 정산 계좌 정보를 저장하거나 갱신합니다.",
     responses=error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
 )
-async def save_settlement_account(
+def save_settlement_account(
     request: SettlementAccountRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

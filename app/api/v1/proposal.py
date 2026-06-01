@@ -32,7 +32,7 @@ router = APIRouter(prefix="/v1/proposal", tags=["요청"])
     description="현재 조회 가능한 심부름 요청 목록을 페이지 단위로 조회합니다.",
     responses=AUTH_ERROR_RESPONSES,
 )
-async def list_proposals(
+def list_proposals(
     page: int = Query(0, ge=0, description="페이지 번호(0부터 시작)"),
     size: int = Query(20, ge=1, le=100, description="페이지 크기"),
     current_user: User = Depends(get_current_user),
@@ -50,7 +50,7 @@ async def list_proposals(
     description="현재 사용자가 등록한 요청 목록을 상태와 페이지 조건으로 조회합니다.",
     responses=AUTH_ERROR_RESPONSES,
 )
-async def list_own_proposals(
+def list_own_proposals(
     status_filter: ProposalStatus | None = Query(None, alias="status", description="요청 상태 필터"),
     page: int = Query(0, ge=0, description="페이지 번호(0부터 시작)"),
     size: int = Query(20, ge=1, le=100, description="페이지 크기"),
@@ -75,7 +75,7 @@ async def list_own_proposals(
     description="요청 ID로 심부름 요청 상세 정보를 조회합니다.",
     responses={**AUTH_ERROR_RESPONSES, **error_responses(AppError.PROPOSAL_NOT_FOUND)},
 )
-async def get_proposal(
+def get_proposal(
     proposal_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -99,7 +99,7 @@ async def get_proposal(
         AppError.PROPOSAL_ERRAND_FEE_INVALID,
     ),
 )
-async def create_proposal(
+def create_proposal(
     request: ProposalRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -125,7 +125,7 @@ async def create_proposal(
         AppError.PROPOSAL_ERRAND_FEE_INVALID,
     ),
 )
-async def update_proposal(
+def update_proposal(
     proposal_id: int,
     request: ProposalRequest,
     current_user: User = Depends(get_current_user),
@@ -148,7 +148,7 @@ async def update_proposal(
         AppError.PROPOSAL_NOT_CANCELLABLE,
     ),
 )
-async def cancel_proposal(
+def cancel_proposal(
     proposal_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

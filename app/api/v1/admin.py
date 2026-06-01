@@ -39,7 +39,7 @@ def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
         AppError.INVALID_STATUS,
     ),
 )
-async def confirm_payment(
+def confirm_payment(
     proposal_id: int,
     db: Session = Depends(get_db),
     admin_user: User = Depends(get_admin_user),
@@ -73,7 +73,7 @@ async def confirm_payment(
     description="관리자가 입금 대기 중인 모든 제안을 조회합니다.",
     responses=error_responses(AppError.INVALID_TOKEN),
 )
-async def list_pending_payment_proposals(
+def list_pending_payment_proposals(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
