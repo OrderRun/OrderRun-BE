@@ -1,0 +1,100 @@
+# 알림 정책 (Notification Policy)
+
+> 마지막 업데이트: 2026-06-02
+
+## 도메인 용어 매핑
+
+| 내부 코드 용어 | 사용자 표시 용어 |
+|---|---|
+| Proposal (요청) | 게시물 |
+| Offer (제안) | 지원 |
+| Orderer (오더러) | 요청자 |
+| Runner (러너) | 지원자 |
+| complete_delivery | 지원자 만남 확인 ("만났어요") |
+| confirm_received | 요청자 만남 확인 ("만났어요") |
+
+---
+
+## 발송 조건
+
+모든 알림은 수신자의 `alarm_enabled` 값에 따라 발송 여부가 결정된다.
+
+- `alarm_enabled = true` → 발송
+- `alarm_enabled = false` → 미발송
+
+---
+
+## 발송 아키텍처: Outbox 패턴 + Event Publisher/Listener
+
+```
+[비즈니스 트랜잭션]
+  비즈니스 서비스 (OfferService, MissionService)
+    → EventBus.publish(DomainEvent, db)  ← 같은 DB 세션
+      → NotificationEventListener
+          → Notification INSERT (status=PENDING)
+    → db.commit()  ← 비즈니스 데이터 + PENDING 알림 함께 커밋
+
+[비동기 발송 - FastAPI BackgroundTask]
+  API 응답 후 즉시 실행
+  → NotificationWorker.flush_pending(SessionLocal)
+    → PENDING 알림 조회 → FCM 발송 → SENT / FAILED 업데이트
+
+[배치 재시도 - APScheduler, 5분 주기]
+  → NotificationWorker.retry_failed(SessionLocal)
+    → FAILED 중 retry_count < 3 조회 → FCM 재발송
+    → 성공: SENT / 실패: retry_count + 1
+```
+
+---
+
+## 1차 구현 알림 목록
+
+### 지원 관련
+
+| 이벤트 | 수신자 | 타이틀 | 내용 | 트리거 |
+|---|---|---|---|---|
+| 지원자 발생 | 요청자 | 누군가 지원했어요! 👀 | 회원님의 요청에 새로운 지원자가 생겼어요. 확인해보세요! | `POST /v1/offer` |
+| 지원 완료 | 지원자 | 지원 완료! ✅ | 지원이 정상적으로 접수됐어요. 요청자의 선택을 기다려주세요. | `POST /v1/offer` |
+| 지원 수락 | 지원자 | 선택받으셨어요! 🙌 | 요청자가 회원님을 선택했어요. | `POST /v1/offer/{id}/accept` |
+| 탈락 통보 | 탈락 지원자 전원 | 이번엔 아쉽게 됐어요 😢 | 이번엔 선택받지 못했지만 다음 기회가 분명 있을 거예요. | `POST /v1/offer/{id}/accept` |
+
+### 만남 확인 관련
+
+| 이벤트 | 수신자 | 타이틀 | 내용 | 트리거 |
+|---|---|---|---|---|
+| 지원자가 만남 확인 | 요청자 | 지원자가 만남을 확인했어요! 🤝 | 지원자가 만남을 확인했어요. 회원님도 확인해주시면 정산이 바로 진행돼요. | `POST /v1/mission/{id}/complete-delivery` |
+| 요청자가 만남 확인 | 지원자 | 요청자가 만남을 확인했어요! 🤝 | 요청자가 만남을 확인했어요. 회원님도 확인해주시면 정산이 진행돼요! | `POST /v1/mission/{id}/confirm-received` |
+| 양측 확인 완료 | 요청자 + 지원자 | 완료! 수고하셨어요 🎊 | 양측 만남이 모두 확인됐어요. 성공적으로 완료됐습니다! | `POST /v1/mission/{id}/confirm-received` |
+
+---
+
+## 2차 구현 대상 (현재 불가)
+
+| 이벤트 | 미구현 이유 | 선행 조건 |
+|---|---|---|
+| 채팅방 개설 + 입장 코드 발급 | 카카오톡 연동 없음 | 채팅방 API 구현 |
+| 만남 확인 리마인드 1차 (2시간 후) | 시간 기반 트리거 | APScheduler 시간 조건 추가 |
+| 만남 확인 리마인드 2차 (6시간 후) | 시간 기반 트리거 | 동일 |
+| 웨이팅비 정산 완료 | 정산 실행 API 없음 | 정산 처리 API 구현 |
+| 입금 미확인 시간 초과 (30분) | 시간 기반 트리거 | 스케줄러 조건 추가 |
+| 게시물 만료 (48시간 미선택) | 시간 기반 트리거 | 스케줄러 조건 추가 |
+
+---
+
+## NotificationType 매핑
+
+| 정책 이벤트 | NotificationType |
+|---|---|
+| 지원자 발생 (요청자) | `OFFER_NEW` |
+| 지원 완료 (지원자) | `OFFER_SUBMITTED` |
+| 지원 수락 | `OFFER_ACCEPTED` |
+| 탈락 통보 | `OFFER_REJECTED` |
+| 지원자/요청자 만남 확인 | `MEETING_CONFIRMED` |
+| 양측 완료 | `MISSION_COMPLETED` |
+
+---
+
+## 발송 제한 (1차)
+
+- 재시도 최대 3회 (`retry_count < 3`)
+- 지원 알림 묶음 처리 (5회/시간): **2차 구현**
