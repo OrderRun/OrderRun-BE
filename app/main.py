@@ -1,15 +1,32 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 
 from app.core.config import settings
+from app.core.firebase import init_fcm
 from app.api.v1 import auth, mission, proposal, offer, notifications, admin, settlement, terms, users
 from app.core.exceptions import http_exception_handler, validation_exception_handler
 from app.schemas.common import ApiResponse
 
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if settings.fcm_credentials_path or settings.fcm_credentials_json:
+        init_fcm()
+    else:
+        logger.warning("FCM credentials not configured — push notifications disabled")
+    yield
+
+
 # Create FastAPI app
 app = FastAPI(
+    lifespan=lifespan,
     title="OrderRun API",
     description="심부름 요청, 제안, 미션, 인증을 제공하는 OrderRun 백엔드 API입니다.",
     version="0.1.0",

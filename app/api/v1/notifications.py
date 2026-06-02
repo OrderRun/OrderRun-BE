@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.core.errors import AppError, api_error
 from app.core.openapi import AUTH_ERROR_RESPONSES, error_responses
 from app.core.security import get_current_user
-from app.core.config import settings
+from app.core.firebase import get_fcm_service
 from app.models.user import User
 from app.models.notification import Notification, NotificationStatus
 from app.schemas.notification import (
@@ -18,21 +18,14 @@ from app.schemas.notification import (
     NotificationMarkReadRequest,
     NotificationSendRequest,
 )
-from app.services.fcm_service import FCMService
 from app.services.notification_dispatcher import NotificationDispatcher
 
 
 router = APIRouter(prefix="/notifications", tags=["알림"])
 
 
-def get_fcm_service() -> FCMService:
-    return FCMService(credentials_path=getattr(settings, "fcm_credentials_path", None))
-
-
-def get_notification_dispatcher(
-    fcm_service: FCMService = Depends(get_fcm_service),
-) -> NotificationDispatcher:
-    return NotificationDispatcher(fcm_service)
+def get_notification_dispatcher() -> NotificationDispatcher:
+    return NotificationDispatcher(get_fcm_service())
 
 
 @router.get(
