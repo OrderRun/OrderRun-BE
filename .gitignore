@@ -208,6 +208,7 @@ __marimo__/
 
 # Oh My Claude Code
 .omx/
+.omc/
 
 # Test database
 test.db
