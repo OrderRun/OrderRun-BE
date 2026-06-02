@@ -11,7 +11,6 @@ from app.core.database import Base
 class MissionStatus(str, enum.Enum):
     """Mission status enumeration."""
     CREATED = "CREATED"                      # 매칭 (미션 생성)
-    IN_PROGRESS = "IN_PROGRESS"              # 배달 중
     DELIVERY_COMPLETED = "DELIVERY_COMPLETED"  # 전달 완료
     RECEIVED_CONFIRMED = "RECEIVED_CONFIRMED"  # 수령 확인
     COMPLETED = "COMPLETED"                  # 전달 완료 + 수령 확인
@@ -56,38 +55,22 @@ class Mission(Base):
     def __repr__(self):
         return f"<Mission(id={self.id}, proposal_id={self.proposal_id}, status={self.status})>"
 
-    def can_start(self) -> bool:
-        """Check if the mission can be started."""
-        return self.status == MissionStatus.CREATED
-
-    def start_progress(self) -> None:
-        """Start the delivery."""
-        if not self.can_start():
-            raise ValueError("Cannot start mission that is not in CREATED status")
-
-        self.status = MissionStatus.IN_PROGRESS
-        self.pickup_at = datetime.now(timezone.utc)
-
     def can_complete_delivery(self) -> bool:
         """Check if delivery can be completed."""
-        return self.status in {MissionStatus.IN_PROGRESS, MissionStatus.RECEIVED_CONFIRMED}
+        return self.status == MissionStatus.CREATED
 
-    def complete_delivery(self, proof_image_url: str) -> None:
+    def complete_delivery(self, proof_image_url: str | None) -> None:
         """Complete the delivery with proof image."""
         if not self.can_complete_delivery():
-            raise ValueError("Cannot complete delivery for mission not in IN_PROGRESS status")
+            raise ValueError("Cannot complete delivery for mission not in CREATED status")
 
         self.delivery_proof_image_url = proof_image_url
         self.delivery_completed_at = datetime.now(timezone.utc)
-        self.status = (
-            MissionStatus.COMPLETED
-            if self.received_confirmed_at is not None
-            else MissionStatus.DELIVERY_COMPLETED
-        )
+        self.status = MissionStatus.DELIVERY_COMPLETED
 
     def can_confirm_receipt(self) -> bool:
         """Check if receipt can be confirmed."""
-        return self.status in {MissionStatus.IN_PROGRESS, MissionStatus.DELIVERY_COMPLETED}
+        return self.status == MissionStatus.DELIVERY_COMPLETED
 
     def confirm_receipt(self) -> None:
         """Confirm receipt by orderer."""
@@ -95,11 +78,7 @@ class Mission(Base):
             raise ValueError("Cannot confirm receipt for mission not in DELIVERY_COMPLETED status")
 
         self.received_confirmed_at = datetime.now(timezone.utc)
-        self.status = (
-            MissionStatus.COMPLETED
-            if self.delivery_completed_at is not None
-            else MissionStatus.RECEIVED_CONFIRMED
-        )
+        self.status = MissionStatus.COMPLETED
 
     def can_settle(self) -> bool:
         """Check if mission can be settled."""
@@ -107,17 +86,20 @@ class Mission(Base):
 
     def settle(self):
         """Settle the mission (transfer payment to runner)."""
-        from datetime import datetime, timezone
-
         if not self.can_settle():
-            raise ValueError("Cannot settle mission that is not in RECEIVED_CONFIRMED status")
+            raise ValueError("Cannot settle mission that is not in COMPLETED status")
 
         self.status = MissionStatus.SETTLED
         self.settled_at = datetime.now(timezone.utc)
 
     def can_raise_dispute(self) -> bool:
         """Check if dispute can be raised."""
-        return self.status not in {MissionStatus.SETTLED, MissionStatus.REFUNDED}
+        return self.status in {
+            MissionStatus.CREATED,
+            MissionStatus.DELIVERY_COMPLETED,
+            MissionStatus.RECEIVED_CONFIRMED,
+            MissionStatus.COMPLETED,
+        }
 
     def raise_dispute(self, reason: str):
         """Raise a dispute."""

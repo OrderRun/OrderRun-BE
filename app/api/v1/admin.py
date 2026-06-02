@@ -7,8 +7,10 @@ from app.core.errors import AppError
 from app.core.openapi import error_responses
 from app.core.security import get_current_user
 from app.models.user import User
+from app.schemas.mission import MissionResponse
 from app.schemas.proposal import ProposalResponse
 from app.schemas.common import ApiResponse
+from app.services.mission_service import MissionService
 from app.services.proposal_service import ProposalService
 
 
@@ -106,3 +108,47 @@ def list_pending_payment_proposals(
         success=True,
         data=[ProposalResponse.model_validate(p) for p in proposals],
     )
+
+
+@router.post(
+    "/mission/{mission_id}/confirm-settlement",
+    response_model=ApiResponse[MissionResponse],
+    status_code=status.HTTP_200_OK,
+    summary="미션 정산 완료 처리 (관리자 전용)",
+    description="관리자가 러너 정산 입금을 확인하여 미션을 SETTLED 상태로 전환합니다.",
+    responses=error_responses(
+        AppError.INVALID_TOKEN,
+        AppError.MISSION_NOT_FOUND,
+        AppError.MISSION_NOT_UPDATABLE,
+    ),
+)
+def confirm_mission_settlement(
+    mission_id: int,
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_admin_user),
+) -> ApiResponse[MissionResponse]:
+    _ = admin_user
+    mission = MissionService.confirm_settlement(db, mission_id=mission_id)
+    return ApiResponse(success=True, data=mission, message="미션 정산이 완료되었습니다.")
+
+
+@router.post(
+    "/mission/{mission_id}/refund",
+    response_model=ApiResponse[MissionResponse],
+    status_code=status.HTTP_200_OK,
+    summary="미션 환불 완료 처리 (관리자 전용)",
+    description="관리자가 분쟁 미션을 환불 완료 상태로 전환합니다.",
+    responses=error_responses(
+        AppError.INVALID_TOKEN,
+        AppError.MISSION_NOT_FOUND,
+        AppError.MISSION_NOT_UPDATABLE,
+    ),
+)
+def refund_mission(
+    mission_id: int,
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_admin_user),
+) -> ApiResponse[MissionResponse]:
+    _ = admin_user
+    mission = MissionService.refund_mission(db, mission_id=mission_id)
+    return ApiResponse(success=True, data=mission, message="미션 환불이 완료되었습니다.")

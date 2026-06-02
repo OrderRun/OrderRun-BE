@@ -20,7 +20,6 @@ class MissionRole(str, enum.Enum):
 class MissionAction(str, enum.Enum):
     """Supported mission update actions."""
 
-    START_PROGRESS = "START_PROGRESS"
     COMPLETE_DELIVERY = "COMPLETE_DELIVERY"
     CONFIRM_RECEIVED = "CONFIRM_RECEIVED"
     DISPUTE = "DISPUTE"
@@ -40,6 +39,22 @@ class MissionUpdateRequest(BaseModel):
     action: MissionAction
     proof_image_url: Optional[str] = Field(None, validation_alias="proofImageUrl")
     dispute_reason: Optional[str] = Field(None, validation_alias="disputeReason")
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
+class MissionCompleteDeliveryRequest(BaseModel):
+    """Runner request to complete delivery."""
+
+    proof_image_url: Optional[str] = Field(None, validation_alias="proofImageUrl")
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
+class MissionDisputeRequest(BaseModel):
+    """Mission dispute request."""
+
+    dispute_reason: str = Field(..., validation_alias="disputeReason")
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 

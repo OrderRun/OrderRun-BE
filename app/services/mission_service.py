@@ -91,35 +91,90 @@ class MissionService:
         if user_id not in {mission.orderer_id, mission.runner_id}:
             raise api_error(AppError.FORBIDDEN)
 
-        if request.action == MissionAction.START_PROGRESS:
-            MissionService._ensure_runner(mission, user_id)
-            if not mission.can_start():
-                raise MissionService._not_updatable()
-            mission.start_progress()
+        if request.action == MissionAction.COMPLETE_DELIVERY:
+            return MissionService.complete_delivery(
+                db,
+                mission_id=mission_id,
+                runner_id=user_id,
+                proof_image_url=request.proof_image_url,
+            )
 
-        elif request.action == MissionAction.COMPLETE_DELIVERY:
-            MissionService._ensure_runner(mission, user_id)
-            if not request.proof_image_url:
-                raise api_error(AppError.MISSION_PROOF_IMAGE_REQUIRED, "proofImageUrl: Field required")
-            if not mission.can_complete_delivery():
-                raise MissionService._not_updatable()
-            mission.complete_delivery(request.proof_image_url)
-            MissionService._complete_offer_if_needed(db, mission)
+        if request.action == MissionAction.CONFIRM_RECEIVED:
+            return MissionService.confirm_received(db, mission_id=mission_id, orderer_id=user_id)
 
-        elif request.action == MissionAction.CONFIRM_RECEIVED:
-            MissionService._ensure_orderer(mission, user_id)
-            if not mission.can_confirm_receipt():
-                raise MissionService._not_updatable()
-            mission.confirm_receipt()
-            MissionService._complete_offer_if_needed(db, mission)
-
-        elif request.action == MissionAction.DISPUTE:
+        if request.action == MissionAction.DISPUTE:
             if not request.dispute_reason:
                 raise api_error(AppError.MISSION_DISPUTE_REASON_REQUIRED, "disputeReason: Field required")
-            if not mission.can_raise_dispute():
-                raise MissionService._not_updatable()
-            mission.raise_dispute(request.dispute_reason)
+            return MissionService.raise_dispute(
+                db,
+                mission_id=mission_id,
+                user_id=user_id,
+                dispute_reason=request.dispute_reason,
+            )
 
+        raise api_error(AppError.VALIDATION_ERROR, f"action: {request.action}")
+
+    @staticmethod
+    def complete_delivery(
+        db: Session,
+        mission_id: int,
+        runner_id: str,
+        proof_image_url: str | None,
+    ) -> MissionResponse:
+        mission = MissionService._get_mission(db, mission_id)
+        MissionService._ensure_runner(mission, runner_id)
+        if not mission.can_complete_delivery():
+            raise MissionService._not_updatable()
+        mission.complete_delivery(proof_image_url)
+        db.commit()
+        db.refresh(mission)
+        return MissionService._to_response(db, mission)
+
+    @staticmethod
+    def confirm_received(db: Session, mission_id: int, orderer_id: str) -> MissionResponse:
+        mission = MissionService._get_mission(db, mission_id)
+        MissionService._ensure_orderer(mission, orderer_id)
+        if not mission.can_confirm_receipt():
+            raise MissionService._not_updatable()
+        mission.confirm_receipt()
+        MissionService._complete_offer_if_needed(db, mission)
+        db.commit()
+        db.refresh(mission)
+        return MissionService._to_response(db, mission)
+
+    @staticmethod
+    def raise_dispute(
+        db: Session,
+        mission_id: int,
+        user_id: str,
+        dispute_reason: str,
+    ) -> MissionResponse:
+        mission = MissionService._get_mission(db, mission_id)
+        if user_id not in {mission.orderer_id, mission.runner_id}:
+            raise api_error(AppError.FORBIDDEN)
+        if not mission.can_raise_dispute():
+            raise MissionService._not_updatable()
+        mission.raise_dispute(dispute_reason)
+        db.commit()
+        db.refresh(mission)
+        return MissionService._to_response(db, mission)
+
+    @staticmethod
+    def confirm_settlement(db: Session, mission_id: int) -> MissionResponse:
+        mission = MissionService._get_mission(db, mission_id)
+        if not mission.can_settle():
+            raise MissionService._not_updatable()
+        mission.settle()
+        db.commit()
+        db.refresh(mission)
+        return MissionService._to_response(db, mission)
+
+    @staticmethod
+    def refund_mission(db: Session, mission_id: int) -> MissionResponse:
+        mission = MissionService._get_mission(db, mission_id)
+        if not mission.can_refund():
+            raise MissionService._not_updatable()
+        mission.refund()
         db.commit()
         db.refresh(mission)
         return MissionService._to_response(db, mission)
