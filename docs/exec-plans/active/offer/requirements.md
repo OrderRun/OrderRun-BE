@@ -73,6 +73,9 @@
 ### `GET /v1/offer?proposalId={id}`
 
 - `proposalId`는 필수다.
+- `status` 쿼리가 없으면 해당 Proposal의 모든 Offer 상태를 반환한다.
+- `status`는 반복 쿼리 파라미터로 여러 상태를 받을 수 있다. 예: `status=WAITING&status=ACCEPTED`
+- `status` 쿼리가 있으면 해당 상태들만 반환한다.
 - Proposal이 없으면 404 `PROPOSAL_NOT_FOUND`다.
 - Offer가 없으면 빈 배열을 반환한다.
 - 목록은 `createdAt` 내림차순이다.
@@ -80,7 +83,9 @@
 ### `GET /v1/offer/own`
 
 - 현재 사용자가 runner인 Offer만 반환한다.
-- `status` 쿼리가 있으면 해당 상태만 반환한다.
+- `status` 쿼리가 없으면 현재 사용자가 runner인 모든 Offer 상태를 반환한다.
+- `status`는 반복 쿼리 파라미터로 여러 상태를 받을 수 있다. 예: `status=WAITING&status=ACCEPTED`
+- `status` 쿼리가 있으면 해당 상태들만 반환한다.
 - 응답은 PageResponse다.
 
 ### `DELETE /v1/offer/{offerId}`

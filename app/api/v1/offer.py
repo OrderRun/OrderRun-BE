@@ -19,6 +19,32 @@ from app.services.offer_service import OfferService
 router = APIRouter(prefix="/v1/offer", tags=["제안"])
 
 
+class OfferSearchRequest:
+    def __init__(
+        self,
+        status: list[OfferStatus] | None = Query(
+            None,
+            description="제안 상태 필터. 반복 입력 가능: status=A&status=B",
+        ),
+    ):
+        self.statuses = status
+
+
+class OfferOwnerSearchRequest:
+    def __init__(
+        self,
+        status: list[OfferStatus] | None = Query(
+            None,
+            description="제안 상태 필터. 반복 입력 가능: status=A&status=B",
+        ),
+        page: int = Query(0, ge=0, description="페이지 번호(0부터 시작)"),
+        size: int = Query(20, ge=1, le=100, description="페이지 크기"),
+    ):
+        self.statuses = status
+        self.page = page
+        self.size = size
+
+
 @router.post(
     "",
     response_model=ApiResponse[OfferResponse],
@@ -52,18 +78,16 @@ def create_offer(
     responses=AUTH_ERROR_RESPONSES,
 )
 def get_own_offers(
-    status_filter: OfferStatus | None = Query(None, alias="status", description="제안 상태 필터"),
-    page: int = Query(0, ge=0, description="페이지 번호(0부터 시작)"),
-    size: int = Query(20, ge=1, le=100, description="페이지 크기"),
+    request: OfferOwnerSearchRequest = Depends(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[PageResponse[OfferResponse]]:
-    page_response = OfferService.list_own(
+    page_response = OfferService.search_runner_offers(
         db,
         runner_id=current_user.id,
-        offer_status=status_filter,
-        page=page,
-        size=size,
+        offer_statuses=request.statuses,
+        page=request.page,
+        size=request.size,
     )
     return ApiResponse(success=True, data=page_response, message="Success")
 
@@ -78,10 +102,15 @@ def get_own_offers(
 )
 def get_offers(
     proposal_id: int = Query(..., gt=0, alias="proposalId", description="요청 ID"),
+    request: OfferSearchRequest = Depends(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[list[OfferResponse]]:
-    offers = OfferService.list_by_proposal(db, proposal_id=proposal_id, user_id=current_user.id)
+    offers = OfferService.find_offers_by_proposal(
+        db,
+        proposal_id=proposal_id,
+        offer_statuses=request.statuses,
+    )
     return ApiResponse(success=True, data=offers, message="Success")
 
 
@@ -98,7 +127,7 @@ def get_offer(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[OfferResponse]:
-    offer = OfferService.get_detail(db, offer_id=offer_id, user_id=current_user.id)
+    offer = OfferService.get_offer_detail(db, offer_id=offer_id, user_id=current_user.id)
     return ApiResponse(success=True, data=offer, message="Success")
 
 

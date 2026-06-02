@@ -88,24 +88,38 @@ def test_create_second_offer_keeps_proposal_offered(client, db, sample_user):
     assert proposal.status == ProposalStatus.OFFERED
 
 
-def test_get_offers_returns_latest_first_for_authenticated_user(client, db, sample_user):
+def test_get_offers_returns_latest_first_and_supports_multi_status_filter(client, db, sample_user):
     runner1 = make_user(db, "01077770004", name="Old Runner")
     runner2 = make_user(db, "01077770005", name="New Runner")
+    runner3 = make_user(db, "01077770019", name="Accepted Runner")
     other_orderer = make_user(db, "01077770006")
     proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
     other_proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
 
-    old_offer = Offer(proposal_id=proposal.id, runner_id=runner1.id)
-    new_offer = Offer(proposal_id=proposal.id, runner_id=runner2.id)
+    old_offer = Offer(proposal_id=proposal.id, runner_id=runner1.id, status=OfferStatus.WAITING)
+    new_offer = Offer(proposal_id=proposal.id, runner_id=runner2.id, status=OfferStatus.REJECTED)
+    accepted_offer = Offer(proposal_id=proposal.id, runner_id=runner3.id, status=OfferStatus.ACCEPTED)
     other_offer = Offer(proposal_id=other_proposal.id, runner_id=runner1.id)
-    db.add_all([old_offer, new_offer, other_offer])
+    db.add_all([old_offer, new_offer, accepted_offer, other_offer])
     db.commit()
 
     response = client.get(f"/v1/offer?proposalId={proposal.id}", headers=headers_for(other_orderer))
     assert response.status_code == 200
     items = response.json()["data"]
-    assert [item["id"] for item in items] == [new_offer.id, old_offer.id]
-    assert [item["runnerName"] for item in items] == ["New Runner", "Old Runner"]
+    assert [item["id"] for item in items] == [accepted_offer.id, new_offer.id, old_offer.id]
+    assert [item["runnerName"] for item in items] == ["Accepted Runner", "New Runner", "Old Runner"]
+
+    filtered = client.get(
+        f"/v1/offer?proposalId={proposal.id}&status=WAITING&status=ACCEPTED",
+        headers=headers_for(other_orderer),
+    )
+    assert filtered.status_code == 200
+    filtered_items = filtered.json()["data"]
+    assert [item["id"] for item in filtered_items] == [accepted_offer.id, old_offer.id]
+
+    invalid = client.get(f"/v1/offer?proposalId={proposal.id}&status=INVALID", headers=headers_for(other_orderer))
+    assert invalid.status_code == 400
+    assert invalid.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
 def test_get_offer_detail_allows_runner_and_orderer_only(client, db, sample_user):
@@ -126,7 +140,7 @@ def test_get_offer_detail_allows_runner_and_orderer_only(client, db, sample_user
     assert forbidden.json()["error"]["code"] == "FORBIDDEN"
 
 
-def test_get_own_offers_supports_paging_and_status_filter(client, db, sample_user):
+def test_get_own_offers_supports_paging_and_multi_status_filter(client, db, sample_user):
     runner = make_user(db, "01077770009")
     other_runner = make_user(db, "01077770010")
     proposal1 = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
@@ -138,12 +152,12 @@ def test_get_own_offers_supports_paging_and_status_filter(client, db, sample_use
     db.add_all([waiting, accepted, other])
     db.commit()
 
-    response = client.get("/v1/offer/own?status=WAITING&page=0&size=10", headers=headers_for(runner))
+    response = client.get("/v1/offer/own?status=WAITING&status=ACCEPTED&page=0&size=10", headers=headers_for(runner))
 
     assert response.status_code == 200
     page = response.json()["data"]
-    assert page["totalElements"] == 1
-    assert [item["id"] for item in page["content"]] == [waiting.id]
+    assert page["totalElements"] == 2
+    assert [item["id"] for item in page["content"]] == [accepted.id, waiting.id]
 
 
 def test_accept_offer_creates_mission_and_updates_states(client, db, sample_user):

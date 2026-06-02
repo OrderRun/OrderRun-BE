@@ -29,11 +29,12 @@
   - 없는 Offer는 404 `OFFER_NOT_FOUND`다.
 - `GET /v1/offer?proposalId={id}`
   - 생성 시각 내림차순으로 반환한다.
+  - 반복 `status` 쿼리로 여러 상태를 필터링한다.
   - Offer가 없으면 빈 배열이다.
   - 없는 Proposal은 404 `PROPOSAL_NOT_FOUND`다.
 - `GET /v1/offer/own`
   - 현재 runner 기준으로 페이징 조회한다.
-  - `status` 필터가 동작한다.
+  - 반복 `status` 쿼리로 여러 상태를 필터링한다.
 - `DELETE /v1/offer/{offerId}`
   - WAITING 상태의 본인 Offer는 204와 함께 CANCELLED가 된다.
   - 없는 Offer는 404 `OFFER_NOT_FOUND`다.

@@ -34,7 +34,7 @@
 - 엔드포인트: `GET /v1/offer/own`
 - 검증:
   - 현재 runner 기준 Offer만 반환
-  - `status` 필터 동작
+  - 반복 `status` 쿼리로 여러 상태 필터 동작
   - PageResponse 구조
 
 ### 수락 성공

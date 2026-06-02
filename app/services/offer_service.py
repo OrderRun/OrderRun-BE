@@ -28,6 +28,10 @@ class OfferService:
         return proposal
 
     @staticmethod
+    def _ensure_proposal_exists(db: Session, proposal_id: int) -> None:
+        OfferService._get_proposal(db, proposal_id)
+
+    @staticmethod
     def _get_offer(db: Session, offer_id: int) -> Offer:
         offer = db.query(Offer).filter(Offer.id == offer_id).first()
         if offer is None:
@@ -84,18 +88,21 @@ class OfferService:
         return OfferService._to_response(db, offer)
 
     @staticmethod
-    def list_by_proposal(db: Session, proposal_id: int, user_id: str) -> list[OfferResponse]:
-        OfferService._get_proposal(db, proposal_id)
-        offers = (
-            db.query(Offer)
-            .filter(Offer.proposal_id == proposal_id)
-            .order_by(Offer.created_at.desc(), Offer.id.desc())
-            .all()
-        )
+    def find_offers_by_proposal(
+        db: Session,
+        proposal_id: int,
+        offer_statuses: list[OfferStatus] | None,
+    ) -> list[OfferResponse]:
+        OfferService._ensure_proposal_exists(db, proposal_id)
+        query = db.query(Offer).filter(Offer.proposal_id == proposal_id)
+        if offer_statuses:
+            query = query.filter(Offer.status.in_(offer_statuses))
+
+        offers = query.order_by(Offer.created_at.desc(), Offer.id.desc()).all()
         return [OfferService._to_response(db, offer) for offer in offers]
 
     @staticmethod
-    def get_detail(db: Session, offer_id: int, user_id: str) -> OfferResponse:
+    def get_offer_detail(db: Session, offer_id: int, user_id: str) -> OfferResponse:
         offer = OfferService._get_offer(db, offer_id)
         proposal = OfferService._get_proposal(db, offer.proposal_id)
         if offer.runner_id != user_id and proposal.orderer_id != user_id:
@@ -103,16 +110,16 @@ class OfferService:
         return OfferService._to_response(db, offer)
 
     @staticmethod
-    def list_own(
+    def search_runner_offers(
         db: Session,
         runner_id: str,
-        offer_status: OfferStatus | None,
+        offer_statuses: list[OfferStatus] | None,
         page: int,
         size: int,
     ) -> PageResponse[OfferResponse]:
         query = db.query(Offer).filter(Offer.runner_id == runner_id)
-        if offer_status is not None:
-            query = query.filter(Offer.status == offer_status)
+        if offer_statuses:
+            query = query.filter(Offer.status.in_(offer_statuses))
 
         total = query.count()
         offers = (
