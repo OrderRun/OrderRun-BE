@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError, api_error
@@ -14,42 +12,18 @@ from app.schemas.common import PageResponse
 from app.schemas.proposal import ProposalOwnOfferResponse, ProposalOwnResponse, ProposalRequest
 
 
-PUBLIC_LIST_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)
+EDITABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED)
+CANCELLABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED, ProposalStatus.OFFERED)
 DETAIL_VISIBLE_STATUSES = (
     ProposalStatus.POSTED,
     ProposalStatus.OFFERED,
     ProposalStatus.MATCHED,
     ProposalStatus.CANCELLED,
 )
-EDITABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED)
-CANCELLABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED, ProposalStatus.OFFERED)
 
 
 class ProposalService:
     """Service layer for Proposal commands and queries."""
-
-    @staticmethod
-    def parse_deadline(raw_deadline: str) -> datetime:
-        try:
-            parsed = datetime.fromisoformat(raw_deadline.replace("Z", "+00:00"))
-        except ValueError as exc:
-            raise api_error(AppError.INVALID_DATE_TIME_FORMAT, "deadline must be ISO-8601 with offset") from exc
-
-        if parsed.tzinfo is None or parsed.utcoffset() is None:
-            raise api_error(AppError.INVALID_DATE_TIME_FORMAT, "deadline must include timezone offset")
-
-        deadline = parsed.astimezone(timezone.utc)
-        if deadline <= datetime.now(timezone.utc):
-            raise api_error(AppError.PROPOSAL_DEADLINE_INVALID)
-
-        return deadline
-
-    @staticmethod
-    def _validate_request(request: ProposalRequest) -> datetime:
-        deadline = ProposalService.parse_deadline(request.deadline)
-        if request.errand_fee < 1000:
-            raise api_error(AppError.PROPOSAL_ERRAND_FEE_INVALID, "errandFee must be greater than or equal to 1000")
-        return deadline
 
     @staticmethod
     def _get_existing_user(db: Session, user_id: str) -> User:
@@ -71,8 +45,15 @@ class ProposalService:
             raise api_error(AppError.FORBIDDEN)
 
     @staticmethod
-    def list_public(db: Session, page: int, size: int) -> PageResponse[Proposal]:
-        query = db.query(Proposal).filter(Proposal.status.in_(PUBLIC_LIST_STATUSES))
+    def search_proposals(
+        db: Session,
+        proposal_statuses: list[ProposalStatus] | None,
+        page: int,
+        size: int,
+    ) -> PageResponse[Proposal]:
+        query = db.query(Proposal)
+        if proposal_statuses:
+            query = query.filter(Proposal.status.in_(proposal_statuses))
         total = query.count()
         items = (
             query.order_by(Proposal.created_at.desc(), Proposal.id.desc())
@@ -83,23 +64,23 @@ class ProposalService:
         return PageResponse.of(content=items, page_number=page, page_size=size, total_elements=total)
 
     @staticmethod
-    def get_detail(db: Session, proposal_id: int) -> Proposal:
+    def get_proposal_detail(db: Session, proposal_id: int) -> Proposal:
         proposal = ProposalService._get_proposal(db, proposal_id)
         if proposal.status not in DETAIL_VISIBLE_STATUSES:
             raise api_error(AppError.PROPOSAL_NOT_FOUND, f"id: {proposal_id}")
         return proposal
 
     @staticmethod
-    def list_own(
+    def search_owner_proposals(
         db: Session,
         user_id: str,
-        proposal_status: ProposalStatus | None,
+        proposal_statuses: list[ProposalStatus] | None,
         page: int,
         size: int,
     ) -> PageResponse[ProposalOwnResponse]:
         query = db.query(Proposal).filter(Proposal.orderer_id == user_id)
-        if proposal_status is not None:
-            query = query.filter(Proposal.status == proposal_status)
+        if proposal_statuses:
+            query = query.filter(Proposal.status.in_(proposal_statuses))
 
         total = query.count()
         proposals = (
@@ -151,17 +132,12 @@ class ProposalService:
     @staticmethod
     def create(db: Session, request: ProposalRequest, orderer_id: str) -> Proposal:
         ProposalService._get_existing_user(db, orderer_id)
-        deadline = ProposalService._validate_request(request)
-        proposal = Proposal(
+        proposal = Proposal.create_proposal(
             orderer_id=orderer_id,
             title=request.title,
             content=request.content,
-            deadline=deadline,
+            deadline=request.deadline,
             errand_fee=request.errand_fee,
-            status=ProposalStatus.HOLDING,
-            meeting_at=deadline,
-            item_price=0,
-            deposit=0,
         )
         db.add(proposal)
         db.commit()
@@ -175,12 +151,12 @@ class ProposalService:
         if proposal.status not in EDITABLE_STATUSES:
             raise api_error(AppError.PROPOSAL_NOT_EDITABLE, f"status: {proposal.status.value}")
 
-        deadline = ProposalService._validate_request(request)
-        proposal.title = request.title
-        proposal.content = request.content
-        proposal.deadline = deadline
-        proposal.errand_fee = request.errand_fee
-        proposal.meeting_at = deadline
+        proposal.update_proposal(
+            title=request.title,
+            content=request.content,
+            deadline=request.deadline,
+            errand_fee=request.errand_fee,
+        )
         db.commit()
         db.refresh(proposal)
         return proposal

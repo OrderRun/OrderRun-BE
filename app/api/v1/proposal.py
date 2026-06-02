@@ -18,10 +18,25 @@ from app.schemas.proposal import (
     ProposalRequest,
     ProposalResponse,
 )
-from app.services.proposal import ProposalService
+from app.services.proposal_service import ProposalService
 
 
 router = APIRouter(prefix="/v1/proposal", tags=["요청"])
+
+
+class ProposalSearchRequest:
+    def __init__(
+        self,
+        status: list[ProposalStatus] | None = Query(
+            None,
+            description="요청 상태 필터. 반복 입력 가능: status=A&status=B",
+        ),
+        page: int = Query(0, ge=0, description="페이지 번호(0부터 시작)"),
+        size: int = Query(20, ge=1, le=100, description="페이지 크기"),
+    ):
+        self.statuses = status
+        self.page = page
+        self.size = size
 
 
 @router.get(
@@ -33,12 +48,16 @@ router = APIRouter(prefix="/v1/proposal", tags=["요청"])
     responses=AUTH_ERROR_RESPONSES,
 )
 def list_proposals(
-    page: int = Query(0, ge=0, description="페이지 번호(0부터 시작)"),
-    size: int = Query(20, ge=1, le=100, description="페이지 크기"),
+    request: ProposalSearchRequest = Depends(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[PageResponse[ProposalResponse]]:
-    page_response = ProposalService.list_public(db, page=page, size=size)
+    page_response = ProposalService.search_proposals(
+        db,
+        proposal_statuses=request.statuses,
+        page=request.page,
+        size=request.size,
+    )
     return ApiResponse(success=True, data=page_response)
 
 
@@ -51,18 +70,16 @@ def list_proposals(
     responses=AUTH_ERROR_RESPONSES,
 )
 def list_own_proposals(
-    status_filter: ProposalStatus | None = Query(None, alias="status", description="요청 상태 필터"),
-    page: int = Query(0, ge=0, description="페이지 번호(0부터 시작)"),
-    size: int = Query(20, ge=1, le=100, description="페이지 크기"),
+    request: ProposalSearchRequest = Depends(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[PageResponse[ProposalOwnResponse]]:
-    proposals = ProposalService.list_own(
+    proposals = ProposalService.search_owner_proposals(
         db,
         user_id=current_user.id,
-        proposal_status=status_filter,
-        page=page,
-        size=size,
+        proposal_statuses=request.statuses,
+        page=request.page,
+        size=request.size,
     )
     return ApiResponse(success=True, data=proposals)
 
@@ -80,7 +97,7 @@ def get_proposal(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[ProposalDetailResponse]:
-    proposal = ProposalService.get_detail(db, proposal_id)
+    proposal = ProposalService.get_proposal_detail(db, proposal_id)
     return ApiResponse(success=True, data=proposal)
 
 

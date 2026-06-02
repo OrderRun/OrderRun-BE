@@ -65,5 +65,5 @@
 - `OFFERED -> MATCHED`: Offer 수락 시 전환한다.
 - `HOLDING`, `POSTED`, `OFFERED -> CANCELLED`: 작성자 취소 시 전환한다.
 - `HOLDING`, `POSTED` 상태에서만 수정 가능하다.
-- `POSTED`, `OFFERED` 상태만 공개 목록에 노출한다.
+- 공개 목록은 status 미지정 시 모든 Proposal 상태를 반환하고, 반복 `status` 쿼리로 여러 상태를 필터링한다.
 - `HOLDING` 상태는 상세 조회에서 `PROPOSAL_NOT_FOUND`로 숨긴다.

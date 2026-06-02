@@ -10,7 +10,8 @@
 ## Target Behavior Tests
 
 - `GET /v1/proposal`
-  - `POSTED`, `OFFERED`만 반환한다.
+  - status 미지정 시 모든 Proposal 상태를 반환한다.
+  - 반복 `status` 쿼리로 여러 상태를 필터링한다.
   - 토큰이 없으면 401이다.
 - `GET /v1/proposal/{id}`
   - 존재하는 Proposal 상세를 반환한다.
@@ -20,7 +21,7 @@
 - `GET /v1/proposal/own`
   - 현재 사용자의 Proposal만 반환한다.
   - Offer 목록과 `offerCount`를 포함한다.
-  - `status` 필터가 동작한다.
+  - 반복 `status` 쿼리로 여러 상태를 필터링한다.
 - `POST /v1/proposal`
   - 유효 요청은 `HOLDING` 상태로 저장한다.
   - 제목 50자 초과는 400 `VALIDATION_ERROR`다.

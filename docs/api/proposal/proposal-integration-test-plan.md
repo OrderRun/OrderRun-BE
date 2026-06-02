@@ -4,9 +4,9 @@
 
 ## 정상 시나리오
 
-- `GET /v1/proposal`은 인증된 사용자에게 `200 OK`와 `ApiResponse<PageResponse<ProposalResponse>>`를 반환한다.
+- `GET /v1/proposal`은 인증된 사용자에게 `200 OK`와 `ApiResponse<PageResponse<ProposalResponse>>`를 반환하고 반복 `status` 쿼리로 여러 상태를 필터링한다.
 - `GET /v1/proposal/{id}`는 존재하는 Proposal에 대해 `ProposalDetailResponse`를 반환한다.
-- `GET /v1/proposal/own`은 `status`, `page`, `size`, `sort` 쿼리를 받아 `PageResponse<ProposalOwnResponse>`를 반환한다.
+- `GET /v1/proposal/own`은 반복 `status`, `page`, `size`, `sort` 쿼리를 받아 `PageResponse<ProposalOwnResponse>`를 반환한다.
 - `POST /v1/proposal`은 유효한 `title`, `content`, `deadline`, `errandFee`로 `201 Created`와 `ProposalResponse`를 반환한다.
 - `PUT /v1/proposal/{id}`는 작성자만 수정할 수 있고 성공 시 `ProposalResponse`를 반환한다.
 - `POST /v1/proposal/{id}/cancel`은 작성자만 취소할 수 있고 성공 시 취소된 `ProposalResponse`를 반환한다.

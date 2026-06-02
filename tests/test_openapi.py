@@ -78,6 +78,25 @@ def test_offer_accept_has_no_request_body_or_amount_response_fields():
     assert {"runFee", "itemPrice", "totalAmount"}.isdisjoint(accept_schema["properties"])
 
 
+def test_list_status_filters_are_repeatable_array_query_parameters():
+    schema = app.openapi()
+    targets = [
+        ("/v1/proposal", "get"),
+        ("/v1/proposal/own", "get"),
+        ("/v1/offer", "get"),
+        ("/v1/offer/own", "get"),
+    ]
+
+    for path, method in targets:
+        operation = schema["paths"][path][method]
+        status_param = next(parameter for parameter in operation["parameters"] if parameter["name"] == "status")
+        array_schema = next(item for item in status_param["schema"]["anyOf"] if item.get("type") == "array")
+
+        assert status_param["in"] == "query"
+        assert array_schema["items"]["$ref"].startswith("#/components/schemas/")
+        assert "status=A&status=B" in status_param["description"]
+
+
 def test_api_schemas_do_not_inherit_from_other_api_dtos():
     schema_dir = Path(__file__).resolve().parents[1] / "app" / "schemas"
     violations: list[str] = []

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic_core import PydanticCustomError
 
 from app.models.offer import OfferStatus
 from app.models.proposal import ProposalStatus
@@ -15,7 +16,7 @@ class ProposalRequest(BaseModel):
 
     title: str = Field(..., max_length=50)
     content: str = Field(..., max_length=500)
-    deadline: str
+    deadline: datetime
     errand_fee: int = Field(..., validation_alias="errandFee")
 
     @field_validator("title", "content")
@@ -23,6 +24,13 @@ class ProposalRequest(BaseModel):
     def validate_not_blank(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("must not be blank")
+        return value
+
+    @field_validator("deadline")
+    @classmethod
+    def validate_deadline_has_offset(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise PydanticCustomError("invalid_datetime_offset", "deadline must include timezone offset")
         return value
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)

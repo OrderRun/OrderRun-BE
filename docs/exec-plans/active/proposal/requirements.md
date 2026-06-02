@@ -4,7 +4,7 @@
 
 - Proposal은 오더가 작성하는 심부름 모집 공고다.
 - 모든 Proposal API는 현재 Spring Security 설정상 JWT 인증이 필요하다.
-- 공개 목록에는 `POSTED`, `OFFERED` 상태만 노출한다.
+- 공개 목록은 status 미지정 시 모든 Proposal 상태를 반환하고, 반복 `status` 쿼리로 여러 상태를 필터링한다.
 - 생성 직후 상태는 `HOLDING`이며, 입금 확인 후 `POSTED`로 전환되어야 공개/입찰 대상이 된다.
 - 현재 외부 API는 `title`, `content`, `deadline`, `errandFee` 중심으로 동작한다.
 - `meetingAt`, `itemPrice`, `deposit`, 주소/좌표 필드는 현재 Java Proposal API/엔티티 응답에 포함되지 않는다.
@@ -43,8 +43,9 @@
 ### `GET /v1/proposal`
 
 - 인증된 사용자가 호출하면 200 OK와 PageResponse를 반환한다.
-- `POSTED`, `OFFERED` 상태 Proposal만 반환한다.
-- `HOLDING`, `MATCHED`, `CANCELLED`는 반환하지 않는다.
+- `status` 쿼리가 없으면 모든 Proposal 상태를 반환한다.
+- `status`는 반복 쿼리 파라미터로 여러 상태를 받을 수 있다. 예: `status=HOLDING&status=POSTED`
+- `status` 쿼리가 있으면 해당 상태들만 반환한다.
 - 토큰이 없거나 유효하지 않으면 401 `INVALID_TOKEN`이다.
 
 ### `GET /v1/proposal/{id}`
@@ -56,7 +57,9 @@
 ### `GET /v1/proposal/own`
 
 - 현재 사용자가 작성한 Proposal만 반환한다.
-- `status` 쿼리가 있으면 해당 상태만 반환한다.
+- `status` 쿼리가 없으면 본인이 작성한 모든 Proposal 상태를 반환한다.
+- `status`는 반복 쿼리 파라미터로 여러 상태를 받을 수 있다. 예: `status=HOLDING&status=POSTED`
+- `status` 쿼리가 있으면 해당 상태들만 반환한다.
 - 각 항목은 `offerCount`와 `offers`를 포함한다.
 - `offers`는 생성 시각 내림차순이다.
 

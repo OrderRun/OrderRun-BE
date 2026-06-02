@@ -56,12 +56,12 @@ def make_proposal(db, orderer_id: str, status: ProposalStatus, title: str = "요
     return proposal
 
 
-def test_list_public_requires_auth_and_exposes_only_posted_or_offered(client, db, auth_headers, sample_user):
+def test_list_public_requires_auth_and_supports_multi_status_filter(client, db, auth_headers, sample_user):
+    holding = make_proposal(db, sample_user.id, ProposalStatus.HOLDING, "holding")
     posted = make_proposal(db, sample_user.id, ProposalStatus.POSTED, "posted")
     offered = make_proposal(db, sample_user.id, ProposalStatus.OFFERED, "offered")
-    make_proposal(db, sample_user.id, ProposalStatus.HOLDING, "holding")
-    make_proposal(db, sample_user.id, ProposalStatus.MATCHED, "matched")
-    make_proposal(db, sample_user.id, ProposalStatus.CANCELLED, "cancelled")
+    matched = make_proposal(db, sample_user.id, ProposalStatus.MATCHED, "matched")
+    cancelled = make_proposal(db, sample_user.id, ProposalStatus.CANCELLED, "cancelled")
 
     unauthenticated = client.get("/v1/proposal")
     assert unauthenticated.status_code == 401
@@ -71,10 +71,19 @@ def test_list_public_requires_auth_and_exposes_only_posted_or_offered(client, db
     assert response.status_code == 200
     body = response.json()
     ids = {item["id"] for item in body["data"]["content"]}
-    assert ids == {posted.id, offered.id}
+    assert ids == {holding.id, posted.id, offered.id, matched.id, cancelled.id}
     assert body["data"]["pageNumber"] == 0
     assert body["data"]["pageSize"] == 20
-    assert body["data"]["totalElements"] == 2
+    assert body["data"]["totalElements"] == 5
+
+    filtered = client.get("/v1/proposal?status=HOLDING&status=POSTED", headers=auth_headers)
+    assert filtered.status_code == 200
+    filtered_ids = {item["id"] for item in filtered.json()["data"]["content"]}
+    assert filtered_ids == {holding.id, posted.id}
+
+    invalid = client.get("/v1/proposal?status=INVALID", headers=auth_headers)
+    assert invalid.status_code == 400
+    assert invalid.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
 def test_detail_hides_holding_and_allows_cancelled(client, db, auth_headers, sample_user):
@@ -90,10 +99,11 @@ def test_detail_hides_holding_and_allows_cancelled(client, db, auth_headers, sam
     assert cancelled_response.json()["data"]["status"] == "CANCELLED"
 
 
-def test_list_own_returns_only_current_user_with_offers_and_status_filter(client, db, auth_headers, sample_user):
+def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(client, db, auth_headers, sample_user):
     other_user = make_user(db)
     own_posted = make_proposal(db, sample_user.id, ProposalStatus.POSTED)
     own_holding = make_proposal(db, sample_user.id, ProposalStatus.HOLDING)
+    own_cancelled = make_proposal(db, sample_user.id, ProposalStatus.CANCELLED)
     make_proposal(db, other_user.id, ProposalStatus.POSTED)
 
     old_offer = Offer(
@@ -109,16 +119,21 @@ def test_list_own_returns_only_current_user_with_offers_and_status_filter(client
     db.add_all([old_offer, new_offer])
     db.commit()
 
-    response = client.get("/v1/proposal/own?status=POSTED", headers=auth_headers)
+    response = client.get("/v1/proposal/own?status=POSTED&status=CANCELLED", headers=auth_headers)
     assert response.status_code == 200
     items = response.json()["data"]["content"]
-    assert [item["id"] for item in items] == [own_posted.id]
-    assert items[0]["ordererId"] == sample_user.id
-    assert items[0]["offerCount"] == 2
-    assert [offer["id"] for offer in items[0]["offers"]] == [new_offer.id, old_offer.id]
+    assert {item["id"] for item in items} == {own_posted.id, own_cancelled.id}
+    posted_item = next(item for item in items if item["id"] == own_posted.id)
+    assert posted_item["ordererId"] == sample_user.id
+    assert posted_item["offerCount"] == 2
+    assert [offer["id"] for offer in posted_item["offers"]] == [new_offer.id, old_offer.id]
 
     all_own_response = client.get("/v1/proposal/own", headers=auth_headers)
-    assert {item["id"] for item in all_own_response.json()["data"]["content"]} == {own_posted.id, own_holding.id}
+    assert {item["id"] for item in all_own_response.json()["data"]["content"]} == {
+        own_posted.id,
+        own_holding.id,
+        own_cancelled.id,
+    }
 
 
 def test_create_proposal_validates_contract_and_stores_holding(client, db, auth_headers, sample_user):
@@ -140,6 +155,7 @@ def test_create_proposal_validation_errors(client, auth_headers):
         (proposal_payload(content=" "), "VALIDATION_ERROR"),
         (proposal_payload(title="가" * 51), "VALIDATION_ERROR"),
         (proposal_payload(content="가" * 501), "VALIDATION_ERROR"),
+        (proposal_payload(deadline="not-a-datetime"), "INVALID_DATE_TIME_FORMAT"),
         (proposal_payload(deadline="2026-01-01T00:00:00"), "INVALID_DATE_TIME_FORMAT"),
         (
             proposal_payload(deadline=(datetime.now(timezone.utc) - timedelta(days=1)).isoformat()),
@@ -175,6 +191,9 @@ def test_update_proposal_author_and_status_rules(client, db, auth_headers, sampl
         assert response.status_code == 200
         assert response.json()["message"] == "제안이 수정되었습니다."
         assert response.json()["data"]["title"] == "수정된 제목"
+        db.refresh(editable)
+        assert editable.status == ProposalStatus.HOLDING
+        assert editable.meeting_at == editable.deadline
 
     for not_editable in [offered, matched, cancelled]:
         response = client.put(f"/v1/proposal/{not_editable.id}", json=proposal_payload(), headers=auth_headers)

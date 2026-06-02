@@ -2,7 +2,6 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from datetime import datetime, timezone
-from pydantic import ValidationError
 
 from app.core.errors import AppError, error_detail
 
@@ -52,13 +51,23 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         message = first_error["msg"]
         details = f"{field}: {message}"
     else:
+        first_error = None
+        field = "unknown"
         details = "Validation error"
+
+    error = AppError.VALIDATION_ERROR
+    if field == "deadline" and first_error and first_error.get("type") in {
+        "datetime_from_date_parsing",
+        "datetime_parsing",
+        "invalid_datetime_offset",
+    }:
+        error = AppError.INVALID_DATE_TIME_FORMAT
 
     return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={
                 "success": False,
-                "error": error_detail(AppError.VALIDATION_ERROR, details),
+                "error": error_detail(error, details),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )

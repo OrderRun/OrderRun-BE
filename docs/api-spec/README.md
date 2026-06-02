@@ -371,6 +371,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 | 파라미터 | 타입 | 필수 | 기본값 | 설명 |
 |----------|------|------|--------|------|
+| status | array[string] | X | 없음 | Proposal 상태 필터. 반복 입력 가능: `status=A&status=B`. 없으면 전체 상태 |
 | page | integer | X | 0 | 페이지 번호 |
 | size | integer | X | 20 | 페이지 크기 |
 | sort | string | X | `createdAt,desc` | 정렬 |
@@ -379,7 +380,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 | 파라미터 | 타입 | 필수 | 기본값 | 설명 |
 |----------|------|------|--------|------|
-| status | string | X | 없음 | Proposal 상태 필터 |
+| status | array[string] | X | 없음 | Proposal 상태 필터. 반복 입력 가능: `status=A&status=B`. 없으면 전체 상태 |
 | page | integer | X | 0 | 페이지 번호 |
 | size | integer | X | 20 | 페이지 크기 |
 | sort | string | X | `createdAt,desc` | 정렬 |
@@ -410,12 +411,13 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | 파라미터 | 타입 | 필수 | 설명 |
 |----------|------|------|------|
 | proposalId | number | O | Proposal ID |
+| status | array[string] | X | Offer 상태 필터. 반복 입력 가능: `status=A&status=B`. 없으면 전체 상태 |
 
 #### `GET /v1/offer/own`
 
 | 파라미터 | 타입 | 필수 | 기본값 | 설명 |
 |----------|------|------|--------|------|
-| status | string | X | 없음 | Offer 상태 필터 |
+| status | array[string] | X | 없음 | Offer 상태 필터. 반복 입력 가능: `status=A&status=B`. 없으면 전체 상태 |
 | page | integer | X | 0 | 페이지 번호 |
 | size | integer | X | 20 | 페이지 크기 |
 

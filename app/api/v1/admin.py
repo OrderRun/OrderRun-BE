@@ -9,7 +9,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.proposal import ProposalResponse
 from app.schemas.common import ApiResponse
-from app.services.proposal import ProposalService
+from app.services.proposal_service import ProposalService
 
 
 router = APIRouter(prefix="/admin", tags=["관리자"])

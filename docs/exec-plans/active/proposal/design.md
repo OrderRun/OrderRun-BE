@@ -6,7 +6,7 @@
 - 현재 Java API와 동일하게 `title`, `content`, `deadline`, `errandFee` 중심 모델을 사용한다.
 - 날짜 파싱은 API layer에서 수행하고, service layer에는 UTC `Instant`를 전달한다.
 - 권한 검사는 current user id와 Proposal `orderer_id` 비교로 수행한다.
-- 공개 목록 노출 상태는 `POSTED`, `OFFERED`로 고정한다.
+- 공개 목록은 status 미지정 시 모든 Proposal 상태를 반환하고, 반복 `status` 쿼리로 여러 상태를 필터링한다.
 
 ## Responsibilities
 
@@ -35,7 +35,7 @@
 - 생성: `HOLDING` Proposal insert
 - 수정: `title`, `content`, `deadline`, `errand_fee` update
 - 취소: Proposal `status=CANCELLED`; `OFFERED`였으면 관련 WAITING Offer `REJECTED`
-- 조회: 공개 목록은 `POSTED`, `OFFERED`만 반환
+- 조회: 공개 목록은 status 미지정 시 전체 상태, 지정 시 해당 상태들만 반환
 
 ## Rollout Strategy
 
