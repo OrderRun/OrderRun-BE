@@ -23,7 +23,11 @@ logger = logging.getLogger(__name__)
 
 
 class FCMService:
-    def __init__(self, credentials_path: Optional[str] = None):
+    def __init__(
+        self,
+        credentials_path: Optional[str] = None,
+        credentials_json: Optional[str] = None,
+    ):
         self.initialized = False
         self.credentials_path = credentials_path
 
@@ -33,7 +37,10 @@ class FCMService:
 
         try:
             if not firebase_admin._apps:
-                if credentials_path:
+                if credentials_json:
+                    cred = credentials.Certificate(json.loads(credentials_json))
+                    firebase_admin.initialize_app(cred)
+                elif credentials_path:
                     cred = credentials.Certificate(credentials_path)
                     firebase_admin.initialize_app(cred)
                 else:

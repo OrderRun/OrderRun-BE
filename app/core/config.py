@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     jwt_refresh_token_expire_days: int = 7
 
     # FCM (Firebase Cloud Messaging)
-    fcm_credentials_path: Optional[str] = None
+    fcm_credentials_path: Optional[str] = None   # 로컬 개발: 파일 경로
+    fcm_credentials_json: Optional[str] = None   # 배포 환경: JSON 문자열 (GitHub Secret)
 
     # AWS SNS (SMS)
     aws_sns_region: str = "ap-northeast-2"
