@@ -49,4 +49,7 @@ if ! wait_for_health "$app_container"; then
   exit 1
 fi
 
+echo "Running database migrations..."
+docker exec "$app_container" alembic upgrade head
+
 docker compose -f "$compose_file" --profile "$compose_profile" ps
