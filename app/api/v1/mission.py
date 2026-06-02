@@ -16,8 +16,7 @@ from app.schemas.mission import (
     MissionCompleteDeliveryRequest,
     MissionDisputeRequest,
     MissionResponse,
-    MissionRole,
-    MissionUpdateRequest,
+    MissionRole
 )
 from app.services.mission_service import MissionService
 
@@ -130,35 +129,3 @@ def raise_dispute(
         dispute_reason=request.dispute_reason,
     )
     return ApiResponse(success=True, data=mission, message="분쟁이 접수되었습니다.")
-
-
-@router.put(
-    "/{mission_id}",
-    response_model=ApiResponse[MissionResponse],
-    status_code=status.HTTP_200_OK,
-    summary="미션 상태 변경",
-    description="Deprecated. 행위별 POST API를 사용하세요.",
-    deprecated=True,
-    responses=error_responses(
-        AppError.INVALID_TOKEN,
-        AppError.VALIDATION_ERROR,
-        AppError.MISSION_NOT_FOUND,
-        AppError.FORBIDDEN,
-        AppError.MISSION_NOT_UPDATABLE,
-        AppError.MISSION_PROOF_IMAGE_REQUIRED,
-        AppError.MISSION_DISPUTE_REASON_REQUIRED,
-    ),
-)
-def update_mission(
-    mission_id: int,
-    request: MissionUpdateRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> ApiResponse[MissionResponse]:
-    mission = MissionService.update_status(
-        db,
-        mission_id=mission_id,
-        user_id=current_user.id,
-        request=request,
-    )
-    return ApiResponse(success=True, data=mission, message="미션 상태가 업데이트되었습니다.")

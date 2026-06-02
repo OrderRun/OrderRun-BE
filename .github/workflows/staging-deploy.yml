@@ -91,30 +91,30 @@ jobs:
             cd ~/orderrun
 
             cat > .env << 'ENVEOF'
-DOCKER_IMAGE=${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
-APP_ENV=staging
-APP_DEBUG=false
-SECRET_KEY=${{ secrets.STG_JWT_SECRET }}
-DB_HOST=${{ secrets.STG_MYSQL_HOST }}
-DB_PORT=${{ secrets.STG_MYSQL_PORT }}
-DB_USERNAME=${{ secrets.STG_MYSQL_USER }}
-DB_PASSWORD=${{ secrets.STG_MYSQL_PASSWORD }}
-DB_NAME=${{ secrets.STG_MYSQL_DATABASE }}
-MYSQL_HOST=${{ secrets.STG_MYSQL_HOST }}
-MYSQL_PORT=${{ secrets.STG_MYSQL_PORT }}
-MYSQL_USER=${{ secrets.STG_MYSQL_USER }}
-MYSQL_PASSWORD=${{ secrets.STG_MYSQL_PASSWORD }}
-MYSQL_DATABASE=${{ secrets.STG_MYSQL_DATABASE }}
-JWT_SECRET=${{ secrets.STG_JWT_SECRET }}
-SERVER_HOST=0.0.0.0
-SERVER_PORT=8000
-AWS_SNS_REGION=ap-northeast-2
-AWS_SNS_ACCESS_KEY_ID=${{ secrets.AWS_SNS_ACCESS_KEY_ID }}
-AWS_SNS_SECRET_ACCESS_KEY=${{ secrets.AWS_SNS_SECRET_ACCESS_KEY }}
-AWS_SNS_SMS_TYPE=Transactional
-EC2_PUBLIC_IP=${{ secrets.STG_EC2_HOST }}
-ENABLE_SSL=false
-ENVEOF
+          DOCKER_IMAGE=${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
+          APP_ENV=staging
+          APP_DEBUG=false
+          SECRET_KEY=${{ secrets.STG_JWT_SECRET }}
+          DB_HOST=${{ secrets.STG_MYSQL_HOST }}
+          DB_PORT=${{ secrets.STG_MYSQL_PORT }}
+          DB_USERNAME=${{ secrets.STG_MYSQL_USER }}
+          DB_PASSWORD=${{ secrets.STG_MYSQL_PASSWORD }}
+          DB_NAME=${{ secrets.STG_MYSQL_DATABASE }}
+          MYSQL_HOST=${{ secrets.STG_MYSQL_HOST }}
+          MYSQL_PORT=${{ secrets.STG_MYSQL_PORT }}
+          MYSQL_USER=${{ secrets.STG_MYSQL_USER }}
+          MYSQL_PASSWORD=${{ secrets.STG_MYSQL_PASSWORD }}
+          MYSQL_DATABASE=${{ secrets.STG_MYSQL_DATABASE }}
+          JWT_SECRET=${{ secrets.STG_JWT_SECRET }}
+          SERVER_HOST=0.0.0.0
+          SERVER_PORT=8000
+          AWS_SNS_REGION=ap-northeast-2
+          AWS_SNS_ACCESS_KEY_ID=${{ secrets.AWS_SNS_ACCESS_KEY_ID }}
+          AWS_SNS_SECRET_ACCESS_KEY=${{ secrets.AWS_SNS_SECRET_ACCESS_KEY }}
+          AWS_SNS_SMS_TYPE=Transactional
+          EC2_PUBLIC_IP=${{ secrets.STG_EC2_HOST }}
+          ENABLE_SSL=false
+          ENVEOF
 
             chmod +x deploy.sh staging-smoke-test.sh
             ./deploy.sh
