@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.database import SessionLocal, get_db
+from app.core.firebase import get_notification_worker
 from app.core.errors import AppError
 from app.core.openapi import AUTH_ERROR_RESPONSES, error_responses
 from app.core.security import get_current_user
@@ -68,6 +69,7 @@ def get_missions(
 def complete_delivery(
     mission_id: int,
     request: MissionCompleteDeliveryRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[MissionResponse]:
@@ -77,6 +79,7 @@ def complete_delivery(
         runner_id=current_user.id,
         proof_image_url=request.proof_image_url,
     )
+    background_tasks.add_task(get_notification_worker().flush_pending, SessionLocal)
     return ApiResponse(success=True, data=mission, message="전달 완료되었습니다.")
 
 
@@ -95,10 +98,12 @@ def complete_delivery(
 )
 def confirm_received(
     mission_id: int,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[MissionResponse]:
     mission = MissionService.confirm_received(db, mission_id=mission_id, orderer_id=current_user.id)
+    background_tasks.add_task(get_notification_worker().flush_pending, SessionLocal)
     return ApiResponse(success=True, data=mission, message="수령 확인되었습니다.")
 
 

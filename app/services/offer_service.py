@@ -6,6 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError, api_error
+from app.events.base import EventBus
+from app.events.offer_events import OfferAcceptedEvent, OfferCreatedEvent
 from app.models.mission import Mission, MissionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
@@ -77,6 +79,14 @@ class OfferService:
             db.add(offer)
             if proposal.status == ProposalStatus.POSTED:
                 proposal.mark_as_offered()
+            db.flush()
+            EventBus.publish(OfferCreatedEvent(
+                offer_id=offer.id,
+                proposal_id=proposal.id,
+                runner_id=runner_id,
+                orderer_id=proposal.orderer_id,
+                proposal_title=proposal.title,
+            ), db)
             db.commit()
             db.refresh(offer)
         except IntegrityError as exc:
@@ -168,6 +178,14 @@ class OfferService:
         if proposal.status != ProposalStatus.OFFERED:
             raise api_error(AppError.PROPOSAL_NOT_MATCHABLE)
 
+        rejected_runner_ids = tuple(
+            row[0] for row in db.query(Offer.runner_id).filter(
+                Offer.proposal_id == proposal.id,
+                Offer.id != offer.id,
+                Offer.status == OfferStatus.WAITING,
+            ).all()
+        )
+
         mission = Mission(
             proposal_id=proposal.id,
             offer_id=offer.id,
@@ -188,6 +206,15 @@ class OfferService:
             )
             .update({Offer.status: OfferStatus.REJECTED}, synchronize_session=False)
         )
+        db.flush()
+        EventBus.publish(OfferAcceptedEvent(
+            offer_id=offer.id,
+            proposal_id=proposal.id,
+            accepted_runner_id=offer.runner_id,
+            rejected_runner_ids=rejected_runner_ids,
+            orderer_id=proposal.orderer_id,
+            proposal_title=proposal.title,
+        ), db)
         db.commit()
         db.refresh(mission)
         db.refresh(offer)

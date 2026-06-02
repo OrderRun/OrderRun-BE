@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.database import SessionLocal, get_db
 from app.core.errors import AppError
+from app.core.firebase import get_notification_worker
 from app.core.openapi import AUTH_ERROR_RESPONSES, error_responses
 from app.core.security import get_current_user
 from app.models.offer import OfferStatus
@@ -62,10 +63,12 @@ class OfferOwnerSearchRequest:
 )
 def create_offer(
     offer_data: OfferCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[OfferResponse]:
     offer = OfferService.create(db, request=offer_data, runner_id=current_user.id)
+    background_tasks.add_task(get_notification_worker().flush_pending, SessionLocal)
     return ApiResponse(success=True, data=offer, message="제안이 제출되었습니다.")
 
 
@@ -149,10 +152,12 @@ def get_offer(
 )
 def accept_offer(
     offer_id: int,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[OfferAcceptResponse]:
     accepted = OfferService.accept(db, offer_id=offer_id, orderer_id=current_user.id)
+    background_tasks.add_task(get_notification_worker().flush_pending, SessionLocal)
     return ApiResponse(success=True, data=accepted, message="제안이 수락되었습니다.")
 
 

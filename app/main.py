@@ -1,27 +1,48 @@
 import logging
 from contextlib import asynccontextmanager
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 
 from app.core.config import settings
-from app.core.firebase import init_fcm
+from app.core.database import SessionLocal
+from app.core.firebase import get_notification_worker, init_fcm
 from app.api.v1 import auth, mission, proposal, offer, notifications, admin, settlement, terms, users
 from app.core.exceptions import http_exception_handler, validation_exception_handler
+from app.listeners import notification_listener
 from app.schemas.common import ApiResponse
 
 logger = logging.getLogger(__name__)
 
+_scheduler = AsyncIOScheduler()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    notification_listener.register_all()
+
     if settings.fcm_credentials_path or settings.fcm_credentials_json:
         init_fcm()
     else:
         logger.warning("FCM credentials not configured — push notifications disabled")
+
+    worker = get_notification_worker()
+    _scheduler.add_job(
+        worker.retry_failed,
+        "interval",
+        minutes=5,
+        args=[SessionLocal],
+        id="retry_failed_notifications",
+        replace_existing=True,
+    )
+    _scheduler.start()
+
     yield
+
+    _scheduler.shutdown(wait=False)
 
 
 # Create FastAPI app

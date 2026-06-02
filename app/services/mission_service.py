@@ -5,8 +5,11 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError, api_error
+from app.events.base import EventBus
+from app.events.mission_events import MeetingConfirmedByOrdererEvent, MeetingConfirmedByRunnerEvent
 from app.models.mission import Mission, MissionStatus
 from app.models.offer import Offer, OfferStatus
+from app.models.proposal import Proposal
 from app.models.user import User
 from app.schemas.common import PageResponse
 from app.schemas.mission import MissionAction, MissionResponse, MissionRole, MissionUpdateRequest, MissionUserSummary
@@ -126,6 +129,14 @@ class MissionService:
         if not mission.can_complete_delivery():
             raise MissionService._not_updatable()
         mission.complete_delivery(proof_image_url)
+        db.flush()
+        EventBus.publish(MeetingConfirmedByRunnerEvent(
+            mission_id=mission.id,
+            proposal_id=mission.proposal_id,
+            runner_id=mission.runner_id,
+            orderer_id=mission.orderer_id,
+            proposal_title=MissionService._proposal_title(db, mission.proposal_id),
+        ), db)
         db.commit()
         db.refresh(mission)
         return MissionService._to_response(db, mission)
@@ -138,6 +149,14 @@ class MissionService:
             raise MissionService._not_updatable()
         mission.confirm_receipt()
         MissionService._complete_offer_if_needed(db, mission)
+        db.flush()
+        EventBus.publish(MeetingConfirmedByOrdererEvent(
+            mission_id=mission.id,
+            proposal_id=mission.proposal_id,
+            orderer_id=mission.orderer_id,
+            runner_id=mission.runner_id,
+            proposal_title=MissionService._proposal_title(db, mission.proposal_id),
+        ), db)
         db.commit()
         db.refresh(mission)
         return MissionService._to_response(db, mission)
@@ -178,6 +197,11 @@ class MissionService:
         db.commit()
         db.refresh(mission)
         return MissionService._to_response(db, mission)
+
+    @staticmethod
+    def _proposal_title(db: Session, proposal_id: int) -> str:
+        proposal = db.query(Proposal).filter(Proposal.id == proposal_id).first()
+        return proposal.title if proposal else ""
 
     @staticmethod
     def _ensure_runner(mission: Mission, user_id: str) -> None:
