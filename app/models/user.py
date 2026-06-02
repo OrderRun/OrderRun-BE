@@ -39,14 +39,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
-    device_tokens = relationship("DeviceToken", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
-    notification_preference = relationship(
-        "NotificationPreference",
-        back_populates="user",
-        uselist=False,
-        cascade="all, delete-orphan",
-    )
 
     def update_last_login_at(self, current_time: datetime) -> None:
         self.last_login_at = current_time

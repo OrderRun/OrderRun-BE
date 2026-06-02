@@ -60,7 +60,6 @@ class AppError(str, Enum):
     MISSION_PROOF_IMAGE_REQUIRED = "MISSION_PROOF_IMAGE_REQUIRED"
     MISSION_DISPUTE_REASON_REQUIRED = "MISSION_DISPUTE_REASON_REQUIRED"
 
-    DEVICE_TOKEN_NOT_FOUND = "DEVICE_TOKEN_NOT_FOUND"
     NOTIFICATION_NOT_FOUND = "NOTIFICATION_NOT_FOUND"
 
 
@@ -218,7 +217,6 @@ ERRORS: dict[AppError, ApiErrorSpec] = {
         "VALIDATION_ERROR",
         "요청 값이 올바르지 않습니다.",
     ),
-    AppError.DEVICE_TOKEN_NOT_FOUND: ApiErrorSpec(status.HTTP_404_NOT_FOUND, "ERROR", "Device token not found"),
     AppError.NOTIFICATION_NOT_FOUND: ApiErrorSpec(status.HTTP_404_NOT_FOUND, "ERROR", "Notification not found"),
 }
 

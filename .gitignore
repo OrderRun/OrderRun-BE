@@ -212,4 +212,8 @@ __marimo__/
 
 # Test database
 test.db
+
+# Firebase service account keys
+*-firebase-key.json
+keys/
 *.db
