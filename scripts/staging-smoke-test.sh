@@ -4,7 +4,7 @@ set -euo pipefail
 base_url="${BASE_URL:-http://localhost}"
 health_url="${base_url%/}/v1/health"
 
-python - "$health_url" <<'PY'
+python3 - "$health_url" <<'PY'
 import json
 import sys
 import urllib.request
