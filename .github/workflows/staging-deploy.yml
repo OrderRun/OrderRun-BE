@@ -112,6 +112,7 @@ jobs:
           AWS_SNS_ACCESS_KEY_ID=${{ secrets.AWS_SNS_ACCESS_KEY_ID }}
           AWS_SNS_SECRET_ACCESS_KEY=${{ secrets.AWS_SNS_SECRET_ACCESS_KEY }}
           AWS_SNS_SMS_TYPE=Transactional
+          FCM_CREDENTIALS_JSON=${{ secrets.FCM_CREDENTIALS_JSON }}
           EC2_PUBLIC_IP=${{ secrets.STG_EC2_HOST }}
           ENABLE_SSL=false
           ENVEOF
