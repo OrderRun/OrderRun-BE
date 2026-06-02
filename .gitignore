@@ -216,4 +216,5 @@ test.db
 # Firebase service account keys
 *-firebase-key.json
 keys/
+secrets/
 *.db
