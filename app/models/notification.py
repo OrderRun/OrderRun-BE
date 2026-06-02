@@ -1,7 +1,7 @@
 """Notification models for push notification system."""
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Text, DateTime, ForeignKey, Enum, Integer
+from sqlalchemy import String, Text, DateTime, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
@@ -22,6 +22,8 @@ class NotificationType(str, enum.Enum):
     PAYMENT_FAILED = "payment_failed"
     SYSTEM_ANNOUNCEMENT = "system_announcement"
     CUSTOM = "custom"
+    OFFER_SUBMITTED = "offer_submitted"
+    MEETING_CONFIRMED = "meeting_confirmed"
 
 
 class NotificationStatus(str, enum.Enum):
@@ -43,7 +45,7 @@ class Notification(Base):
         index=True,
     )
     notification_type: Mapped[NotificationType] = mapped_column(
-        Enum(NotificationType),
+        String(50),
         nullable=False,
         index=True,
     )
@@ -53,7 +55,7 @@ class Notification(Base):
     related_entity_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     related_entity_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[NotificationStatus] = mapped_column(
-        Enum(NotificationStatus),
+        String(20),
         default=NotificationStatus.PENDING,
         nullable=False,
         index=True,
@@ -64,6 +66,7 @@ class Notification(Base):
     sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     read_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="notifications")
 
