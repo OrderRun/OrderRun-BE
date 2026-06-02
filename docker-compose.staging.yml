@@ -45,6 +45,9 @@ services:
       AWS_SNS_SECRET_ACCESS_KEY: ${AWS_SNS_SECRET_ACCESS_KEY:-}
       AWS_SNS_SMS_SENDER_ID: ${AWS_SNS_SMS_SENDER_ID:-Kkobongdan}
       AWS_SNS_SMS_TYPE: ${AWS_SNS_SMS_TYPE:-Transactional}
+      FCM_CREDENTIALS_PATH: ${FCM_CREDENTIALS_PATH:-}
+    volumes:
+      - /home/ubuntu/orderrun/keys:/app/keys:ro
     expose:
       - "8000"
     networks:
