@@ -38,20 +38,13 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
       DB_NAME: ${MYSQL_DATABASE:?MYSQL_DATABASE is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
-      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-mock-kakao-client-id}
-      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-mock-kakao-client-secret}
-      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI:-http://localhost:8000/api/v1/auth/kakao/callback}
-      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-mock-apple-client-id}
-      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-mock-apple-team-id}
-      APPLE_KEY_ID: ${APPLE_KEY_ID:-mock-apple-key-id}
-      APPLE_PRIVATE_KEY_PATH: ${APPLE_PRIVATE_KEY_PATH:-./keys/apple-private-key.p8}
-      APPLE_REDIRECT_URI: ${APPLE_REDIRECT_URI:-http://localhost:8000/api/v1/auth/apple/callback}
       SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
       SERVER_PORT: ${SERVER_PORT:-8000}
       AWS_SNS_REGION: ${AWS_SNS_REGION:-ap-northeast-2}
       AWS_SNS_ACCESS_KEY_ID: ${AWS_SNS_ACCESS_KEY_ID:-}
       AWS_SNS_SECRET_ACCESS_KEY: ${AWS_SNS_SECRET_ACCESS_KEY:-}
       AWS_SNS_SMS_SENDER_ID: ${AWS_SNS_SMS_SENDER_ID:-Kkobongdan}
+      AWS_SNS_SMS_TYPE: ${AWS_SNS_SMS_TYPE:-Transactional}
     expose:
       - "8000"
     networks:
