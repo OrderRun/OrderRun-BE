@@ -65,6 +65,7 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
         "runnerId": runner.id,
         "runnerName": "Runner One",
         "status": "WAITING",
+        "missionId": None,
         "createdAt": body["data"]["createdAt"],
     }
 
@@ -136,8 +137,33 @@ def test_get_offer_detail_allows_runner_and_orderer_only(client, db, sample_user
 
     assert runner_response.status_code == 200
     assert orderer_response.status_code == 200
+    assert runner_response.json()["data"]["missionId"] is None
     assert forbidden.status_code == 403
     assert forbidden.json()["error"]["code"] == "FORBIDDEN"
+
+
+def test_get_offer_detail_returns_mission_id_when_mission_exists(client, db, sample_user):
+    runner = make_user(db, "01077770020")
+    proposal = make_proposal(db, sample_user.id, ProposalStatus.MATCHED)
+    offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    db.add(offer)
+    db.commit()
+    db.refresh(offer)
+    mission = Mission(
+        proposal_id=proposal.id,
+        offer_id=offer.id,
+        orderer_id=sample_user.id,
+        runner_id=runner.id,
+        status=MissionStatus.CREATED,
+    )
+    db.add(mission)
+    db.commit()
+    db.refresh(mission)
+
+    response = client.get(f"/v1/offer/{offer.id}", headers=headers_for(runner))
+
+    assert response.status_code == 200
+    assert response.json()["data"]["missionId"] == mission.id
 
 
 def test_get_own_offers_supports_paging_and_multi_status_filter(client, db, sample_user):

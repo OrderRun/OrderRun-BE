@@ -16,12 +16,10 @@
   - 토큰이 없으면 401이다.
   - Proposal 작성자가 아니면 403 `FORBIDDEN`이다.
   - 요청 본문 없이 성공한다.
-- `GET /v1/mission`
-  - `role` 기본값은 `ORDERER`다.
-  - `role=ORDERER`는 현재 사용자가 orderer인 Mission만 반환한다.
-  - `role=RUNNER`는 현재 사용자가 runner인 Mission만 반환한다.
-  - `status` 필터가 동작한다.
-  - 응답은 PageResponse다.
+- Mission ID 노출
+  - `GET /v1/mission`은 제공하지 않는다.
+  - Proposal 상세는 Mission이 있으면 `missionId`, 없으면 `null`을 반환한다.
+  - Offer 상세는 Mission이 있으면 `missionId`, 없으면 `null`을 반환한다.
 - `PUT /v1/mission/{id}`
   - runner가 `START_PROGRESS`를 호출하면 `CREATED -> IN_PROGRESS`다.
   - runner 전달 완료 후 orderer 수령 확인을 하면 Mission과 Offer가 완료된다.

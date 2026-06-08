@@ -11,8 +11,7 @@ from app.models.mission import Mission, MissionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal
 from app.models.user import User
-from app.schemas.common import PageResponse
-from app.schemas.mission import MissionAction, MissionResponse, MissionRole, MissionUpdateRequest, MissionUserSummary
+from app.schemas.mission import MissionAction, MissionResponse, MissionUpdateRequest, MissionUserSummary
 
 
 class MissionService:
@@ -48,38 +47,6 @@ class MissionService:
             settled_at=mission.settled_at,
             dispute_reason=mission.dispute_reason,
             created_at=mission.created_at,
-        )
-
-    @staticmethod
-    def list_own(
-        db: Session,
-        user_id: str,
-        role: MissionRole,
-        mission_status: MissionStatus | None,
-        page: int,
-        size: int,
-    ) -> PageResponse[MissionResponse]:
-        query = db.query(Mission)
-        if role == MissionRole.ORDERER:
-            query = query.filter(Mission.orderer_id == user_id)
-        elif role == MissionRole.RUNNER:
-            query = query.filter(Mission.runner_id == user_id)
-
-        if mission_status is not None:
-            query = query.filter(Mission.status == mission_status)
-
-        total = query.count()
-        missions = (
-            query.order_by(Mission.created_at.desc(), Mission.id.desc())
-            .offset(page * size)
-            .limit(size)
-            .all()
-        )
-        return PageResponse.of(
-            content=[MissionService._to_response(db, mission) for mission in missions],
-            page_number=page,
-            page_size=size,
-            total_elements=total,
         )
 
     @staticmethod

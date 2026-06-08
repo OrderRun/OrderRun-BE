@@ -12,8 +12,8 @@
 
 ### API Layer
 
-- `GET /v1/mission` endpoint binding, `role` 기본값, `status` enum parsing, PageResponse wrapping을 담당한다.
-- `PUT /v1/mission/{id}` request validation과 ApiResponse wrapping을 담당한다.
+- Mission 상태 변경 endpoint request validation과 ApiResponse wrapping을 담당한다.
+- 별도 Mission 조회 endpoint는 제공하지 않고 Proposal/Offer 상세 응답에서 nullable `missionId`를 노출한다.
 - `POST /v1/offer/{offerId}/accept`는 Offer API에 속하지만 Mission 생성 결과 필드를 응답에 포함한다.
 
 ### Offer Acceptance Service
@@ -26,7 +26,7 @@
 
 ### Mission Service
 
-- 내 Mission 목록에서 `ORDERER`/`RUNNER` role과 status 필터를 적용한다.
+- Proposal/Offer 상세 조회에서 연결 Mission ID를 조회해 nullable `missionId`로 매핑한다.
 - 상태 업데이트 대상 Mission 존재 여부를 검증한다.
 - action별 actor 권한과 허용 상태를 검증한다.
 - Mission이 새로 `COMPLETED`가 되면 연결 Offer를 `COMPLETED`로 전이한다.
@@ -50,7 +50,7 @@
 
 1. Mission model/status/repository를 만든다.
 2. Offer 수락 트랜잭션 안에 Mission 생성과 상태 전이를 연결한다.
-3. Mission 목록 조회를 role/status 필터와 pagination으로 구현한다.
+3. Proposal/Offer 상세 응답에 nullable `missionId`를 연결한다.
 4. Mission 상태 업데이트 action을 구현한다.
 5. Java baseline integration tests와 동일한 FastAPI tests를 작성한다.
 

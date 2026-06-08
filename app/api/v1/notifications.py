@@ -7,7 +7,14 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.errors import AppError, api_error
-from app.core.openapi import AUTH_ERROR_RESPONSES, error_responses
+from app.core.openapi import (
+    NOTIFICATION_EXAMPLE,
+    NOTIFICATION_LIST_EXAMPLE,
+    NOTIFICATION_MARK_READ_EXAMPLE,
+    NOTIFICATION_STATS_EXAMPLE,
+    error_responses,
+    success_response,
+)
 from app.core.security import get_current_user
 from app.core.firebase import get_fcm_service
 from app.models.user import User
@@ -33,7 +40,10 @@ def get_notification_dispatcher() -> NotificationDispatcher:
     response_model=NotificationListResponse,
     summary="알림 목록 조회",
     description="현재 사용자의 알림 목록을 페이지 단위로 조회합니다.",
-    responses=AUTH_ERROR_RESPONSES,
+    responses={
+        200: success_response(NOTIFICATION_LIST_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
+    },
 )
 def list_notifications(
     page: int = Query(1, ge=1, description="페이지 번호(1부터 시작)"),
@@ -56,7 +66,10 @@ def list_notifications(
 @router.get(
     "/stats/me",
     summary="알림 통계 조회",
-    responses=AUTH_ERROR_RESPONSES,
+    responses={
+        200: success_response(NOTIFICATION_STATS_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN),
+    },
 )
 def get_notification_stats(
     db: Session = Depends(get_db),
@@ -73,7 +86,10 @@ def get_notification_stats(
     "/{notification_id}",
     response_model=NotificationResponse,
     summary="알림 상세 조회",
-    responses=error_responses(AppError.INVALID_TOKEN, AppError.NOTIFICATION_NOT_FOUND),
+    responses={
+        200: success_response(NOTIFICATION_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.NOTIFICATION_NOT_FOUND),
+    },
 )
 def get_notification(
     notification_id: int,
@@ -95,7 +111,10 @@ def get_notification(
     "/mark-read",
     status_code=status.HTTP_200_OK,
     summary="알림 읽음 처리",
-    responses=error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
+    responses={
+        200: success_response(NOTIFICATION_MARK_READ_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
+    },
 )
 def mark_notifications_read(
     request: NotificationMarkReadRequest,
@@ -121,7 +140,10 @@ def mark_notifications_read(
     status_code=status.HTTP_201_CREATED,
     summary="테스트 알림 발송",
     description="현재 사용자에게 테스트용 커스텀 알림을 발송합니다.",
-    responses=error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
+    responses={
+        201: success_response(NOTIFICATION_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
+    },
 )
 def send_notification(
     notification_request: NotificationSendRequest,

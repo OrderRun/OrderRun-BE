@@ -58,6 +58,7 @@ class ProposalDetailResponse(BaseModel):
     deadline: datetime
     errand_fee: int = Field(..., serialization_alias="errandFee")
     status: ProposalStatus
+    mission_id: int | None = Field(None, serialization_alias="missionId")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

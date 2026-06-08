@@ -6,7 +6,7 @@
 - Mission 생성 API는 별도로 없고, 현재 Java 구현에서는 `POST /v1/offer/{offerId}/accept`가 Mission 생성과 Proposal/Offer 상태 전이를 함께 수행한다.
 - 모든 Mission 관련 API는 JWT 인증이 필요하다.
 - Mission은 생성 시점의 `ordererId`, `runnerId`를 스냅샷으로 저장하며 이후 변경하지 않는다.
-- Mission 직접 API는 내 목록 조회와 상태 업데이트를 제공한다.
+- Mission 직접 API는 상태 업데이트만 제공한다. Mission ID 조회는 Proposal/Offer 상세 응답의 `missionId` 필드를 사용한다.
 - 러너 전달 완료와 오더 수령 확인은 순서 없이 가능하며 둘 다 기록되면 Mission은 `COMPLETED`, 연결 Offer는 `COMPLETED`가 된다.
 
 ## Target Policy
@@ -18,8 +18,11 @@
 ## In Scope
 
 - `POST /v1/offer/{offerId}/accept`의 Mission 생성 side effect
-- `GET /v1/mission`
-- `PUT /v1/mission/{id}`
+- `POST /v1/mission/{missionId}/complete-delivery`
+- `POST /v1/mission/{missionId}/confirm-received`
+- `POST /v1/mission/{missionId}/dispute`
+- `GET /v1/proposal/{proposalId}`의 nullable `missionId`
+- `GET /v1/offer/{offerId}`의 nullable `missionId`
 - `MissionStatus`
 - Mission 생성 actor 스냅샷 필드
 - Mission 상태 전이와 actor 권한 검증
@@ -50,17 +53,13 @@
 - 수락된 Offer는 `ACCEPTED`, 같은 Proposal의 다른 `WAITING` Offer는 `REJECTED`, Proposal은 `MATCHED`가 된다.
 - 성공 시 201 Created, 메시지 `제안이 수락되었습니다.`를 반환한다.
 
-### `GET /v1/mission`
+### Mission ID 조회
 
-- 인증된 사용자가 호출하면 200 OK와 PageResponse를 반환한다.
-- `role` 기본값은 `ORDERER`다.
-- `role=ORDERER`면 현재 사용자가 orderer인 Mission만 반환한다.
-- `role=RUNNER`면 현재 사용자가 runner인 Mission만 반환한다.
-- `status` 쿼리가 있으면 해당 MissionStatus만 반환한다.
-- `role`이 `ORDERER`, `RUNNER`가 아니면 400 `VALIDATION_ERROR`다.
-- 토큰이 없거나 유효하지 않으면 401 `INVALID_TOKEN`이다.
+- 별도 `GET /v1/mission` API는 제공하지 않는다.
+- Proposal 상세 응답은 연결 Mission이 있으면 `missionId`, 없으면 `null`을 반환한다.
+- Offer 상세 응답은 연결 Mission이 있으면 `missionId`, 없으면 `null`을 반환한다.
 
-### `PUT /v1/mission/{id}`
+### Mission 상태 변경
 
 - 존재하지 않는 Mission이면 404 `MISSION_NOT_FOUND`다.
 - `action`은 필수이며 `START_PROGRESS`, `COMPLETE_DELIVERY`, `CONFIRM_RECEIVED`, `DISPUTE` 중 하나다.

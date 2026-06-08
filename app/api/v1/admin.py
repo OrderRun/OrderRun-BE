@@ -4,7 +4,14 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.errors import AppError
-from app.core.openapi import error_responses
+from app.core.openapi import (
+    MISSION_REFUNDED_EXAMPLE,
+    MISSION_SETTLED_EXAMPLE,
+    PROPOSAL_EXAMPLE,
+    PROPOSAL_PAGE_EXAMPLE,
+    error_responses,
+    success_response,
+)
 from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.mission import MissionResponse
@@ -34,12 +41,15 @@ def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
     status_code=status.HTTP_200_OK,
     summary="입금 확인 (관리자 전용)",
     description="관리자가 오더러의 입금을 확인하여 제안을 POSTED 상태로 전환합니다.",
-    responses=error_responses(
-        AppError.INVALID_TOKEN,
-        AppError.VALIDATION_ERROR,
-        AppError.PROPOSAL_NOT_FOUND,
-        AppError.INVALID_STATUS,
-    ),
+    responses={
+        200: success_response({"success": True, "data": PROPOSAL_EXAMPLE, "message": None}),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.VALIDATION_ERROR,
+            AppError.PROPOSAL_NOT_FOUND,
+            AppError.INVALID_STATUS,
+        ),
+    },
 )
 def confirm_payment(
     proposal_id: int,
@@ -73,7 +83,12 @@ def confirm_payment(
     "/proposal/pending-payment",
     summary="입금 대기 중인 제안 목록 조회 (관리자 전용)",
     description="관리자가 입금 대기 중인 모든 제안을 조회합니다.",
-    responses=error_responses(AppError.INVALID_TOKEN),
+    responses={
+        200: success_response(
+            {"success": True, "data": PROPOSAL_PAGE_EXAMPLE["data"]["content"], "message": None}
+        ),
+        **error_responses(AppError.INVALID_TOKEN),
+    },
 )
 def list_pending_payment_proposals(
     skip: int = 0,
@@ -116,11 +131,14 @@ def list_pending_payment_proposals(
     status_code=status.HTTP_200_OK,
     summary="미션 정산 완료 처리 (관리자 전용)",
     description="관리자가 러너 정산 입금을 확인하여 미션을 SETTLED 상태로 전환합니다.",
-    responses=error_responses(
-        AppError.INVALID_TOKEN,
-        AppError.MISSION_NOT_FOUND,
-        AppError.MISSION_NOT_UPDATABLE,
-    ),
+    responses={
+        200: success_response(MISSION_SETTLED_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.MISSION_NOT_FOUND,
+            AppError.MISSION_NOT_UPDATABLE,
+        ),
+    },
 )
 def confirm_mission_settlement(
     mission_id: int,
@@ -138,11 +156,14 @@ def confirm_mission_settlement(
     status_code=status.HTTP_200_OK,
     summary="미션 환불 완료 처리 (관리자 전용)",
     description="관리자가 분쟁 미션을 환불 완료 상태로 전환합니다.",
-    responses=error_responses(
-        AppError.INVALID_TOKEN,
-        AppError.MISSION_NOT_FOUND,
-        AppError.MISSION_NOT_UPDATABLE,
-    ),
+    responses={
+        200: success_response(MISSION_REFUNDED_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.MISSION_NOT_FOUND,
+            AppError.MISSION_NOT_UPDATABLE,
+        ),
+    },
 )
 def refund_mission(
     mission_id: int,

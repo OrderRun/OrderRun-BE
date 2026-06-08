@@ -65,50 +65,10 @@ def make_mission(
     return mission, offer
 
 
-def test_list_missions_defaults_to_orderer_and_supports_runner_and_status_filter(client, db, sample_user):
-    runner = make_user(db, "01088880001", "Runner One")
-    other_runner = make_user(db, "01088880002", "Runner Two")
-    other_orderer = make_user(db, "01088880003", "Other Orderer")
-    own_created, _ = make_mission(db, sample_user, runner, MissionStatus.CREATED)
-    own_delivered, _ = make_mission(db, sample_user, other_runner, MissionStatus.DELIVERY_COMPLETED)
-    runner_mission, _ = make_mission(db, other_orderer, sample_user, MissionStatus.CREATED)
+def test_get_mission_collection_endpoint_is_removed(client, sample_user):
+    response = client.get("/v1/mission", headers=headers_for(sample_user))
 
-    default_response = client.get("/v1/mission", headers=headers_for(sample_user))
-    runner_response = client.get("/v1/mission?role=RUNNER", headers=headers_for(sample_user))
-    filtered_response = client.get(
-        "/v1/mission?role=ORDERER&status=DELIVERY_COMPLETED",
-        headers=headers_for(sample_user),
-    )
-
-    assert default_response.status_code == 200
-    default_page = default_response.json()["data"]
-    assert default_page["totalElements"] == 2
-    assert {item["id"] for item in default_page["content"]} == {own_created.id, own_delivered.id}
-    assert default_page["content"][0]["orderer"]["id"] == sample_user.id
-    assert default_page["content"][0]["runner"]["phone"] in {runner.phone, other_runner.phone}
-
-    assert runner_response.status_code == 200
-    runner_page = runner_response.json()["data"]
-    assert runner_page["totalElements"] == 1
-    assert runner_page["content"][0]["id"] == runner_mission.id
-
-    assert filtered_response.status_code == 200
-    filtered_page = filtered_response.json()["data"]
-    assert filtered_page["totalElements"] == 1
-    assert filtered_page["content"][0]["id"] == own_delivered.id
-
-
-def test_list_missions_validation_and_auth_errors(client, db, sample_user):
-    invalid_role = client.get("/v1/mission?role=INVALID", headers=headers_for(sample_user))
-    invalid_status = client.get("/v1/mission?status=INVALID", headers=headers_for(sample_user))
-    unauthenticated = client.get("/v1/mission")
-
-    assert invalid_role.status_code == 400
-    assert invalid_role.json()["error"]["code"] == "VALIDATION_ERROR"
-    assert invalid_status.status_code == 400
-    assert invalid_status.json()["error"]["code"] == "VALIDATION_ERROR"
-    assert unauthenticated.status_code == 401
-    assert unauthenticated.json()["error"]["code"] == "INVALID_TOKEN"
+    assert response.status_code == 404
 
 
 def test_runner_complete_delivery(client, db, sample_user):

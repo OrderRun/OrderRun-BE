@@ -6,9 +6,13 @@ Mission API의 외부 계약 정본은 [`../../api-spec/README.md`](../../api-sp
 
 ## 포함 API
 
-- `GET /v1/mission`
-- `PUT /v1/mission/{id}`
+- `POST /v1/mission/{missionId}/complete-delivery`
+- `POST /v1/mission/{missionId}/confirm-received`
+- `POST /v1/mission/{missionId}/dispute`
+- `PUT /v1/mission/{missionId}`
 - `POST /v1/offer/{offerId}/accept`
+- `GET /v1/proposal/{proposalId}`의 `missionId` 응답 필드
+- `GET /v1/offer/{offerId}`의 `missionId` 응답 필드
 
 ## 참고
 

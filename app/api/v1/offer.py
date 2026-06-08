@@ -8,7 +8,18 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal, get_db
 from app.core.errors import AppError
 from app.core.firebase import get_notification_worker
-from app.core.openapi import AUTH_ERROR_RESPONSES, error_responses
+from app.core.openapi import (
+    OFFER_ACCEPT_EXAMPLE,
+    OFFER_CREATE_EXAMPLE,
+    OFFER_DETAIL_EXAMPLE,
+    OFFER_DETAIL_WITH_MISSION_EXAMPLE,
+    OFFER_LIST_EXAMPLE,
+    OFFER_PAGE_EXAMPLE,
+    error_responses,
+    no_content_response,
+    success_response,
+    success_response_examples,
+)
 from app.core.security import get_current_user
 from app.models.offer import OfferStatus
 from app.models.user import User
@@ -52,14 +63,17 @@ class OfferOwnerSearchRequest:
     status_code=status.HTTP_201_CREATED,
     summary="러너 제안 등록",
     description="러너가 요청에 수행 제안을 등록합니다.",
-    responses=error_responses(
-        AppError.INVALID_TOKEN,
-        AppError.VALIDATION_ERROR,
-        AppError.OFFER_PROPOSAL_NOT_FOUND,
-        AppError.SELF_OFFER_NOT_ALLOWED,
-        AppError.PROPOSAL_NOT_OPEN,
-        AppError.DUPLICATE_OFFER,
-    ),
+    responses={
+        201: success_response(OFFER_CREATE_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.VALIDATION_ERROR,
+            AppError.OFFER_PROPOSAL_NOT_FOUND,
+            AppError.SELF_OFFER_NOT_ALLOWED,
+            AppError.PROPOSAL_NOT_OPEN,
+            AppError.DUPLICATE_OFFER,
+        ),
+    },
 )
 def create_offer(
     offer_data: OfferCreate,
@@ -78,7 +92,10 @@ def create_offer(
     status_code=status.HTTP_200_OK,
     summary="내 제안 목록 조회",
     description="현재 러너가 등록한 제안 목록을 상태와 페이지 조건으로 조회합니다.",
-    responses=AUTH_ERROR_RESPONSES,
+    responses={
+        200: success_response(OFFER_PAGE_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
+    },
 )
 def get_own_offers(
     request: OfferOwnerSearchRequest = Depends(),
@@ -101,7 +118,10 @@ def get_own_offers(
     status_code=status.HTTP_200_OK,
     summary="요청별 제안 목록 조회",
     description="특정 요청에 등록된 제안 목록을 조회합니다.",
-    responses=error_responses(AppError.INVALID_TOKEN, AppError.OFFER_PROPOSAL_NOT_FOUND),
+    responses={
+        200: success_response(OFFER_LIST_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR, AppError.OFFER_PROPOSAL_NOT_FOUND),
+    },
 )
 def get_offers(
     proposal_id: int = Query(..., gt=0, alias="proposalId", description="요청 ID"),
@@ -123,7 +143,15 @@ def get_offers(
     status_code=status.HTTP_200_OK,
     summary="제안 상세 조회",
     description="제안 ID로 제안 상세 정보를 조회합니다.",
-    responses=error_responses(AppError.INVALID_TOKEN, AppError.OFFER_NOT_FOUND, AppError.FORBIDDEN),
+    responses={
+        200: success_response_examples(
+            {
+                "without_mission": OFFER_DETAIL_EXAMPLE,
+                "with_mission": OFFER_DETAIL_WITH_MISSION_EXAMPLE,
+            }
+        ),
+        **error_responses(AppError.INVALID_TOKEN, AppError.OFFER_NOT_FOUND, AppError.FORBIDDEN),
+    },
 )
 def get_offer(
     offer_id: int,
@@ -140,15 +168,18 @@ def get_offer(
     status_code=status.HTTP_201_CREATED,
     summary="제안 수락",
     description="오더러가 제안을 수락하고 미션을 생성합니다.",
-    responses=error_responses(
-        AppError.INVALID_TOKEN,
-        AppError.VALIDATION_ERROR,
-        AppError.OFFER_NOT_FOUND,
-        AppError.FORBIDDEN,
-        AppError.MISSION_ALREADY_EXISTS,
-        AppError.OFFER_NOT_ACCEPTABLE,
-        AppError.PROPOSAL_NOT_MATCHABLE,
-    ),
+    responses={
+        201: success_response(OFFER_ACCEPT_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.VALIDATION_ERROR,
+            AppError.OFFER_NOT_FOUND,
+            AppError.FORBIDDEN,
+            AppError.MISSION_ALREADY_EXISTS,
+            AppError.OFFER_NOT_ACCEPTABLE,
+            AppError.PROPOSAL_NOT_MATCHABLE,
+        ),
+    },
 )
 def accept_offer(
     offer_id: int,
@@ -166,12 +197,15 @@ def accept_offer(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="제안 취소",
     description="현재 러너가 등록한 제안을 취소합니다.",
-    responses=error_responses(
-        AppError.INVALID_TOKEN,
-        AppError.OFFER_NOT_FOUND,
-        AppError.FORBIDDEN,
-        AppError.OFFER_NOT_CANCELLABLE,
-    ),
+    responses={
+        204: no_content_response("제안 취소 성공"),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.OFFER_NOT_FOUND,
+            AppError.FORBIDDEN,
+            AppError.OFFER_NOT_CANCELLABLE,
+        ),
+    },
 )
 def cancel_offer(
     offer_id: int,

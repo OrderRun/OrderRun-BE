@@ -5,11 +5,12 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError, api_error
+from app.models.mission import Mission
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
-from app.schemas.proposal import ProposalOwnOfferResponse, ProposalOwnResponse, ProposalRequest
+from app.schemas.proposal import ProposalDetailResponse, ProposalOwnOfferResponse, ProposalOwnResponse, ProposalRequest
 
 
 EDITABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED)
@@ -64,11 +65,20 @@ class ProposalService:
         return PageResponse.of(content=items, page_number=page, page_size=size, total_elements=total)
 
     @staticmethod
-    def get_proposal_detail(db: Session, proposal_id: int) -> Proposal:
+    def get_proposal_detail(db: Session, proposal_id: int) -> ProposalDetailResponse:
         proposal = ProposalService._get_proposal(db, proposal_id)
         if proposal.status not in DETAIL_VISIBLE_STATUSES:
             raise api_error(AppError.PROPOSAL_NOT_FOUND, f"id: {proposal_id}")
-        return proposal
+        mission = db.query(Mission).filter(Mission.proposal_id == proposal.id).first()
+        return ProposalDetailResponse(
+            id=proposal.id,
+            title=proposal.title,
+            content=proposal.content,
+            deadline=proposal.deadline,
+            errand_fee=proposal.errand_fee,
+            status=proposal.status,
+            mission_id=mission.id if mission is not None else None,
+        )
 
     @staticmethod
     def search_owner_proposals(

@@ -46,6 +46,11 @@ class OfferService:
         return runner.name if runner is not None else ""
 
     @staticmethod
+    def _mission_id(db: Session, offer_id: int) -> int | None:
+        mission = db.query(Mission).filter(Mission.offer_id == offer_id).first()
+        return mission.id if mission is not None else None
+
+    @staticmethod
     def _to_response(db: Session, offer: Offer) -> OfferResponse:
         return OfferResponse(
             id=offer.id,
@@ -53,6 +58,7 @@ class OfferService:
             runner_id=offer.runner_id,
             runner_name=OfferService._runner_name(db, offer.runner_id),
             status=offer.status,
+            mission_id=OfferService._mission_id(db, offer.id),
             created_at=offer.created_at,
         )
 

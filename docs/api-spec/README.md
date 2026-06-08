@@ -72,8 +72,10 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 - API별 요약과 설명은 `app/api/v1/*` 라우터 데코레이터의 `summary`, `description`을 사용한다.
 - 요청/응답 필드 설명은 `app/schemas/*`의 Pydantic `Field(description=...)`을 사용한다.
 - 각 API 요청/응답은 endpoint별 독립 DTO를 기준으로 문서화하며, API DTO가 다른 API DTO를 상속해 계약을 공유하지 않는다.
+- 성공 응답 예시는 실제 통합 테스트의 응답 구조를 기준으로 `app/core/openapi.py`의 `success_response()`와 고정 예시 상수를 사용한다.
 - 실패 응답 예시는 `app/core/openapi.py`의 `error_responses()`로 생성하며, 에러 코드와 메시지는 `app/core/errors.py`의 `AppError` 카탈로그를 기준으로 한다.
 - Swagger 실패 응답 예시는 실제 예외 핸들러 응답과 같은 `success/error/timestamp` 형태를 유지한다.
+- 요청 검증 실패는 실제 예외 핸들러와 동일하게 400 실패 응답으로 문서화하며, FastAPI 기본 422 문서는 노출하지 않는다.
 
 ### 인증 예외
 
@@ -173,7 +175,11 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 ### ProposalDetailResponse
 
-`ProposalResponse`와 동일한 필드를 반환한다.
+`ProposalResponse`와 동일한 필드에 다음 필드를 추가로 반환한다.
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| missionId | number, null | 연결된 Mission ID. Mission이 아직 생성되지 않았으면 `null` |
 
 ### OfferResponse
 
@@ -184,6 +190,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | runnerId | string | Offer 제출 러너 ID |
 | runnerName | string, null | Offer 제출 러너 이름 |
 | status | string | `WAITING`, `ACCEPTED`, `COMPLETED`, `REJECTED`, `CANCELLED` |
+| missionId | number, null | 연결된 Mission ID. Mission이 아직 생성되지 않았으면 `null` |
 | createdAt | string | Offer 생성 시각 |
 
 ### OfferAcceptResponse
@@ -306,8 +313,10 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 | 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
 |------|--------|------|------|-----------|-----------|
-| 내 미션 목록 조회 | `GET` | `/v1/mission` | 필요 | `200 OK` | `PageResponse<MissionResponse>` |
-| 미션 상태 업데이트 | `PUT` | `/v1/mission/{id}` | 필요 | `200 OK` | `MissionResponse` |
+| 전달 완료 | `POST` | `/v1/mission/{missionId}/complete-delivery` | 필요. 연결된 Runner만 가능 | `200 OK` | `MissionResponse` |
+| 수령 확인 | `POST` | `/v1/mission/{missionId}/confirm-received` | 필요. 연결된 Orderer만 가능 | `200 OK` | `MissionResponse` |
+| 분쟁 접수 | `POST` | `/v1/mission/{missionId}/dispute` | 필요. 연결된 Orderer 또는 Runner만 가능 | `200 OK` | `MissionResponse` |
+| 미션 상태 업데이트 | `PUT` | `/v1/mission/{missionId}` | 필요. 기존 클라이언트 호환용 | `200 OK` | `MissionResponse` |
 
 ### Settlement API
 
@@ -423,21 +432,30 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 ### Mission
 
-#### `GET /v1/mission`
-
-| 파라미터 | 타입 | 필수 | 기본값 | 설명 |
-|----------|------|------|--------|------|
-| role | string | X | `ORDERER` | 조회 역할. `ORDERER`, `RUNNER` |
-| status | string | X | 없음 | Mission 상태 필터 |
-| page | integer | X | 0 | 페이지 번호 |
-| size | integer | X | 20 | 페이지 크기 |
-
-#### `PUT /v1/mission/{id}`
+#### `POST /v1/mission/{missionId}/complete-delivery`
 
 | 필드 | 타입 | 필수 | 제약 |
 |------|------|------|------|
-| action | string | O | `START_PROGRESS`, `COMPLETE_DELIVERY`, `CONFIRM_RECEIVED`, `DISPUTE` |
-| proofImageUrl | string | 조건부 | `COMPLETE_DELIVERY`일 때 필수 |
+| proofImageUrl | string | X | 전달 완료 인증 이미지 URL |
+
+#### `POST /v1/mission/{missionId}/confirm-received`
+
+요청 본문 없음.
+
+#### `POST /v1/mission/{missionId}/dispute`
+
+| 필드 | 타입 | 필수 | 제약 |
+|------|------|------|------|
+| disputeReason | string | O | 분쟁 사유 |
+
+#### `PUT /v1/mission/{missionId}`
+
+기존 클라이언트 호환용 상태 업데이트 API다. 신규 클라이언트는 액션별 `POST` API를 사용한다.
+
+| 필드 | 타입 | 필수 | 제약 |
+|------|------|------|------|
+| action | string | O | `COMPLETE_DELIVERY`, `CONFIRM_RECEIVED`, `DISPUTE` |
+| proofImageUrl | string | X | `COMPLETE_DELIVERY` 전달 완료 인증 이미지 URL |
 | disputeReason | string | 조건부 | `DISPUTE`일 때 필수 |
 
 ### Settlement

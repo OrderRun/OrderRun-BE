@@ -7,7 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.errors import AppError
-from app.core.openapi import error_responses
+from app.core.openapi import (
+    SETTLEMENT_ACCOUNT_GET_EXAMPLE,
+    SETTLEMENT_ACCOUNT_EMPTY_EXAMPLE,
+    SETTLEMENT_ACCOUNT_SAVE_EXAMPLE,
+    error_responses,
+    success_response,
+    success_response_examples,
+)
 from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.common import ApiResponse
@@ -24,7 +31,15 @@ router = APIRouter(prefix="/v1/settlement", tags=["정산"])
     status_code=status.HTTP_200_OK,
     summary="정산 계좌 조회",
     description="현재 사용자의 정산 계좌 정보를 조회합니다.",
-    responses=error_responses(AppError.INVALID_TOKEN),
+    responses={
+        200: success_response_examples(
+            {
+                "empty": SETTLEMENT_ACCOUNT_EMPTY_EXAMPLE,
+                "found": SETTLEMENT_ACCOUNT_GET_EXAMPLE,
+            }
+        ),
+        **error_responses(AppError.INVALID_TOKEN),
+    },
 )
 def get_settlement_account(
     current_user: User = Depends(get_current_user),
@@ -40,7 +55,10 @@ def get_settlement_account(
     status_code=status.HTTP_200_OK,
     summary="정산 계좌 저장",
     description="현재 사용자의 정산 계좌 정보를 저장하거나 갱신합니다.",
-    responses=error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
+    responses={
+        200: success_response(SETTLEMENT_ACCOUNT_SAVE_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
+    },
 )
 def save_settlement_account(
     request: SettlementAccountRequest,

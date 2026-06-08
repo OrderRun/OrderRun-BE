@@ -14,5 +14,5 @@
 1. User/Auth current-user dependency, Proposal, Offer migration 결과를 재사용한다.
 2. Mission model/status/repository를 만든다.
 3. Offer 수락 API에서 Mission 생성과 Proposal/Offer 상태 전이를 단일 트랜잭션으로 구현한다.
-4. 내 Mission 목록 조회를 role/status 필터와 PageResponse로 구현한다.
+4. Proposal/Offer 상세 응답에 nullable `missionId`를 연결한다.
 5. Mission 상태 업데이트와 완료 시 Offer 완료 연동을 구현한다.

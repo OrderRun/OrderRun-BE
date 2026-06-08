@@ -14,6 +14,7 @@ from app.api.v1 import auth, mission, proposal, offer, notifications, admin, set
 from app.core.exceptions import http_exception_handler, validation_exception_handler
 from app.listeners import notification_listener
 from app.schemas.common import ApiResponse
+from app.core.openapi import HEALTH_EXAMPLE, ROOT_EXAMPLE, success_response
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 
 
-@app.get("/")
+@app.get("/", responses={200: success_response(ROOT_EXAMPLE)})
 async def root():
     """API 루트 정보를 반환합니다."""
     return {
@@ -90,7 +91,11 @@ async def root():
     }
 
 
-@app.get("/v1/health", response_model=ApiResponse[dict[str, str]])
+@app.get(
+    "/v1/health",
+    response_model=ApiResponse[dict[str, str]],
+    responses={200: success_response(HEALTH_EXAMPLE)},
+)
 async def health_check():
     """서버 상태를 확인합니다."""
     return ApiResponse(success=True, data={"status": "UP"}, message="Success")
@@ -110,12 +115,49 @@ def custom_openapi():
         for operation in path_item.values():
             if not isinstance(operation, dict):
                 continue
+            operation.get("responses", {}).pop("422", None)
             for response in operation.get("responses", {}).values():
                 examples = response.get("content", {}).get("application/json", {}).get("examples", {})
                 for example in examples.values():
                     error = example.get("value", {}).get("error")
                     if isinstance(error, dict) and "details" not in error:
                         error["details"] = None
+
+    proposal_detail = openapi_schema["paths"].get("/v1/proposal/{proposal_id}", {}).get("get", {})
+    proposal_content = (
+        proposal_detail.get("responses", {})
+        .get("200", {})
+        .get("content", {})
+        .get("application/json", {})
+    )
+    proposal_example = proposal_content.get("example") or (
+        proposal_content.get("examples", {}).get("without_mission", {}).get("value", {})
+    )
+    if proposal_example and "example" not in proposal_content:
+        proposal_content["example"] = proposal_example
+    if isinstance(proposal_example.get("data"), dict):
+        proposal_example["data"].setdefault("missionId", None)
+    proposal_without_mission = proposal_content.get("examples", {}).get("without_mission", {}).get("value", {})
+    if isinstance(proposal_without_mission.get("data"), dict):
+        proposal_without_mission["data"].setdefault("missionId", None)
+
+    offer_detail = openapi_schema["paths"].get("/v1/offer/{offer_id}", {}).get("get", {})
+    offer_content = (
+        offer_detail.get("responses", {})
+        .get("200", {})
+        .get("content", {})
+        .get("application/json", {})
+    )
+    offer_example = offer_content.get("example") or (
+        offer_content.get("examples", {}).get("without_mission", {}).get("value", {})
+    )
+    if offer_example and "example" not in offer_content:
+        offer_content["example"] = offer_example
+    if isinstance(offer_example.get("data"), dict):
+        offer_example["data"].setdefault("missionId", None)
+    offer_without_mission = offer_content.get("examples", {}).get("without_mission", {}).get("value", {})
+    if isinstance(offer_without_mission.get("data"), dict):
+        offer_without_mission["data"].setdefault("missionId", None)
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema

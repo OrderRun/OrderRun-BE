@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import inspect
 
 from app.core.security import create_access_token
+from app.models.mission import Mission, MissionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
@@ -97,6 +98,31 @@ def test_detail_hides_holding_and_allows_cancelled(client, db, auth_headers, sam
     cancelled_response = client.get(f"/v1/proposal/{cancelled.id}", headers=auth_headers)
     assert cancelled_response.status_code == 200
     assert cancelled_response.json()["data"]["status"] == "CANCELLED"
+    assert cancelled_response.json()["data"]["missionId"] is None
+
+
+def test_detail_returns_mission_id_when_mission_exists(client, db, auth_headers, sample_user):
+    runner = make_user(db, "01099990003")
+    proposal = make_proposal(db, sample_user.id, ProposalStatus.MATCHED)
+    offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    db.add(offer)
+    db.commit()
+    db.refresh(offer)
+    mission = Mission(
+        proposal_id=proposal.id,
+        offer_id=offer.id,
+        orderer_id=sample_user.id,
+        runner_id=runner.id,
+        status=MissionStatus.CREATED,
+    )
+    db.add(mission)
+    db.commit()
+    db.refresh(mission)
+
+    response = client.get(f"/v1/proposal/{proposal.id}", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["data"]["missionId"] == mission.id
 
 
 def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(client, db, auth_headers, sample_user):

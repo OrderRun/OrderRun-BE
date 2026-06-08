@@ -27,6 +27,7 @@ class OfferResponse(BaseModel):
     runner_id: str = Field(..., serialization_alias="runnerId")
     runner_name: str = Field(..., serialization_alias="runnerName")
     status: OfferStatus
+    mission_id: int | None = Field(None, serialization_alias="missionId")
     created_at: datetime = Field(..., serialization_alias="createdAt")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)

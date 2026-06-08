@@ -7,7 +7,18 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.errors import AppError
-from app.core.openapi import AUTH_ERROR_RESPONSES, error_responses
+from app.core.openapi import (
+    PROPOSAL_CANCEL_EXAMPLE,
+    PROPOSAL_CREATE_EXAMPLE,
+    PROPOSAL_DETAIL_EXAMPLE,
+    PROPOSAL_DETAIL_WITH_MISSION_EXAMPLE,
+    PROPOSAL_OWN_PAGE_EXAMPLE,
+    PROPOSAL_PAGE_EXAMPLE,
+    PROPOSAL_UPDATE_EXAMPLE,
+    error_responses,
+    success_response,
+    success_response_examples,
+)
 from app.core.security import get_current_user
 from app.models.proposal import ProposalStatus
 from app.models.user import User
@@ -45,7 +56,10 @@ class ProposalSearchRequest:
     status_code=status.HTTP_200_OK,
     summary="공개 요청 목록 조회",
     description="현재 조회 가능한 심부름 요청 목록을 페이지 단위로 조회합니다.",
-    responses=AUTH_ERROR_RESPONSES,
+    responses={
+        200: success_response(PROPOSAL_PAGE_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
+    },
 )
 def list_proposals(
     request: ProposalSearchRequest = Depends(),
@@ -67,7 +81,10 @@ def list_proposals(
     status_code=status.HTTP_200_OK,
     summary="내 요청 목록 조회",
     description="현재 사용자가 등록한 요청 목록을 상태와 페이지 조건으로 조회합니다.",
-    responses=AUTH_ERROR_RESPONSES,
+    responses={
+        200: success_response(PROPOSAL_OWN_PAGE_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
+    },
 )
 def list_own_proposals(
     request: ProposalSearchRequest = Depends(),
@@ -90,7 +107,19 @@ def list_own_proposals(
     status_code=status.HTTP_200_OK,
     summary="요청 상세 조회",
     description="요청 ID로 심부름 요청 상세 정보를 조회합니다.",
-    responses={**AUTH_ERROR_RESPONSES, **error_responses(AppError.PROPOSAL_NOT_FOUND)},
+    responses={
+        200: success_response_examples(
+            {
+                "without_mission": {"success": True, "data": PROPOSAL_DETAIL_EXAMPLE, "message": None},
+                "with_mission": {
+                    "success": True,
+                    "data": PROPOSAL_DETAIL_WITH_MISSION_EXAMPLE,
+                    "message": None,
+                },
+            }
+        ),
+        **error_responses(AppError.INVALID_TOKEN, AppError.PROPOSAL_NOT_FOUND),
+    },
 )
 def get_proposal(
     proposal_id: int,
@@ -107,14 +136,17 @@ def get_proposal(
     status_code=status.HTTP_201_CREATED,
     summary="요청 등록",
     description="새 심부름 요청을 등록합니다.",
-    responses=error_responses(
-        AppError.INVALID_TOKEN,
-        AppError.VALIDATION_ERROR,
-        AppError.USER_NOT_FOUND,
-        AppError.INVALID_DATE_TIME_FORMAT,
-        AppError.PROPOSAL_DEADLINE_INVALID,
-        AppError.PROPOSAL_ERRAND_FEE_INVALID,
-    ),
+    responses={
+        201: success_response(PROPOSAL_CREATE_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.VALIDATION_ERROR,
+            AppError.USER_NOT_FOUND,
+            AppError.INVALID_DATE_TIME_FORMAT,
+            AppError.PROPOSAL_DEADLINE_INVALID,
+            AppError.PROPOSAL_ERRAND_FEE_INVALID,
+        ),
+    },
 )
 def create_proposal(
     request: ProposalRequest,
@@ -131,16 +163,19 @@ def create_proposal(
     status_code=status.HTTP_200_OK,
     summary="요청 수정",
     description="본인이 등록한 요청을 수정합니다.",
-    responses=error_responses(
-        AppError.INVALID_TOKEN,
-        AppError.VALIDATION_ERROR,
-        AppError.PROPOSAL_NOT_FOUND,
-        AppError.FORBIDDEN,
-        AppError.PROPOSAL_NOT_EDITABLE,
-        AppError.INVALID_DATE_TIME_FORMAT,
-        AppError.PROPOSAL_DEADLINE_INVALID,
-        AppError.PROPOSAL_ERRAND_FEE_INVALID,
-    ),
+    responses={
+        200: success_response(PROPOSAL_UPDATE_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.VALIDATION_ERROR,
+            AppError.PROPOSAL_NOT_FOUND,
+            AppError.FORBIDDEN,
+            AppError.PROPOSAL_NOT_EDITABLE,
+            AppError.INVALID_DATE_TIME_FORMAT,
+            AppError.PROPOSAL_DEADLINE_INVALID,
+            AppError.PROPOSAL_ERRAND_FEE_INVALID,
+        ),
+    },
 )
 def update_proposal(
     proposal_id: int,
@@ -158,12 +193,15 @@ def update_proposal(
     status_code=status.HTTP_200_OK,
     summary="요청 취소",
     description="본인이 등록한 요청을 취소합니다.",
-    responses=error_responses(
-        AppError.INVALID_TOKEN,
-        AppError.PROPOSAL_NOT_FOUND,
-        AppError.FORBIDDEN,
-        AppError.PROPOSAL_NOT_CANCELLABLE,
-    ),
+    responses={
+        200: success_response(PROPOSAL_CANCEL_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.PROPOSAL_NOT_FOUND,
+            AppError.FORBIDDEN,
+            AppError.PROPOSAL_NOT_CANCELLABLE,
+        ),
+    },
 )
 def cancel_proposal(
     proposal_id: int,
