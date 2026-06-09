@@ -19,9 +19,8 @@ EDITABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED)
 CANCELLABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED, ProposalStatus.OFFERED)
 EXECUTION_OFFER_STATUSES = (
     OfferStatus.ACCEPTED,
-    OfferStatus.COMPLETED,
+    OfferStatus.RUNNER_COMPLETED,
     OfferStatus.ALL_COMPLETED,
-    OfferStatus.SETTLED,
     OfferStatus.DISPUTED,
 )
 
@@ -65,7 +64,7 @@ class ProposalService:
 
     @staticmethod
     def _sync_all_completed(proposal: Proposal, offer: Offer) -> None:
-        if proposal.status == ProposalStatus.COMPLETED and offer.status == OfferStatus.COMPLETED:
+        if proposal.status == ProposalStatus.ORDER_COMPLETED and offer.status == OfferStatus.RUNNER_COMPLETED:
             proposal.mark_all_completed()
             offer.mark_all_completed()
 
@@ -107,7 +106,6 @@ class ProposalService:
             matched_at=proposal.matched_at,
             delivery_reported_at=proposal.delivery_reported_at,
             received_confirmed_at=proposal.received_confirmed_at,
-            settled_at=proposal.settled_at,
             disputed_at=proposal.disputed_at,
             refunded_at=proposal.refunded_at,
             offers=[

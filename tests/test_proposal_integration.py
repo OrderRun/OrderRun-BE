@@ -246,18 +246,18 @@ def test_confirm_received_marks_proposal_completed_without_finishing_offer(clien
 
     assert response.status_code == 200
     assert response.json()["message"] == "완료 확인되었습니다."
-    assert response.json()["data"]["status"] == "COMPLETED"
+    assert response.json()["data"]["status"] == "ORDER_COMPLETED"
     assert response.json()["data"]["receivedConfirmedAt"] is not None
     db.refresh(proposal)
     db.refresh(offer)
-    assert proposal.status == ProposalStatus.COMPLETED
+    assert proposal.status == ProposalStatus.ORDER_COMPLETED
     assert offer.status == OfferStatus.ACCEPTED
     assert offer.receipt_confirmed_at is not None
 
 
 def test_confirm_received_after_runner_completion_marks_both_all_completed(client, db, factory, auth_headers, sample_user):
     runner = factory.user("01055550002")
-    proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.COMPLETED)
+    proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.RUNNER_COMPLETED)
 
     response = client.post(f"/v1/proposal/{proposal.id}/confirm-received", headers=auth_headers)
 
@@ -285,9 +285,8 @@ def test_proposal_model_contract(db):
         "POSTED",
         "OFFERED",
         "MATCHED",
-        "COMPLETED",
+        "ORDER_COMPLETED",
         "ALL_COMPLETED",
-        "SETTLED",
         "DISPUTED",
         "REFUNDED",
         "CANCELLED",

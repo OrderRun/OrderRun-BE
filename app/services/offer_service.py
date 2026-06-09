@@ -20,9 +20,8 @@ from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferResponse
 OPEN_PROPOSAL_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)
 ACTIVE_OFFER_STATUSES = (
     OfferStatus.ACCEPTED,
-    OfferStatus.COMPLETED,
+    OfferStatus.RUNNER_COMPLETED,
     OfferStatus.ALL_COMPLETED,
-    OfferStatus.SETTLED,
     OfferStatus.DISPUTED,
 )
 
@@ -64,7 +63,6 @@ class OfferService:
             accepted_at=offer.accepted_at,
             delivery_completed_at=offer.delivery_completed_at,
             receipt_confirmed_at=offer.receipt_confirmed_at,
-            settled_at=offer.settled_at,
             disputed_at=offer.disputed_at,
             refunded_at=offer.refunded_at,
             created_at=offer.created_at,
@@ -72,7 +70,7 @@ class OfferService:
 
     @staticmethod
     def _sync_all_completed(offer: Offer, proposal: Proposal) -> None:
-        if offer.status == OfferStatus.COMPLETED and proposal.status == ProposalStatus.COMPLETED:
+        if offer.status == OfferStatus.RUNNER_COMPLETED and proposal.status == ProposalStatus.ORDER_COMPLETED:
             offer.mark_all_completed()
             proposal.mark_all_completed()
 
@@ -255,7 +253,10 @@ class OfferService:
             raise api_error(AppError.FORBIDDEN)
 
         proposal = OfferService._get_proposal(db, offer.proposal_id)
-        if not offer.can_complete_delivery() or proposal.status not in {ProposalStatus.MATCHED, ProposalStatus.COMPLETED}:
+        if not offer.can_complete_delivery() or proposal.status not in {
+            ProposalStatus.MATCHED,
+            ProposalStatus.ORDER_COMPLETED,
+        }:
             raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
 
         offer.complete_delivery()
@@ -305,19 +306,6 @@ class OfferService:
             proof_type=ProofType.DISPUTE,
             reason=dispute_reason,
         ))
-        db.commit()
-        db.refresh(offer)
-        return OfferService._to_response(db, offer)
-
-    @staticmethod
-    def confirm_settlement(db: Session, offer_id: int) -> OfferResponse:
-        offer = OfferService._get_offer(db, offer_id)
-        proposal = OfferService._get_proposal(db, offer.proposal_id)
-        if not offer.can_settle() or not proposal.can_settle():
-            raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
-
-        offer.settle()
-        proposal.settle()
         db.commit()
         db.refresh(offer)
         return OfferService._to_response(db, offer)

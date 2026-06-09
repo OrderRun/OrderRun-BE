@@ -34,7 +34,6 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
         "acceptedAt": None,
         "deliveryCompletedAt": None,
         "receiptConfirmedAt": None,
-        "settledAt": None,
         "disputedAt": None,
         "refundedAt": None,
         "createdAt": body["data"]["createdAt"],
@@ -283,12 +282,12 @@ def test_complete_delivery_marks_offer_completed_without_finishing_proposal(clie
 
     assert response.status_code == 200
     data = response.json()["data"]
-    assert data["status"] == "COMPLETED"
+    assert data["status"] == "RUNNER_COMPLETED"
     assert data["deliveryCompletedAt"] is not None
 
     db.refresh(offer)
     db.refresh(proposal)
-    assert offer.status == OfferStatus.COMPLETED
+    assert offer.status == OfferStatus.RUNNER_COMPLETED
     assert offer.delivery_completed_at is not None
     assert proposal.status == ProposalStatus.MATCHED
     assert proposal.delivery_reported_at is not None
@@ -296,7 +295,7 @@ def test_complete_delivery_marks_offer_completed_without_finishing_proposal(clie
 
 def test_complete_delivery_after_orderer_completion_marks_both_all_completed(client, db, factory, sample_user):
     runner = factory.user("01077770025")
-    proposal = factory.proposal(sample_user.id, ProposalStatus.COMPLETED)
+    proposal = factory.proposal(sample_user.id, ProposalStatus.ORDER_COMPLETED)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
     offer.accepted_at = datetime.now(timezone.utc)
     db.add(offer)

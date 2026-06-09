@@ -6,7 +6,6 @@ from app.core.database import get_db
 from app.core.errors import AppError
 from app.core.openapi import (
     OFFER_REFUNDED_EXAMPLE,
-    OFFER_SETTLED_EXAMPLE,
     PROPOSAL_EXAMPLE,
     PROPOSAL_PAGE_EXAMPLE,
     error_responses,
@@ -123,31 +122,6 @@ def list_pending_payment_proposals(
         success=True,
         data=[ProposalResponse.model_validate(p) for p in proposals],
     )
-
-
-@router.post(
-    "/offer/{offer_id}/confirm-settlement",
-    response_model=ApiResponse[OfferResponse],
-    status_code=status.HTTP_200_OK,
-    summary="제안 정산 완료 처리 (관리자 전용)",
-    description="관리자가 러너 정산 입금을 확인하여 양측 완료된 제안을 SETTLED 상태로 전환합니다.",
-    responses={
-        200: success_response(OFFER_SETTLED_EXAMPLE),
-        **error_responses(
-            AppError.INVALID_TOKEN,
-            AppError.OFFER_NOT_FOUND,
-            AppError.OFFER_NOT_UPDATABLE,
-        ),
-    },
-)
-def confirm_offer_settlement(
-    offer_id: int,
-    db: Session = Depends(get_db),
-    admin_user: User = Depends(get_admin_user),
-) -> ApiResponse[OfferResponse]:
-    _ = admin_user
-    offer = OfferService.confirm_settlement(db, offer_id=offer_id)
-    return ApiResponse(success=True, data=offer, message="제안 정산이 완료되었습니다.")
 
 
 @router.post(

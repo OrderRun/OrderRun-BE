@@ -15,9 +15,8 @@ class OfferStatus(str, enum.Enum):
 
     WAITING = "WAITING"
     ACCEPTED = "ACCEPTED"
-    COMPLETED = "COMPLETED"
+    RUNNER_COMPLETED = "RUNNER_COMPLETED"
     ALL_COMPLETED = "ALL_COMPLETED"
-    SETTLED = "SETTLED"
     DISPUTED = "DISPUTED"
     REFUNDED = "REFUNDED"
     REJECTED = "REJECTED"
@@ -68,11 +67,11 @@ class Offer(Base):
     def complete_delivery(self) -> None:
         if not self.can_complete_delivery():
             raise ValueError("Cannot complete delivery for offer not in ACCEPTED status")
-        self.status = OfferStatus.COMPLETED
+        self.status = OfferStatus.RUNNER_COMPLETED
         self.delivery_completed_at = utcnow_naive()
 
     def can_confirm_receipt(self) -> bool:
-        return self.status in {OfferStatus.ACCEPTED, OfferStatus.COMPLETED}
+        return self.status in {OfferStatus.ACCEPTED, OfferStatus.RUNNER_COMPLETED}
 
     def confirm_receipt(self) -> None:
         if not self.can_confirm_receipt():
@@ -80,23 +79,14 @@ class Offer(Base):
         self.receipt_confirmed_at = utcnow_naive()
 
     def mark_all_completed(self) -> None:
-        if self.status not in {OfferStatus.COMPLETED, OfferStatus.ACCEPTED}:
+        if self.status not in {OfferStatus.RUNNER_COMPLETED, OfferStatus.ACCEPTED}:
             raise ValueError("Cannot mark all completed for offer at this stage")
         self.status = OfferStatus.ALL_COMPLETED
-
-    def can_settle(self) -> bool:
-        return self.status == OfferStatus.ALL_COMPLETED
-
-    def settle(self) -> None:
-        if not self.can_settle():
-            raise ValueError("Cannot settle offer not in ALL_COMPLETED status")
-        self.status = OfferStatus.SETTLED
-        self.settled_at = utcnow_naive()
 
     def can_raise_dispute(self) -> bool:
         return self.status in {
             OfferStatus.ACCEPTED,
-            OfferStatus.COMPLETED,
+            OfferStatus.RUNNER_COMPLETED,
             OfferStatus.ALL_COMPLETED,
         }
 

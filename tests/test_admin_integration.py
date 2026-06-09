@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from app.models.offer import OfferStatus
 from app.models.proposal import ProposalStatus
 
 
@@ -24,39 +23,9 @@ def test_confirm_payment_rejects_non_holding_proposal(client, db, factory, auth_
     assert response.json()["error"]["code"] == "INVALID_STATUS"
 
 
-def test_confirm_offer_settlement_sets_settled(client, db, factory, auth_headers, sample_user):
-    runner = factory.user("01066660001")
-    proposal, offer = factory.execution(
-        sample_user,
-        runner,
-        ProposalStatus.ALL_COMPLETED,
-        OfferStatus.ALL_COMPLETED,
-    )
-
-    response = client.post(f"/api/v1/admin/offer/{offer.id}/confirm-settlement", headers=auth_headers)
-
-    assert response.status_code == 200
-    assert response.json()["data"]["status"] == "SETTLED"
-    assert response.json()["data"]["settledAt"] is not None
-    db.refresh(proposal)
-    db.refresh(offer)
-    assert proposal.status == ProposalStatus.SETTLED
-    assert offer.status == OfferStatus.SETTLED
-    assert proposal.settled_at is not None
-    assert offer.settled_at is not None
-
-
-def test_confirm_offer_settlement_rejects_non_completed(client, factory, auth_headers, sample_user):
-    runner = factory.user("01066660002")
-    _, offer = factory.execution(sample_user, runner, ProposalStatus.COMPLETED, OfferStatus.COMPLETED)
-
-    response = client.post(f"/api/v1/admin/offer/{offer.id}/confirm-settlement", headers=auth_headers)
-
-    assert response.status_code == 409
-    assert response.json()["error"]["code"] == "OFFER_NOT_UPDATABLE"
-
-
 def test_refund_offer_sets_refunded_from_disputed(client, db, factory, auth_headers, sample_user):
+    from app.models.offer import OfferStatus
+
     runner = factory.user("01066660003")
     proposal, offer = factory.execution(sample_user, runner, ProposalStatus.DISPUTED, OfferStatus.DISPUTED)
 

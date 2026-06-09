@@ -19,9 +19,8 @@ class ProposalStatus(str, enum.Enum):
     POSTED = "POSTED"
     OFFERED = "OFFERED"
     MATCHED = "MATCHED"
-    COMPLETED = "COMPLETED"
+    ORDER_COMPLETED = "ORDER_COMPLETED"
     ALL_COMPLETED = "ALL_COMPLETED"
-    SETTLED = "SETTLED"
     DISPUTED = "DISPUTED"
     REFUNDED = "REFUNDED"
     CANCELLED = "CANCELLED"
@@ -77,27 +76,18 @@ class Proposal(Base):
     def confirm_receipt(self) -> None:
         if not self.can_confirm_receipt():
             raise ValueError("Cannot confirm receipt for proposal not in MATCHED status")
-        self.status = ProposalStatus.COMPLETED
+        self.status = ProposalStatus.ORDER_COMPLETED
         self.received_confirmed_at = utcnow_naive()
 
     def mark_all_completed(self) -> None:
-        if self.status not in {ProposalStatus.COMPLETED, ProposalStatus.MATCHED}:
+        if self.status not in {ProposalStatus.ORDER_COMPLETED, ProposalStatus.MATCHED}:
             raise ValueError("Cannot mark all completed for proposal at this stage")
         self.status = ProposalStatus.ALL_COMPLETED
-
-    def can_settle(self) -> bool:
-        return self.status == ProposalStatus.ALL_COMPLETED
-
-    def settle(self) -> None:
-        if not self.can_settle():
-            raise ValueError("Cannot settle proposal not in ALL_COMPLETED status")
-        self.status = ProposalStatus.SETTLED
-        self.settled_at = utcnow_naive()
 
     def can_raise_dispute(self) -> bool:
         return self.status in {
             ProposalStatus.MATCHED,
-            ProposalStatus.COMPLETED,
+            ProposalStatus.ORDER_COMPLETED,
             ProposalStatus.ALL_COMPLETED,
         }
 

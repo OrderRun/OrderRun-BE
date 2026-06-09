@@ -142,7 +142,6 @@ PROPOSAL_STATE_TIMESTAMPS = {
     "matchedAt": None,
     "deliveryReportedAt": None,
     "receivedConfirmedAt": None,
-    "settledAt": None,
     "disputedAt": None,
     "refundedAt": None,
     "offers": [],
@@ -217,7 +216,7 @@ PROPOSAL_RECEIVED_EXAMPLE = {
     "success": True,
     "data": {
         **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
-        "status": "COMPLETED",
+        "status": "ORDER_COMPLETED",
         "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
     },
     "message": "완료 확인되었습니다.",
@@ -237,7 +236,6 @@ OFFER_EXAMPLE = {
     "acceptedAt": None,
     "deliveryCompletedAt": None,
     "receiptConfirmedAt": None,
-    "settledAt": None,
     "disputedAt": None,
     "refundedAt": None,
     "createdAt": EXAMPLE_CREATED_AT,
@@ -267,7 +265,7 @@ OFFER_DELIVERY_EXAMPLE = {
     "success": True,
     "data": {
         **OFFER_EXAMPLE,
-        "status": "COMPLETED",
+        "status": "RUNNER_COMPLETED",
         "acceptedAt": EXAMPLE_CREATED_AT,
         "deliveryCompletedAt": EXAMPLE_UPDATED_AT,
     },
@@ -293,18 +291,6 @@ OFFER_ACCEPT_EXAMPLE = {
     "message": "제안이 수락되었습니다.",
 }
 
-OFFER_SETTLED_EXAMPLE = {
-    "success": True,
-    "data": {
-        **OFFER_EXAMPLE,
-        "status": "SETTLED",
-        "acceptedAt": EXAMPLE_CREATED_AT,
-        "deliveryCompletedAt": EXAMPLE_UPDATED_AT,
-        "receiptConfirmedAt": EXAMPLE_UPDATED_AT,
-        "settledAt": EXAMPLE_UPDATED_AT,
-    },
-    "message": "제안 정산이 완료되었습니다.",
-}
 OFFER_REFUNDED_EXAMPLE = {
     "success": True,
     "data": {**OFFER_EXAMPLE, "status": "REFUNDED", "acceptedAt": EXAMPLE_CREATED_AT, "disputedAt": EXAMPLE_UPDATED_AT, "refundedAt": EXAMPLE_UPDATED_AT},

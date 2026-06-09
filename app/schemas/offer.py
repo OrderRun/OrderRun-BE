@@ -29,7 +29,6 @@ class OfferResponse(BaseModel):
     accepted_at: datetime | None = Field(None, serialization_alias="acceptedAt")
     delivery_completed_at: datetime | None = Field(None, serialization_alias="deliveryCompletedAt")
     receipt_confirmed_at: datetime | None = Field(None, serialization_alias="receiptConfirmedAt")
-    settled_at: datetime | None = Field(None, serialization_alias="settledAt")
     disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
     refunded_at: datetime | None = Field(None, serialization_alias="refundedAt")
     created_at: datetime = Field(..., serialization_alias="createdAt")

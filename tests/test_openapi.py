@@ -128,7 +128,7 @@ def test_representative_success_examples_match_contracts():
         "content"
     ]["application/json"]["example"]
     assert offer_delivery["message"] == "완료 처리되었습니다."
-    assert offer_delivery["data"]["status"] == "COMPLETED"
+    assert offer_delivery["data"]["status"] == "RUNNER_COMPLETED"
     assert "missionId" not in offer_delivery["data"]
     assert offer_delivery["data"]["deliveryCompletedAt"] is not None
 
