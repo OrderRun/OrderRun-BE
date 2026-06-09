@@ -53,6 +53,34 @@ def test_list_public_requires_auth_and_supports_multi_status_filter(client, db, 
     assert invalid.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
+def test_list_public_orders_by_deadline_then_creation_time(client, db, factory, auth_headers, sample_user):
+    later = factory.proposal(sample_user.id, ProposalStatus.POSTED, "later")
+    earlier = factory.proposal(sample_user.id, ProposalStatus.POSTED, "earlier")
+    same_deadline_old = factory.proposal(sample_user.id, ProposalStatus.POSTED, "same-old")
+    same_deadline_new = factory.proposal(sample_user.id, ProposalStatus.POSTED, "same-new")
+
+    later.deadline = datetime.now(timezone.utc) + timedelta(days=3)
+    later.meeting_at = later.deadline
+    earlier.deadline = datetime.now(timezone.utc) + timedelta(days=1)
+    earlier.meeting_at = earlier.deadline
+    same_deadline = datetime.now(timezone.utc) + timedelta(days=2)
+    same_deadline_old.deadline = same_deadline
+    same_deadline_old.meeting_at = same_deadline
+    same_deadline_new.deadline = same_deadline
+    same_deadline_new.meeting_at = same_deadline
+    db.commit()
+    db.refresh(later)
+    db.refresh(earlier)
+    db.refresh(same_deadline_old)
+    db.refresh(same_deadline_new)
+
+    response = client.get("/v1/proposal", headers=auth_headers)
+
+    assert response.status_code == 200
+    ordered_ids = [item["id"] for item in response.json()["data"]["content"]]
+    assert ordered_ids[:4] == [earlier.id, same_deadline_new.id, same_deadline_old.id, later.id]
+
+
 def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_headers, sample_user):
     holding = factory.proposal(sample_user.id, ProposalStatus.HOLDING)
     cancelled = factory.proposal(sample_user.id, ProposalStatus.CANCELLED)
@@ -125,6 +153,34 @@ def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(
         own_holding.id,
         own_cancelled.id,
     }
+
+
+def test_list_own_orders_by_deadline_then_creation_time(client, db, factory, auth_headers, sample_user):
+    later = factory.proposal(sample_user.id, ProposalStatus.POSTED, "later")
+    earlier = factory.proposal(sample_user.id, ProposalStatus.POSTED, "earlier")
+    same_deadline_old = factory.proposal(sample_user.id, ProposalStatus.POSTED, "same-old")
+    same_deadline_new = factory.proposal(sample_user.id, ProposalStatus.POSTED, "same-new")
+
+    later.deadline = datetime.now(timezone.utc) + timedelta(days=3)
+    later.meeting_at = later.deadline
+    earlier.deadline = datetime.now(timezone.utc) + timedelta(days=1)
+    earlier.meeting_at = earlier.deadline
+    same_deadline = datetime.now(timezone.utc) + timedelta(days=2)
+    same_deadline_old.deadline = same_deadline
+    same_deadline_old.meeting_at = same_deadline
+    same_deadline_new.deadline = same_deadline
+    same_deadline_new.meeting_at = same_deadline
+    db.commit()
+    db.refresh(later)
+    db.refresh(earlier)
+    db.refresh(same_deadline_old)
+    db.refresh(same_deadline_new)
+
+    response = client.get("/v1/proposal/own", headers=auth_headers)
+
+    assert response.status_code == 200
+    ordered_ids = [item["id"] for item in response.json()["data"]["content"]]
+    assert ordered_ids[:4] == [earlier.id, same_deadline_new.id, same_deadline_old.id, later.id]
 
 
 def test_create_proposal_validates_contract_and_stores_holding(client, db, factory, auth_headers, sample_user):

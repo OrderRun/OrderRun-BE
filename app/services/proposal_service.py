@@ -80,7 +80,7 @@ class ProposalService:
             query = query.filter(Proposal.status.in_(proposal_statuses))
         total = query.count()
         items = (
-            query.order_by(Proposal.created_at.desc(), Proposal.id.desc())
+            query.order_by(Proposal.deadline.asc(), Proposal.created_at.desc(), Proposal.id.desc())
             .offset(page * size)
             .limit(size)
             .all()
@@ -134,7 +134,7 @@ class ProposalService:
 
         total = query.count()
         proposals = (
-            query.order_by(Proposal.created_at.desc(), Proposal.id.desc())
+            query.order_by(Proposal.deadline.asc(), Proposal.created_at.desc(), Proposal.id.desc())
             .offset(page * size)
             .limit(size)
             .all()
