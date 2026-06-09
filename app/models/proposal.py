@@ -63,11 +63,11 @@ class Proposal(Base):
             self.status = ProposalStatus.OFFERED
 
     def can_report_delivery(self) -> bool:
-        return self.status == ProposalStatus.MATCHED
+        return self.status in {ProposalStatus.MATCHED, ProposalStatus.ORDER_COMPLETED}
 
     def report_delivery(self) -> None:
         if not self.can_report_delivery():
-            raise ValueError("Cannot report delivery for proposal not in MATCHED status")
+            raise ValueError("Cannot report delivery for proposal not in active execution status")
         self.delivery_reported_at = utcnow_naive()
 
     def can_confirm_receipt(self) -> bool:

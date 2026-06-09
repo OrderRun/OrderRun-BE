@@ -260,7 +260,7 @@ class OfferService:
             raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
 
         offer.complete_delivery()
-        if proposal.status == ProposalStatus.MATCHED:
+        if proposal.status in {ProposalStatus.MATCHED, ProposalStatus.ORDER_COMPLETED}:
             proposal.report_delivery()
         OfferService._sync_all_completed(offer, proposal)
         db.add(Proof(
