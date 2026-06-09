@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import BigInteger, Column, DateTime, Integer, String, UniqueConstraint
+from sqlalchemy import BigInteger, Column, DateTime, String, UniqueConstraint
 
 from app.core.time import utcnow_naive
 from app.core.database import Base
@@ -13,7 +13,7 @@ class SettlementAccount(Base):
 
     __tablename__ = "settlement_accounts"
 
-    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     user_id = Column(String(36), nullable=False, unique=True, index=True)
     bank_code = Column(String(10), nullable=False)
     bank_name = Column(String(50), nullable=False)

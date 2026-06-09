@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.main import app
 from app.models.user import AuthPhoneVerification, PhoneVerificationPurpose, PhoneVerificationStatus, User, UserFCMToken
@@ -309,7 +309,7 @@ def test_verification_state_rules(client, db, sms_sender):
         AuthPhoneVerification.status == PhoneVerificationStatus.PENDING,
     ).order_by(AuthPhoneVerification.id.desc()).first()
     assert verification is not None
-    verification.expires_at = datetime.now(timezone.utc).replace(tzinfo=None) - datetime.resolution
+    verification.expires_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=1)
     db.commit()
 
     expired_confirm = client.post(

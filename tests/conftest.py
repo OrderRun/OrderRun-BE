@@ -13,9 +13,9 @@ from fastapi.testclient import TestClient
 from httpx import Response
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
 from starlette.routing import Match
 
+from app.core.config import settings
 from app.core.database import Base, get_db
 from app.core.security import create_access_token
 from app.main import app
@@ -208,11 +208,14 @@ def _find_openapi_path(method: str, url: str) -> str | None:
     return None
 
 
-TEST_ENGINE = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+_test_db_url = (
+    f"mysql+pymysql://{settings.db_username}:{settings.db_password}"
+    f"@{settings.db_host}:{settings.db_port}/{settings.db_name}_test"
+    f"?charset=utf8mb4"
 )
+
+TEST_ENGINE = create_engine(_test_db_url)
+assert TEST_ENGINE.dialect.name == "mysql", "Tests must use MySQL"
 
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=TEST_ENGINE)
 
@@ -244,7 +247,6 @@ def client(db: Session, sms_sender: RecordingSmsSender, monkeypatch: pytest.Monk
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_sms_sender] = lambda: sms_sender
     monkeypatch.setattr("app.api.v1.offer.get_notification_worker", lambda: NoopNotificationWorker())
-    monkeypatch.setattr("app.api.v1.mission.get_notification_worker", lambda: NoopNotificationWorker())
 
     with TestClient(app) as test_client:
         yield OpenApiAssertingClient(test_client)

@@ -57,7 +57,7 @@ class AuthPhoneVerification(Base):
 
     __tablename__ = "auth_phone_verifications"
 
-    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     purpose = Column(Enum(PhoneVerificationPurpose), nullable=False, index=True)
     phone = Column(String(20), nullable=False, index=True)
     name = Column(String(100), nullable=True)
@@ -82,7 +82,7 @@ class UserFCMToken(Base):
 
     __tablename__ = "user_fcm_tokens"
 
-    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     user_id = Column(String(36), nullable=False, unique=True, index=True)
     fcm_token = Column(String(4096), nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)

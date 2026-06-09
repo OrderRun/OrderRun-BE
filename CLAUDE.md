@@ -261,7 +261,7 @@ Custom exceptions are defined in `app/core/exceptions.py`. Use standard FastAPI 
 
 1. **Alembic migrations**: Use Alembic for FastAPI schema changes
 2. **Phone verification only**: OAuth code exists but is deprecated
-3. **MySQL only**: SQLite used for tests, but production is MySQL
+3. **MySQL only**: Tests, staging, and production all use MySQL
 4. **Baseline first**: Existing staging databases should be stamped to `0001_baseline` before new migrations
 5. **Document first**: Code changes without documentation will be rejected
 6. **No MySQL ENUM types**: DB 컬럼에 MySQL ENUM 타입을 사용하지 않는다. 대신 `VARCHAR`를 사용한다. SQLAlchemy 모델에서도 `Enum(PythonEnum)`을 컬럼 타입으로 사용하지 않고 `String(n)`을 사용한다. Python 열거형은 애플리케이션 레이어에서만 사용한다. (이유: ENUM은 값 추가 시 ALTER TABLE이 필요하고, 마이그레이션이 복잡해지며, MySQL 버전별 동작 차이가 있다.)

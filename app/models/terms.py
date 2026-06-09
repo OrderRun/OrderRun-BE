@@ -5,7 +5,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Index, Integer, String
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Index, String
 
 from app.core.time import utcnow_naive
 from app.core.database import Base
@@ -30,7 +30,7 @@ class TermsAgreement(Base):
 
     __tablename__ = "terms_agreements"
 
-    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     user_id = Column(String(36), nullable=False, unique=True, index=True)
     terms_of_service = Column(Boolean, nullable=False)
     privacy_policy = Column(Boolean, nullable=False)
