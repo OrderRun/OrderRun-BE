@@ -31,7 +31,7 @@ See `docs/HARNESS_ENGINEERING.md` for complete methodology.
 - **ORM**: SQLAlchemy 2.x
 - **Validation**: Pydantic 2.x
 - **Auth**: JWT with phone verification (migrated from OAuth)
-- **Migration**: Manual SQL scripts in `migrations/` directory
+- **Migration**: Alembic migrations in `alembic/`
 
 ## Development Commands
 
