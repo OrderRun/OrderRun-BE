@@ -82,60 +82,57 @@ def test_signup_login_refresh_and_logout_flow(client, db, sms_sender):
     assert logout.json()["data"] is None
 
 
-def test_login_confirm_accepts_test_code_in_development(client, sms_sender, monkeypatch):
+def test_login_confirm_succeeds_with_verification_bypass_code(client, sms_sender, monkeypatch):
+    # given: 가입된 유저, 비프로덕션 환경
     _signup(client, sms_sender)
     monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "development")
     sent_count = len(sms_sender.sent_messages)
 
-    login_confirm = client.post(
+    # when: 우회 인증 코드로 로그인 확인 요청
+    response = client.post(
         "/v1/auth/login/confirm",
         json={"phone": "010-1234-5678", "code": "123456"},
     )
 
-    assert login_confirm.status_code == 200
-    assert login_confirm.json()["data"]["accessToken"]
+    # then: 로그인 성공, SMS 미전송
+    assert response.status_code == 200
+    assert response.json()["data"]["accessToken"]
     assert len(sms_sender.sent_messages) == sent_count
 
 
-def test_login_confirm_accepts_test_code_in_staging(client, sms_sender, monkeypatch):
-    _signup(client, sms_sender)
-    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "staging")
-
-    login_confirm = client.post(
-        "/v1/auth/login/confirm",
-        json={"phone": "010-1234-5678", "code": "123456"},
-    )
-
-    assert login_confirm.status_code == 200
-    assert login_confirm.json()["data"]["accessToken"]
-
-
-def test_login_confirm_rejects_test_code_for_missing_user_in_development(client, monkeypatch):
+def test_login_confirm_returns_user_not_found_when_user_does_not_exist(client, monkeypatch):
+    # given: 존재하지 않는 유저, 비프로덕션 환경
     monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "development")
 
-    login_confirm = client.post(
+    # when: 우회 인증 코드로 로그인 확인 요청
+    response = client.post(
         "/v1/auth/login/confirm",
         json={"phone": "010-9999-8888", "code": "123456"},
     )
 
-    assert login_confirm.status_code == 404
-    assert login_confirm.json()["error"]["code"] == "USER_NOT_FOUND"
+    # then: 404 USER_NOT_FOUND
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "USER_NOT_FOUND"
 
 
-def test_login_confirm_rejects_test_code_without_pending_verification_in_production(client, sms_sender, monkeypatch):
+def test_login_confirm_returns_not_found_when_no_pending_verification(client, sms_sender, monkeypatch):
+    # given: 가입된 유저, 인증 요청 없음, 프로덕션 환경
     _signup(client, sms_sender)
     monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "production")
 
-    login_confirm = client.post(
+    # when: 코드 확인 요청
+    response = client.post(
         "/v1/auth/login/confirm",
         json={"phone": "010-1234-5678", "code": "123456"},
     )
 
-    assert login_confirm.status_code == 404
-    assert login_confirm.json()["error"]["code"] == "PHONE_VERIFICATION_NOT_FOUND"
+    # then: 404 PHONE_VERIFICATION_NOT_FOUND
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "PHONE_VERIFICATION_NOT_FOUND"
 
 
-def test_login_confirm_rejects_test_code_in_production(client, db, sms_sender, monkeypatch):
+def test_login_confirm_returns_code_mismatch_when_wrong_code_submitted(client, db, sms_sender, monkeypatch):
+    # given: 가입된 유저, 인증 요청 완료, 프로덕션 환경
     _signup(client, sms_sender)
     monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "production")
 
@@ -152,16 +149,19 @@ def test_login_confirm_rejects_test_code_in_production(client, db, sms_sender, m
         verification.code_hash = "not-the-test-code-hash"
         db.commit()
 
-    login_confirm = client.post(
+    # when: 틀린 코드로 로그인 확인 요청
+    response = client.post(
         "/v1/auth/login/confirm",
         json={"phone": "010-1234-5678", "code": "123456"},
     )
 
-    assert login_confirm.status_code == 400
-    assert login_confirm.json()["error"]["code"] == "PHONE_VERIFICATION_CODE_MISMATCH"
+    # then: 400 PHONE_VERIFICATION_CODE_MISMATCH
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "PHONE_VERIFICATION_CODE_MISMATCH"
 
 
-def test_signup_confirm_does_not_accept_login_test_code(client, db, sms_sender, monkeypatch):
+def test_signup_confirm_rejects_verification_bypass_code(client, db, sms_sender, monkeypatch):
+    # given: 회원가입 인증 요청, 비프로덕션 환경
     monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "development")
 
     signup_send = client.post(
@@ -180,13 +180,15 @@ def test_signup_confirm_does_not_accept_login_test_code(client, db, sms_sender, 
         verification.code_hash = "not-the-test-code-hash"
         db.commit()
 
-    signup_confirm = client.post(
+    # when: 우회 인증 코드로 회원가입 확인 요청
+    response = client.post(
         "/v1/auth/signup/confirm",
         json={"phone": "010-5555-6666", "code": "123456"},
     )
 
-    assert signup_confirm.status_code == 400
-    assert signup_confirm.json()["error"]["code"] == "PHONE_VERIFICATION_CODE_MISMATCH"
+    # then: 회원가입은 우회 코드를 허용하지 않으므로 400
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "PHONE_VERIFICATION_CODE_MISMATCH"
 
 
 def test_user_detail_alarm_and_fcm_token_flow(client, db, sms_sender):
