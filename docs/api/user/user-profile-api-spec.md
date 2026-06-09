@@ -20,4 +20,6 @@ User/Auth/Terms API의 외부 계약 정본은 [`../../api-spec/README.md`](../.
 ## 참고
 
 - 통합 API 명세: [`../../api-spec/README.md`](../../api-spec/README.md)
+- User/Auth 도메인 문서: [`../../domains/user-auth/README.md`](../../domains/user-auth/README.md)
+- Terms Agreement 도메인 문서: [`../../domains/terms-agreement/README.md`](../../domains/terms-agreement/README.md)
 - 구현 갭: [`../../api-spec/implementation-gaps.md`](../../api-spec/implementation-gaps.md)

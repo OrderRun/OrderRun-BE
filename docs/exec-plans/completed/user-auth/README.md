@@ -10,7 +10,6 @@
 - [`auth/requirements.md`](./auth/requirements.md): 전화번호 인증/토큰 정책
 - [`auth/design.md`](./auth/design.md): 인증/토큰 구현 설계
 - [`auth/verification.md`](./auth/verification.md): 인증/토큰 검증 하네스
-- [`model.md`](./model.md): 사용자/인증 보조 모델 정본
 
 ## 구현 순서
 

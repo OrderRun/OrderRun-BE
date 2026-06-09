@@ -1,22 +1,12 @@
-# Offer API Spec
+# Offer API Legacy Reference
 
-Offer API의 외부 계약 정본은 [`../api-spec/README.md`](../api-spec/README.md)의 `Offer API` 섹션이다.
+이 문서는 과거 Offer API 상세 명세 위치를 유지하기 위한 참조 문서다.
 
-이 문서는 과거 도메인별 상세 명세 위치를 유지하기 위한 참조 문서다. 새 요청/응답 필드, 상태 코드, 페이징 규칙은 통합 API 명세를 우선한다.
+현재 기준은 다음 문서를 우선한다.
 
-## 포함 API
-
-- `POST /v1/offer`
-- `POST /v1/offer/{offerId}/accept`
-- `GET /v1/offer/{offerId}`
-- `GET /v1/offer?proposalId={id}`
-- `GET /v1/offer/own`
-- `POST /v1/offer/{offerId}/complete-delivery`
-- `POST /v1/offer/{offerId}/dispute`
-- `DELETE /v1/offer/{offerId}`
-
-## 참고
-
-- 상태 정책: [`../domain.md`](../domain.md)
-- 도메인 테스트 보장: [`../domains/offer/test-scenarios.md`](../domains/offer/test-scenarios.md)
+- 외부 API 계약: [`../api-spec/README.md`](../api-spec/README.md)의 Offer API
+- 상태 전이와 정책: [`../domain.md`](../domain.md)
+- 도메인 개념과 테스트 보장: [`../domains/offer/`](../domains/offer/)
 - 구현 갭: [`../api-spec/implementation-gaps.md`](../api-spec/implementation-gaps.md)
+
+새 요청/응답 필드, 상태 코드, 페이징 규칙은 이 파일에 추가하지 않고 통합 API 명세에 반영한다.

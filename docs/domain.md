@@ -76,7 +76,6 @@ Proof는 `proposalId`, `offerId`, `actorId`, `proofType`, `imageUrl`, `reason`, 
 - Proposal은 모집 가능 상태에서 Offer를 받을 수 있고, Offer 수락 후 `MATCHED`가 된다.
 - Offer 수락 시 선택된 Offer는 `ACCEPTED`, 같은 Proposal의 다른 대기 Offer는 `REJECTED`가 된다.
 - 수락된 Offer ID가 매칭 이후 수행 건의 기준 식별자다.
-- Mission 도메인은 제거한다.
 - 매칭 이후 오더 관점 진행 상태는 Proposal, 러너 관점 진행 상태는 Offer에서 추적한다.
 - 완료 증빙과 분쟁 사유는 Proof에 기록한다.
 - 정산 계좌와 약관 동의는 사용자 식별자에 종속된 사용자 부가 정책이다.

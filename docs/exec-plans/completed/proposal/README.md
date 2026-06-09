@@ -4,7 +4,6 @@
 
 ## 문서 구성
 
-- [`requirements.md`](./requirements.md): Proposal API 정책과 acceptance criteria
 - [`design.md`](./design.md): 구현 책임 경계와 상태 전이 설계
 - [`verification.md`](./verification.md): Java baseline 기준 검증 하네스
 - [`model.md`](./model.md): `proposals` 모델과 `ProposalStatus` 구조

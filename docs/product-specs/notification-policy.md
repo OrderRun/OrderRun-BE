@@ -90,7 +90,7 @@
 | 지원 수락 | `OFFER_ACCEPTED` |
 | 탈락 통보 | `OFFER_REJECTED` |
 | 지원자/요청자 만남 확인 | `MEETING_CONFIRMED` |
-| 양측 완료 | `MISSION_COMPLETED` |
+| 양측 완료 | `ALL_COMPLETED` |
 
 ---
 

@@ -6,19 +6,13 @@
 ## 문서 목록
 
 - [`proposal-api-spec.md`](./proposal-api-spec.md): 통합 API 명세 참조
-- [`proposal-entity.md`](./proposal-entity.md): Proposal 도메인 정책 참조
-- [`proposal-integration-test-plan.md`](./proposal-integration-test-plan.md): 정본 기준 통합 테스트 체크리스트
+- [`proposal-entity.md`](./proposal-entity.md): 레거시 엔티티 참조 위치
+- [`proposal-integration-test-plan.md`](./proposal-integration-test-plan.md): 레거시 테스트 계획 참조 위치
 
-## API 엔드포인트 요약
+## 현재 기준
 
-| Method | Path | 설명 | 인증 |
-|--------|------|------|------|
-| GET | `/v1/proposal` | 요청 게시글 목록 조회 | 필요 |
-| GET | `/v1/proposal/{id}` | 요청 게시글 상세 조회 | 필요 |
-| GET | `/v1/proposal/own` | 내 요청 게시글 목록 조회 | 필요 |
-| POST | `/v1/proposal` | 요청 게시글 등록 | 필요 |
-| PUT | `/v1/proposal/{id}` | 요청 게시글 수정 | 필요. 작성자만 가능 |
-| POST | `/v1/proposal/{id}/cancel` | 요청 게시글 취소 | 필요. 작성자만 가능 |
+새 endpoint, 요청/응답 필드, 상태 코드, 테스트 보장 범위는 이 디렉터리에 중복 기록하지 않는다.
+아래 관련 문서를 우선한다.
 
 ## 관련 문서
 

@@ -13,4 +13,4 @@
 | TD-003 | 테스트 | 도메인 상태 전이에 대한 회귀 검증이 부족하다. | 리팩터링 안전성이 낮아짐 | 서비스 및 API 수준 전이 테스트 추가 |
 | TD-004 | 문서 | 기존 아키텍처 문서와 새 하네스 문서는 계속 정렬돼야 한다. | 결정 드리프트 발생 가능 | 모델 변경 시 생성 스키마와 인덱스 갱신 |
 | TD-005 | 인프라 | staging 배포 workflow, Dockerfile, EC2 compose flow는 FastAPI env 계약과 계속 정렬돼야 한다. | 배포 실패와 환경 불일치 위험 | env template와 deploy script를 설정 변경 시 함께 갱신 |
-| TD-006 | 문서 | `docs/architecture/`, `docs/api/`, `docs/offer/`에 정본을 가리키는 레거시 문서가 남아 있다. | API/domain 정본과 참조 문서가 함께 drift될 위험 | 다음 문서 정리 패스에서 정본으로 흡수하거나 archive/delete 기준 확정 |
+| TD-006 | 문서 | 일부 전환기 문서가 현재 정본 문서와 중복된다. | 신규 작업자가 과거 설계를 현재 기준으로 오해할 위험 | 필요한 내용만 `docs/design-docs/`, `docs/product-specs/`, `docs/domains/`로 승격한 뒤 archive/delete 기준 확정 |

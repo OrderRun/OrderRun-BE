@@ -54,6 +54,4 @@ rg --files tests | sort
 
 ## 현재 특이사항
 
-- `tests/test_mission_integration.py`는 현재 워킹트리에서 삭제된 상태라 인벤토리에서 제외한다.
-- Mission API 제거 회귀는 `tests/test_openapi.py`의 `test_mission_collection_get_is_not_documented`에서 확인한다.
 - 프로젝트 가상환경의 `python -m pytest --collect-only -q`는 현재 테스트용 env 또는 `apscheduler` 의존성 누락 시 import 단계에서 실패한다. 실제 pytest 수집과 실행은 테스트용 env와 dev 의존성을 채운 뒤 수행한다.
