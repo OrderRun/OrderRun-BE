@@ -25,14 +25,18 @@
 
 **각 문서 유형의 책임:**
 - 제품 스펙 → 사용자 관점 요구사항과 행동
+- 도메인 문서 → 도메인 개념과 테스트 보장 범위
 - 설계 문서 → 기술 결정과 아키텍처 근거
 - 실행 계획 → 작업 분해, 순서, 검증 전략
 - 생성 문서 → 코드/모델에서 파생된 사실
+- 학습 문서 → 공식 정본이 아닌 학습/실험 메모
 
 **금지:**
 - 제품 스펙에 구현 세부사항 작성
+- 제품 스펙에 API 필드, 상태 enum, 테스트 보장 범위 작성
 - 설계 문서에 일회성 진행 상황 기록
 - 실행 계획에 장기 아키텍처 결정 혼입
+- 학습 문서를 정본 문서처럼 참조
 
 ### 3. 검증 가능성 (Verifiability)
 
@@ -96,10 +100,12 @@ README.md (프로젝트 개요)
 |---------|-----|-----|
 | `docs/design-docs/` | 기술 결정, 아키텍처 근거 | 영구 |
 | `docs/product-specs/` | 사용자 요구사항, 제품 동작 | 영구 |
+| `docs/domains/` | 도메인 개념, 책임, 테스트 보장 범위 | 영구 |
 | `docs/exec-plans/active/` | 진행 중 작업 계획 | 임시 |
 | `docs/exec-plans/completed/` | 완료된 작업 기록 | 보관 |
 | `docs/generated/` | 코드/모델 파생 산출물 | 파생 |
 | `docs/references/` | 외부 도구, 플랫폼 메모 | 참고 |
+| `docs/study/` | 학습, 실험, 비정본 메모 | 참고 |
 | `docs/architecture/` | 레거시 또는 전환기 아키텍처 문서 | 정리 대상 |
 
 ## 작업 흐름 프로세스
@@ -115,6 +121,7 @@ README.md (프로젝트 개요)
 - `ARCHITECTURE.md`에서 시스템 개요 확인
 - `docs/design-docs/index.md`에서 관련 설계 문서 탐색
 - `docs/product-specs/index.md`에서 제품 스펙 확인
+- `docs/domains/README.md`에서 도메인 개념과 테스트 보장 확인
 - `docs/exec-plans/tech-debt-tracker.md`에서 부채 항목 체크
 
 ### Phase 2: 계획 (Planning)
@@ -168,6 +175,7 @@ README.md (프로젝트 개요)
 - 설계가 바뀌면 설계 문서 갱신
 - 제품 동작이 바뀌면 제품 스펙 갱신
 - 파생 산출물 (스키마, API 문서)은 `docs/generated/`에 반영
+- 도메인별 테스트 보장 범위가 바뀌면 `docs/domains/*/test-scenarios.md`를 갱신
 
 ### Phase 4: 검증 (Verification)
 

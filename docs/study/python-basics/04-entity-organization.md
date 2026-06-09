@@ -286,7 +286,7 @@ app/models/
 ├── user.py          # User, AuthPhoneVerification, UserFCMToken, Enums
 ├── proposal.py      # Proposal 도메인
 ├── offer.py         # Offer 도메인
-├── mission.py       # Mission 도메인
+├── proof.py         # Proof 도메인
 ├── payment.py       # Payment 도메인
 ├── notification.py  # Notification 도메인
 └── terms.py         # Terms 도메인
