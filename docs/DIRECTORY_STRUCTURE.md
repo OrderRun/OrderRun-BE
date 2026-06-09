@@ -202,21 +202,18 @@ docs/references/
 
 ```
 docs/architecture/
-├── orderrun-master.md           # 통합 설계 마스터
-├── orderrun-domain-model.md     # 도메인 모델
-├── orderrun-api-contract.md     # API 계약 레거시 진입점
-└── orderrun-fastapi-transition.md
+└── orderrun-api-contract.md     # API 계약 레거시 진입점
 ```
 
 **현재 상태:**
-- 레거시 또는 전환기 아키텍처 문서
-- 점진적으로 `design-docs/`와 `product-specs/`로 분해 예정
+- 레거시 진입점만 유지
+- 현재 기술 결정은 `design-docs/`, 도메인 해설은 `domains/`, 제품 동작은 `product-specs/`를 우선
 
 **마이그레이션 계획:**
 1. 기술 결정 → `design-docs/`
 2. 제품 동작 → `product-specs/`
 3. 실행 계획 → `exec-plans/`
-4. 중복 제거 후 보관 또는 삭제
+4. 중복 문서는 삭제
 
 ### API 명세 (api-spec/)
 
@@ -262,6 +259,7 @@ docs/study/
 **주의:**
 - 공식 문서가 아님
 - 개인 또는 팀 학습용
+- API 계약, 상태 정책, 설계 결정의 정본으로 참조하지 않음
 
 ## app/ 코드 구조
 
@@ -402,12 +400,13 @@ docs/design-docs/core-beliefs.md
 ### 새 도메인 추가 시
 
 1. `docs/design-docs/`에 도메인 경계 문서 작성
-2. `docs/product-specs/`에 도메인 동작 스펙 작성
-3. `docs/exec-plans/active/`에 구현 계획 작성
-4. `app/models/`에 모델 추가
-5. `app/schemas/`, `app/services/`, `app/repositories/` 순서로 레이어 구현
-6. `app/api/v1/`에 엔드포인트 추가
-7. `docs/generated/db-schema.md` 갱신
+2. 사용자 행동이 바뀌면 `docs/product-specs/`에 제품 스펙 작성
+3. `docs/domains/`에 도메인 개념과 테스트 보장 문서 작성
+4. `docs/exec-plans/active/`에 구현 계획 작성
+5. `app/models/`에 모델 추가
+6. `app/schemas/`, `app/services/`, `app/repositories/` 순서로 레이어 구현
+7. `app/api/v1/`에 엔드포인트 추가
+8. `docs/generated/db-schema.md`와 `docs/generated/test-inventory.md` 갱신
 
 ### 새 문서 유형 추가 시
 

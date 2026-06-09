@@ -11,10 +11,7 @@
 - [`testing-conventions.md`](./testing-conventions.md): pytest 통합 테스트 작성 규칙 (이름, GWT 구조, 중복 방지)
 - [`../api-spec/README.md`](../api-spec/README.md): 외부 API 요청/응답 계약 정본
 - [`../domain.md`](../domain.md): 도메인 상태와 정책 정본
-- [`../architecture/orderrun-master.md`](../architecture/orderrun-master.md): 기존 통합 설계 요약
-- [`../architecture/orderrun-domain-model.md`](../architecture/orderrun-domain-model.md): 도메인 엔티티와 상태 전이
 - [`../architecture/orderrun-api-contract.md`](../architecture/orderrun-api-contract.md): API 계약 레거시 진입점
-- [`../architecture/orderrun-fastapi-transition.md`](../architecture/orderrun-fastapi-transition.md): FastAPI 전환 설계
 
 ## 다음 후보 문서
 

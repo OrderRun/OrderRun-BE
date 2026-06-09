@@ -32,12 +32,9 @@
 - [Generated DB Schema](./docs/generated/db-schema.md)
 - [로컬 개발 환경 세팅](./docs/setup/local-development.md)
 
-## 기존 아키텍처 문서
+## 레거시 진입점
 
-- [통합 설계 마스터](./docs/architecture/orderrun-master.md)
-- [도메인 모델](./docs/architecture/orderrun-domain-model.md)
 - [API 계약 레거시 진입점](./docs/architecture/orderrun-api-contract.md)
-- [FastAPI 전환 설계](./docs/architecture/orderrun-fastapi-transition.md)
 
 ## 기본 전제
 
