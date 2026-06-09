@@ -18,7 +18,7 @@
 | `terms_agreements` | terms | O | `docs/exec-plans/active/terms-agreement/model.md` | 사용자별 필수 약관 동의 |
 | `proposals` | bidding/proposal | O | `docs/exec-plans/active/proposal/model.md` | 심부름 모집 공고 |
 | `offers` | bidding/offer | O | `docs/exec-plans/active/offer/model.md` | 러너 지원서 |
-| `missions` | execution | O | `docs/exec-plans/active/mission/model.md` | 매칭 후 수행 계약 |
+| `proofs` | execution/proof | O | `docs/domain.md` | 배송 사진/분쟁 사유 증빙 |
 | `payments` | settlement | 목표 O / 현재 미구현 | 이 문서 | 결제/정산 처리 |
 | `settlement_accounts` | settlement | O | 이 문서 | 러너 정산 계좌 |
 
@@ -27,15 +27,14 @@
 ```text
 users 1 -> N proposals(orderer_id)
 users 1 -> N offers(runner_id)
-users 1 -> N missions(orderer_id, runner_id)
 users 1 -> 1 user_fcm_tokens
 users 1 -> 1 terms_agreements
 users 1 -> 1 settlement_accounts
 
 proposals 1 -> N offers
-proposals 1 -> 1 missions
-offers 1 -> 1 missions
-missions 1 -> 1 payments
+proposals 1 -> N proofs
+offers 1 -> N proofs
+offers 1 -> 1 payments
 ```
 
 위 관계는 애플리케이션 레벨 관계다. 목표 정본 기준으로 실제 MySQL FK constraint는 없다.
@@ -149,8 +148,14 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `errand_fee` | `integer` | NO |  | 심부름비 |
 | `item_price` | `integer` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
 | `deposit` | `integer` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
-| `status` | `varchar(20)` | NO |  | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `CANCELLED` |
+| `status` | `varchar(20)` | NO |  | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `DELIVERY_REPORTED`, `RECEIVED_CONFIRMED`, `SETTLED`, `DISPUTED`, `REFUNDED`, `CANCELLED` |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `matched_at` | `datetime(6)` | YES |  | Offer 수락으로 매칭된 시각 |
+| `delivery_reported_at` | `datetime(6)` | YES |  | 러너 전달 완료가 Proposal에 반영된 시각 |
+| `received_confirmed_at` | `datetime(6)` | YES |  | 오더 수령 확인 시각 |
+| `settled_at` | `datetime(6)` | YES |  | 정산 완료 시각 |
+| `disputed_at` | `datetime(6)` | YES |  | 분쟁 접수 시각 |
+| `refunded_at` | `datetime(6)` | YES |  | 환불 완료 시각 |
 | `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
 ## `offers`
@@ -160,28 +165,28 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `id` | `bigint` | NO | PK, auto increment | Offer ID |
 | `proposal_id` | `bigint` | NO | UNIQUE `uk_proposal_runner` 일부 | 대상 Proposal ID |
 | `runner_id` | `varchar(36)` | NO | UNIQUE `uk_proposal_runner` 일부, INDEX `idx_offers_runner_id` | 지원자 사용자 ID |
-| `status` | `varchar(20)` | NO |  | `WAITING`, `ACCEPTED`, `COMPLETED`, `REJECTED`, `CANCELLED` |
+| `status` | `varchar(20)` | NO |  | `WAITING`, `ACCEPTED`, `DELIVERY_COMPLETED`, `RECEIPT_CONFIRMED`, `SETTLED`, `DISPUTED`, `REFUNDED`, `REJECTED`, `CANCELLED` |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `accepted_at` | `datetime(6)` | YES |  | 오더가 Offer를 수락한 시각 |
+| `delivery_completed_at` | `datetime(6)` | YES |  | 러너 전달 완료 시각 |
+| `receipt_confirmed_at` | `datetime(6)` | YES |  | 오더 수령 확인이 Offer에 반영된 시각 |
+| `settled_at` | `datetime(6)` | YES |  | 정산 완료 시각 |
+| `disputed_at` | `datetime(6)` | YES |  | 분쟁 접수 시각 |
+| `refunded_at` | `datetime(6)` | YES |  | 환불 완료 시각 |
 | `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
-## `missions`
+## `proofs`
 
 | 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
 |------|------|------|-----------|------|
-| `id` | `bigint` | NO | PK, auto increment | Mission ID |
-| `proposal_id` | `bigint` | NO | UNIQUE `uk_proposal_id` | 연관 Proposal ID |
-| `offer_id` | `bigint` | NO | UNIQUE `uk_offer_id` | 연관 Offer ID |
-| `orderer_id` | `varchar(36)` | NO | INDEX `idx_missions_orderer_id` | 요청자 사용자 ID 스냅샷 |
-| `runner_id` | `varchar(36)` | NO | INDEX `idx_missions_runner_id` | 수행자 사용자 ID 스냅샷 |
-| `delivery_proof_image_url` | `varchar(500)` | YES |  | 전달 인증 사진 URL |
-| `status` | `varchar(30)` | NO |  | Mission 상태 |
-| `pickup_at` | `datetime(6)` | YES |  | 수행 시작 시각 |
-| `delivery_completed_at` | `datetime(6)` | YES |  | 전달 완료 시각 |
-| `received_confirmed_at` | `datetime(6)` | YES |  | 수령 확인 시각 |
-| `settled_at` | `datetime(6)` | YES |  | 정산 완료 시각 |
-| `dispute_reason` | `text` | YES |  | 분쟁 사유 |
+| `id` | `bigint` | NO | PK, auto increment | Proof ID |
+| `proposal_id` | `bigint` | NO | INDEX `idx_proofs_proposal_id` | 연관 Proposal ID |
+| `offer_id` | `bigint` | NO | INDEX `idx_proofs_offer_id` | 연관 Offer ID |
+| `actor_id` | `varchar(36)` | NO |  | 증빙 작성 사용자 ID |
+| `proof_type` | `varchar(30)` | NO | INDEX `idx_proofs_proof_type` | `DELIVERY`, `DISPUTE` |
+| `image_url` | `varchar(500)` | YES |  | 배송 사진 URL |
+| `reason` | `text` | YES |  | 분쟁 사유 |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
-| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
 현재 코드 갭:
 
@@ -192,7 +197,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
 |------|------|------|-----------|------|
 | `id` | `bigint` | NO | PK, auto increment | Payment ID |
-| `mission_id` | `bigint` | NO | UNIQUE `uk_mission_id` | 연관 Mission ID |
+| `offer_id` | `bigint` | NO | UNIQUE `uk_offer_id` | 정산 대상 Offer ID |
 | `orderer_id` | `varchar(36)` | NO | INDEX `idx_payments_orderer_id` | 요청자 사용자 ID 스냅샷 |
 | `runner_id` | `varchar(36)` | NO | INDEX `idx_payments_runner_id` | 수행자 사용자 ID 스냅샷 |
 | `run_fee` | `decimal(10,2)` | NO |  | 수행 수수료 |

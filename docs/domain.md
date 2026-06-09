@@ -5,40 +5,82 @@
 
 ## ProposalStatus
 
+Proposal은 오더 관점의 모집 및 수행 상태를 추적한다.
+
 | 값 | 설명 |
 |----|------|
 | HOLDING | 입금 확인 대기 |
 | POSTED | 모집 중 |
 | OFFERED | 제안 도착 |
-| MATCHED | 매칭 완료 |
-| CANCELLED | 취소됨 |
+| MATCHED | Offer 수락으로 수행 건이 확정된 상태 |
+| DELIVERY_REPORTED | 러너가 전달 완료를 보고한 상태 |
+| RECEIVED_CONFIRMED | 오더가 수령 확인을 완료한 상태 |
+| SETTLED | 정산 완료 |
+| DISPUTED | 분쟁 접수 |
+| REFUNDED | 환불 완료 |
+| CANCELLED | 매칭 전 취소됨 |
+
+### Proposal 상태 전이
+
+| 전이 | 발생 시점 |
+|------|-----------|
+| `HOLDING -> POSTED` | 입금 또는 관리자 확인으로 모집이 공개될 때 |
+| `POSTED -> OFFERED` | 첫 Offer가 생성될 때 |
+| `OFFERED -> MATCHED` | 오더가 Offer 하나를 수락할 때 |
+| `MATCHED -> DELIVERY_REPORTED` | 러너가 선택된 Offer에서 전달 완료를 등록할 때 |
+| `DELIVERY_REPORTED -> RECEIVED_CONFIRMED` | 오더가 Proposal에서 수령 확인을 완료할 때 |
+| `RECEIVED_CONFIRMED -> SETTLED` | 정산이 완료될 때 |
+| `MATCHED/DELIVERY_REPORTED/RECEIVED_CONFIRMED -> DISPUTED` | 오더 또는 러너가 분쟁을 접수할 때 |
+| `DISPUTED -> REFUNDED` | 분쟁 처리 결과 환불이 확정될 때 |
+| `HOLDING/POSTED/OFFERED -> CANCELLED` | 오더가 매칭 전 Proposal을 취소할 때 |
 
 ## OfferStatus
+
+Offer는 러너 관점의 제안 및 수행 상태를 추적한다.
 
 | 값 | 설명 |
 |----|------|
 | WAITING | 수락 대기 |
-| ACCEPTED | 수락됨 |
-| COMPLETED | 수행 완료 |
-| REJECTED | 거절됨 |
-| CANCELLED | 취소됨 |
-
-## MissionStatus
-
-| 값 | 설명 |
-|----|------|
-| CREATED | Mission 생성 후 수행 시작 전 |
-| IN_PROGRESS | 러너 수행 중 |
-| DELIVERY_COMPLETED | 러너 전달 완료 및 인증 업로드 완료 |
-| RECEIVED_CONFIRMED | 오더 수령 확인 완료 |
-| COMPLETED | 전달 완료와 수령 확인이 모두 끝난 수행 완료 |
+| ACCEPTED | 수락되어 수행 건 기준이 된 상태 |
+| DELIVERY_COMPLETED | 러너가 전달 완료와 인증 업로드를 마친 상태 |
+| RECEIPT_CONFIRMED | 오더의 수령 확인이 반영된 상태 |
 | SETTLED | 정산 완료 |
 | DISPUTED | 분쟁 접수 |
 | REFUNDED | 환불 완료 |
+| REJECTED | 거절됨 |
+| CANCELLED | 러너가 수락 전 취소함 |
+
+### Offer 상태 전이
+
+| 전이 | 발생 시점 |
+|------|-----------|
+| `WAITING -> ACCEPTED` | 오더가 해당 Offer를 수락할 때 |
+| `ACCEPTED -> DELIVERY_COMPLETED` | 러너가 Offer에서 전달 완료를 등록할 때 |
+| `DELIVERY_COMPLETED -> RECEIPT_CONFIRMED` | 오더가 연결 Proposal에서 수령 확인을 완료할 때 |
+| `RECEIPT_CONFIRMED -> SETTLED` | 정산이 완료될 때 |
+| `ACCEPTED/DELIVERY_COMPLETED/RECEIPT_CONFIRMED -> DISPUTED` | 오더 또는 러너가 분쟁을 접수할 때 |
+| `DISPUTED -> REFUNDED` | 분쟁 처리 결과 환불이 확정될 때 |
+| `WAITING -> REJECTED` | 같은 Proposal의 다른 Offer가 수락되거나 Proposal 취소로 대기 Offer가 정리될 때 |
+| `WAITING -> CANCELLED` | 러너가 수락 전 Offer를 취소할 때 |
+
+## Proof
+
+Proof는 수행 과정에서 남기는 증빙성 기록이다.
+수행 상태의 정본은 Proposal/Offer이며, Proof는 사진 또는 사유 같은 근거를 보관한다.
+
+| ProofType | 설명 |
+|-----------|------|
+| DELIVERY | 러너 전달 완료 증빙 |
+| DISPUTE | 오더 또는 러너의 분쟁 사유 |
+
+Proof는 `proposalId`, `offerId`, `actorId`, `proofType`, `imageUrl`, `reason`, `createdAt`을 가진다.
 
 ## 정책 기준
 
 - Proposal은 모집 가능 상태에서 Offer를 받을 수 있고, Offer 수락 후 `MATCHED`가 된다.
 - Offer 수락 시 선택된 Offer는 `ACCEPTED`, 같은 Proposal의 다른 대기 Offer는 `REJECTED`가 된다.
-- Mission은 Offer 수락의 결과로 생성되며, 수행 시작, 전달 완료, 수령 확인, 정산, 분쟁/환불 흐름을 가진다.
+- 수락된 Offer ID가 매칭 이후 수행 건의 기준 식별자다.
+- Mission 도메인은 제거한다.
+- 매칭 이후 오더 관점 진행 상태는 Proposal, 러너 관점 진행 상태는 Offer에서 추적한다.
+- 배송 사진과 분쟁 사유는 Proof에 기록한다.
 - 정산 계좌와 약관 동의는 사용자 식별자에 종속된 사용자 부가 정책이다.

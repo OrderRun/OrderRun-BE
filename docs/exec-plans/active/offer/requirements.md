@@ -32,7 +32,7 @@
 
 - Offer 수정 API
 - 금액/예상 시간/메시지를 포함한 입찰 조건
-- Mission 상태 업데이트 API
+- 일반 클라이언트용 Mission 상태 업데이트 API
 - Settlement/Payment 생성
 
 ## Acceptance Criteria

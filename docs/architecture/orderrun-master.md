@@ -140,7 +140,7 @@
 2. User/Auth 최소 기능을 먼저 만든다.
 3. Proposal 생성/조회 API를 구현한다.
 4. Offer 생성/조회/수락 흐름을 구현한다.
-5. Mission 상태 전이를 구현한다.
+5. 매칭 이후 수행 상태 전이는 Proposal/Offer 역할별 상태로 구현한다.
 6. Payment 예약/확정/환불 인터페이스를 구현한다.
 7. 테스트와 OpenAPI 문서를 맞춘다.
 

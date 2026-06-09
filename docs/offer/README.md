@@ -16,7 +16,8 @@ Offer는 Proposal(요청)에 대해 Runner가 제안하는 도메인입니다.
 1. **Offer 생성**: Runner가 특정 Proposal에 제안을 제출
 2. **Offer 조회**: Proposal별 목록, 상세, 내 목록 조회
 3. **Offer 수락**: Proposal 작성자가 Offer를 수락하고 Mission 생성
-4. **Offer 취소**: Runner가 본인의 대기 Offer 취소
+4. **Offer 수행 상태 추적**: Runner 전달 완료와 분쟁 접수
+5. **Offer 취소**: Runner가 본인의 대기 Offer 취소
 
 ### 상태 전이
 ```
@@ -25,10 +26,20 @@ WAITING (생성 시 기본값)
   ├─→ REJECTED (거절됨)
   └─→ CANCELLED (러너 취소)
 ACCEPTED
-  └─→ COMPLETED (Mission 완료 연동)
+  ├─→ DELIVERY_COMPLETED (러너 전달 완료)
+  └─→ DISPUTED (분쟁 접수)
+DELIVERY_COMPLETED
+  ├─→ RECEIPT_CONFIRMED (오더 수령 확인 반영)
+  └─→ DISPUTED (분쟁 접수)
+RECEIPT_CONFIRMED
+  ├─→ SETTLED (정산 완료)
+  └─→ DISPUTED (분쟁 접수)
+DISPUTED
+  └─→ REFUNDED (환불 완료)
 ```
 
 ### 비즈니스 규칙
 - 같은 Proposal에 같은 Runner는 한 번만 Offer를 생성할 수 있음
 - Proposal 상태가 `POSTED` 또는 `OFFERED`일 때만 Offer 생성 가능
 - 첫 Offer가 생성되면 Proposal 상태가 `POSTED` → `OFFERED`로 변경
+- 매칭 이후 러너 관점 수행 상태는 Offer에서 추적

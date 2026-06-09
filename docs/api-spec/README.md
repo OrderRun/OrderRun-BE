@@ -145,7 +145,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | content | string | 요청 상세 내용 |
 | deadline | string | 수행 마감 시각. ISO-8601 Instant |
 | errandFee | number | 러너에게 지급할 심부름비 |
-| status | string | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `CANCELLED` |
+| status | string | Proposal 상태. `ProposalStatus` 참조 |
 
 ### ProposalOwnResponse
 
@@ -179,7 +179,12 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| missionId | number, null | 연결된 Mission ID. Mission이 아직 생성되지 않았으면 `null` |
+| matchedAt | string, null | Offer 수락으로 매칭된 시각 |
+| deliveryReportedAt | string, null | 러너 전달 완료가 Proposal에 반영된 시각 |
+| receivedConfirmedAt | string, null | 오더 수령 확인 시각 |
+| settledAt | string, null | 정산 완료 시각 |
+| disputedAt | string, null | 분쟁 접수 시각 |
+| refundedAt | string, null | 환불 완료 시각 |
 
 ### OfferResponse
 
@@ -189,8 +194,13 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | proposalId | number | 대상 Proposal ID |
 | runnerId | string | Offer 제출 러너 ID |
 | runnerName | string, null | Offer 제출 러너 이름 |
-| status | string | `WAITING`, `ACCEPTED`, `COMPLETED`, `REJECTED`, `CANCELLED` |
-| missionId | number, null | 연결된 Mission ID. Mission이 아직 생성되지 않았으면 `null` |
+| status | string | Offer 상태. `OfferStatus` 참조 |
+| acceptedAt | string, null | 오더가 Offer를 수락한 시각 |
+| deliveryCompletedAt | string, null | 러너 전달 완료 시각 |
+| receiptConfirmedAt | string, null | 오더 수령 확인이 Offer에 반영된 시각 |
+| settledAt | string, null | 정산 완료 시각 |
+| disputedAt | string, null | 분쟁 접수 시각 |
+| refundedAt | string, null | 환불 완료 시각 |
 | createdAt | string | Offer 생성 시각 |
 
 ### OfferAcceptResponse
@@ -199,40 +209,25 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 |------|------|------|
 | proposalId | number | 연결된 Proposal ID |
 | offerId | number | 수락된 Offer ID |
-| missionId | number | 생성된 Mission ID |
 | proposalStatus | string | 수락 후 Proposal 상태 |
 | acceptedOfferStatus | string | 수락된 Offer 상태 |
 | rejectedOfferCount | number | 자동 거절된 다른 Offer 개수 |
-| missionStatus | string | 생성된 Mission 상태 |
 | ordererId | string | 오더 사용자 ID 스냅샷 |
 | runnerId | string | 러너 사용자 ID 스냅샷 |
-| createdAt | string | Mission 생성 시각 |
+| acceptedAt | string | Offer 수락 시각 |
 
-### MissionResponse
-
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| id | number | Mission ID |
-| proposalId | number, null | 연결된 Proposal ID |
-| offerId | number, null | 수락된 Offer ID |
-| orderer | object, null | 오더 사용자 정보 스냅샷 |
-| runner | object, null | 러너 사용자 정보 스냅샷 |
-| deliveryProofImageUrl | string, null | 전달 완료 인증 이미지 URL |
-| status | string | Mission 상태 |
-| pickupAt | string, null | 러너 수행 시작 시각 |
-| deliveryCompletedAt | string, null | 러너 전달 완료 시각 |
-| receivedConfirmedAt | string, null | 오더 수령 확인 시각 |
-| settledAt | string, null | 정산 완료 시각 |
-| disputeReason | string, null | 분쟁 접수 사유 |
-| createdAt | string | Mission 생성 시각 |
-
-`orderer`, `runner` 필드 구조:
+### ProofResponse
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| id | string | 사용자 ID |
-| name | string | 사용자 이름 |
-| phone | string | 연락 가능한 전화번호 |
+| id | number | Proof ID |
+| proposalId | number | 연결된 Proposal ID |
+| offerId | number | 연결된 Offer ID |
+| actorId | string | 증빙을 남긴 사용자 ID |
+| proofType | string | `DELIVERY` 또는 `DISPUTE` |
+| imageUrl | string, null | 배송 사진 URL |
+| reason | string, null | 분쟁 사유 |
+| createdAt | string | Proof 생성 시각 |
 
 ### SettlementAccountResponse
 
@@ -297,6 +292,8 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | 요청 게시글 등록 | `POST` | `/v1/proposal` | 필요 | `201 Created` | `ProposalResponse` |
 | 요청 게시글 수정 | `PUT` | `/v1/proposal/{id}` | 필요. 작성자만 가능 | `200 OK` | `ProposalResponse` |
 | 요청 게시글 취소 | `POST` | `/v1/proposal/{id}/cancel` | 필요. 작성자만 가능 | `200 OK` | `ProposalResponse` |
+| 오더 수령 확인 | `POST` | `/v1/proposal/{id}/confirm-received` | 필요. 작성자만 가능 | `200 OK` | `ProposalDetailResponse` |
+| 오더 분쟁 접수 | `POST` | `/v1/proposal/{id}/dispute` | 필요. 작성자만 가능 | `200 OK` | `ProposalDetailResponse` |
 
 ### Offer API
 
@@ -307,16 +304,18 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | 오퍼 상세 조회 | `GET` | `/v1/offer/{offerId}` | 필요 | `200 OK` | `OfferResponse` |
 | Proposal별 오퍼 목록 조회 | `GET` | `/v1/offer?proposalId={id}` | 필요 | `200 OK` | `OfferResponse[]` |
 | 내 오퍼 목록 조회 | `GET` | `/v1/offer/own` | 필요 | `200 OK` | `PageResponse<OfferResponse>` |
+| 러너 전달 완료 | `POST` | `/v1/offer/{offerId}/complete-delivery` | 필요. Offer 제출 러너만 가능 | `200 OK` | `OfferResponse` |
+| 러너 분쟁 접수 | `POST` | `/v1/offer/{offerId}/dispute` | 필요. Offer 제출 러너만 가능 | `200 OK` | `OfferResponse` |
 | 오퍼 취소 | `DELETE` | `/v1/offer/{offerId}` | 필요. Offer 제출 러너만 가능 | `204 No Content` | 없음 |
 
-### Mission API
+### Admin Execution API
+
+Mission API는 제거되었고 관리자 정산/환불은 수락된 Offer ID 기준으로 처리한다.
 
 | 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
 |------|--------|------|------|-----------|-----------|
-| 전달 완료 | `POST` | `/v1/mission/{missionId}/complete-delivery` | 필요. 연결된 Runner만 가능 | `200 OK` | `MissionResponse` |
-| 수령 확인 | `POST` | `/v1/mission/{missionId}/confirm-received` | 필요. 연결된 Orderer만 가능 | `200 OK` | `MissionResponse` |
-| 분쟁 접수 | `POST` | `/v1/mission/{missionId}/dispute` | 필요. 연결된 Orderer 또는 Runner만 가능 | `200 OK` | `MissionResponse` |
-| 미션 상태 업데이트 | `PUT` | `/v1/mission/{missionId}` | 필요. 기존 클라이언트 호환용 | `200 OK` | `MissionResponse` |
+| Offer 정산 완료 | `POST` | `/api/v1/admin/offer/{offerId}/confirm-settlement` | 관리자 필요 | `200 OK` | `OfferResponse` |
+| Offer 환불 완료 | `POST` | `/api/v1/admin/offer/{offerId}/refund` | 관리자 필요 | `200 OK` | `OfferResponse` |
 
 ### Settlement API
 
@@ -415,6 +414,18 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 요청 본문 없음.
 
+#### `POST /v1/offer/{offerId}/complete-delivery`
+
+| 필드 | 타입 | 필수 | 제약 |
+|------|------|------|------|
+| proofImageUrl | string | X | 전달 완료 인증 이미지 URL |
+
+#### `POST /v1/offer/{offerId}/dispute`
+
+| 필드 | 타입 | 필수 | 제약 |
+|------|------|------|------|
+| disputeReason | string | O | 분쟁 사유 |
+
 #### `GET /v1/offer`
 
 | 파라미터 | 타입 | 필수 | 설명 |
@@ -430,33 +441,15 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | page | integer | X | 0 | 페이지 번호 |
 | size | integer | X | 20 | 페이지 크기 |
 
-### Mission
-
-#### `POST /v1/mission/{missionId}/complete-delivery`
-
-| 필드 | 타입 | 필수 | 제약 |
-|------|------|------|------|
-| proofImageUrl | string | X | 전달 완료 인증 이미지 URL |
-
-#### `POST /v1/mission/{missionId}/confirm-received`
+#### `POST /v1/proposal/{proposalId}/confirm-received`
 
 요청 본문 없음.
 
-#### `POST /v1/mission/{missionId}/dispute`
+#### `POST /v1/proposal/{proposalId}/dispute`
 
 | 필드 | 타입 | 필수 | 제약 |
 |------|------|------|------|
 | disputeReason | string | O | 분쟁 사유 |
-
-#### `PUT /v1/mission/{missionId}`
-
-기존 클라이언트 호환용 상태 업데이트 API다. 신규 클라이언트는 액션별 `POST` API를 사용한다.
-
-| 필드 | 타입 | 필수 | 제약 |
-|------|------|------|------|
-| action | string | O | `COMPLETE_DELIVERY`, `CONFIRM_RECEIVED`, `DISPUTE` |
-| proofImageUrl | string | X | `COMPLETE_DELIVERY` 전달 완료 인증 이미지 URL |
-| disputeReason | string | 조건부 | `DISPUTE`일 때 필수 |
 
 ### Settlement
 
@@ -479,6 +472,11 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | POSTED | 모집 중 |
 | OFFERED | 제안 도착 |
 | MATCHED | 매칭 완료 |
+| DELIVERY_REPORTED | 러너 전달 완료 보고 |
+| RECEIVED_CONFIRMED | 오더 수령 확인 완료 |
+| SETTLED | 정산 완료 |
+| DISPUTED | 분쟁 접수 |
+| REFUNDED | 환불 완료 |
 | CANCELLED | 취소됨 |
 
 ### OfferStatus
@@ -487,22 +485,22 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 |----|------|
 | WAITING | 수락 대기 |
 | ACCEPTED | 수락됨 |
-| COMPLETED | 수행 완료 |
-| REJECTED | 거절됨 |
-| CANCELLED | 취소됨 |
-
-### MissionStatus
-
-| 값 | 설명 |
-|----|------|
-| CREATED | Mission 생성 후 수행 시작 전 |
-| IN_PROGRESS | 러너 수행 중 |
-| DELIVERY_COMPLETED | 러너 전달 완료 및 인증 업로드 완료 |
-| RECEIVED_CONFIRMED | 오더 수령 확인 완료 |
-| COMPLETED | 전달 완료와 수령 확인이 모두 끝난 수행 완료 |
+| DELIVERY_COMPLETED | 러너 전달 완료 |
+| RECEIPT_CONFIRMED | 오더 수령 확인 반영 |
 | SETTLED | 정산 완료 |
 | DISPUTED | 분쟁 접수 |
 | REFUNDED | 환불 완료 |
+| REJECTED | 거절됨 |
+| CANCELLED | 취소됨 |
+
+### ProofType
+
+| 값 | 설명 |
+|----|------|
+| DELIVERY | 배송 사진 등 전달 완료 증빙 |
+| DISPUTE | 분쟁 사유 등 분쟁 증빙 |
+
+Mission 도메인과 Mission 상태 enum은 제거되었다.
 
 ## 에러 코드
 
@@ -526,7 +524,6 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | 404 | `PHONE_VERIFICATION_NOT_FOUND` | 전화번호 인증 요청 없음 |
 | 404 | `PROPOSAL_NOT_FOUND` | Proposal을 찾을 수 없음 |
 | 404 | `OFFER_NOT_FOUND` | Offer를 찾을 수 없음 |
-| 404 | `MISSION_NOT_FOUND` | Mission을 찾을 수 없음 |
 | 409 | `PHONE_ALREADY_EXISTS` | 이미 사용 중인 전화번호 |
 | 409 | `PHONE_VERIFICATION_ALREADY_SENT` | 만료되지 않은 인증 코드가 이미 있음 |
 | 409 | `DUPLICATE_OFFER` | 동일 Proposal에 중복 Offer 제출 |
@@ -534,10 +531,10 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | 409 | `PROPOSAL_NOT_MATCHABLE` | 매칭할 수 없는 Proposal 상태 |
 | 409 | `PROPOSAL_NOT_EDITABLE` | 수정할 수 없는 Proposal 상태 |
 | 409 | `PROPOSAL_NOT_CANCELLABLE` | 취소할 수 없는 Proposal 상태 |
+| 409 | `PROPOSAL_NOT_UPDATABLE` | 변경할 수 없는 Proposal 상태 |
 | 409 | `OFFER_NOT_ACCEPTABLE` | 수락할 수 없는 Offer 상태 |
 | 409 | `OFFER_NOT_CANCELLABLE` | 취소할 수 없는 Offer 상태 |
-| 409 | `MISSION_ALREADY_EXISTS` | 이미 Mission이 생성됨 |
-| 409 | `MISSION_NOT_UPDATABLE` | 변경할 수 없는 Mission 상태 |
+| 409 | `OFFER_NOT_UPDATABLE` | 변경할 수 없는 Offer 상태 |
 | 500 | `INTERNAL_SERVER_ERROR` | 알 수 없는 서버 오류 |
 
 ## 문서 정본 규칙

@@ -1,20 +1,18 @@
-# Mission API Specification
+# Mission API Removal Note
 
-Mission API의 외부 계약 정본은 [`../../api-spec/README.md`](../../api-spec/README.md)의 `Mission API` 섹션이다.
+Mission API는 제거되었다.
 
-이 문서는 과거 도메인별 상세 명세 위치를 유지하기 위한 참조 문서다. 새 요청/응답 필드, 상태 코드, 페이징 규칙은 통합 API 명세를 우선한다.
+현재 수행 흐름은 다음 API가 담당한다.
 
-## 포함 API
+| 기능 | API |
+|------|-----|
+| Offer 수락 | `POST /v1/offer/{offerId}/accept` |
+| 러너 전달 완료 | `POST /v1/offer/{offerId}/complete-delivery` |
+| 러너 분쟁 접수 | `POST /v1/offer/{offerId}/dispute` |
+| 오더 수령 확인 | `POST /v1/proposal/{proposalId}/confirm-received` |
+| 오더 분쟁 접수 | `POST /v1/proposal/{proposalId}/dispute` |
+| 관리자 정산 완료 | `POST /api/v1/admin/offer/{offerId}/confirm-settlement` |
+| 관리자 환불 완료 | `POST /api/v1/admin/offer/{offerId}/refund` |
 
-- `POST /v1/mission/{missionId}/complete-delivery`
-- `POST /v1/mission/{missionId}/confirm-received`
-- `POST /v1/mission/{missionId}/dispute`
-- `PUT /v1/mission/{missionId}`
-- `POST /v1/offer/{offerId}/accept`
-- `GET /v1/proposal/{proposalId}`의 `missionId` 응답 필드
-- `GET /v1/offer/{offerId}`의 `missionId` 응답 필드
-
-## 참고
-
-- 상태 정책: [`../../domain.md`](../../domain.md)
-- 구현 갭: [`../../api-spec/implementation-gaps.md`](../../api-spec/implementation-gaps.md)
+상태 정본은 Proposal/Offer이며, 배송 사진과 분쟁 사유는 Proof에 기록한다.
+통합 명세는 [`../../api-spec/README.md`](../../api-spec/README.md), 도메인 기준은 [`../../domain.md`](../../domain.md)를 따른다.
