@@ -26,6 +26,7 @@
 - [`docs/PLANS.md`](./docs/PLANS.md): 실행 계획 운영 방식
 - [`docs/PRODUCT_SENSE.md`](./docs/PRODUCT_SENSE.md): 제품 우선순위 판단 기준
 - [`docs/QUALITY_SCORE.md`](./docs/QUALITY_SCORE.md): 품질 평가 기준
+- [`docs/references/testing-guidelines.md`](./docs/references/testing-guidelines.md): 테스트 작성 기준
 - [`docs/RELIABILITY.md`](./docs/RELIABILITY.md): 신뢰성 기준
 - [`docs/SECURITY.md`](./docs/SECURITY.md): 보안 기준
 

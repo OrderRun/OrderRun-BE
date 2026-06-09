@@ -22,3 +22,8 @@
 - `1`: 리스크가 크거나, 불명확하거나, 검증이 약함
 
 어느 한 항목이라도 `1`이면 완료로 간주하지 않는다.
+
+## 테스트 기준
+
+테스트 작성 방식은 [`docs/references/testing-guidelines.md`](./references/testing-guidelines.md)를 따른다.
+API 기능은 통합 테스트를 기본으로 검증하고, 순수 로직과 외부 연동 포맷은 단위 테스트로 보강한다.
