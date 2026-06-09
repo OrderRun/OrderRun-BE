@@ -33,7 +33,6 @@
 - [`docs/api-spec/README.md`](./docs/api-spec/README.md): 외부 API 요청/응답 계약 정본
 - [`docs/domain.md`](./docs/domain.md): 도메인 상태와 정책 정본
 - [`docs/domains/README.md`](./docs/domains/README.md): 도메인별 개념과 테스트 보장 문서
-- [`docs/architecture/orderrun-api-contract.md`](./docs/architecture/orderrun-api-contract.md): API 계약 레거시 진입점
 
 ## 문서 하네스 구조
 

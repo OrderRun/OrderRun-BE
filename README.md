@@ -32,10 +32,6 @@
 - [Generated DB Schema](./docs/generated/db-schema.md)
 - [로컬 개발 환경 세팅](./docs/setup/local-development.md)
 
-## 레거시 진입점
-
-- [API 계약 레거시 진입점](./docs/architecture/orderrun-api-contract.md)
-
 ## 기본 전제
 
 - Language: Python

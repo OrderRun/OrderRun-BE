@@ -11,7 +11,6 @@
 - [`testing-conventions.md`](./testing-conventions.md): pytest 통합 테스트 작성 규칙 (이름, GWT 구조, 중복 방지)
 - [`../api-spec/README.md`](../api-spec/README.md): 외부 API 요청/응답 계약 정본
 - [`../domain.md`](../domain.md): 도메인 상태와 정책 정본
-- [`../architecture/orderrun-api-contract.md`](../architecture/orderrun-api-contract.md): API 계약 레거시 진입점
 
 ## 다음 후보 문서
 

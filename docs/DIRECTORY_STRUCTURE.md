@@ -198,23 +198,6 @@ docs/references/
 - 프로젝트 고유 설계 결정 (→ design-docs/)
 - 실행 계획 (→ exec-plans/)
 
-### 아키텍처 (architecture/)
-
-```
-docs/architecture/
-└── orderrun-api-contract.md     # API 계약 레거시 진입점
-```
-
-**현재 상태:**
-- 레거시 진입점만 유지
-- 현재 기술 결정은 `design-docs/`, 도메인 해설은 `domains/`, 제품 동작은 `product-specs/`를 우선
-
-**마이그레이션 계획:**
-1. 기술 결정 → `design-docs/`
-2. 제품 동작 → `product-specs/`
-3. 실행 계획 → `exec-plans/`
-4. 중복 문서는 삭제
-
 ### API 명세 (api-spec/)
 
 ```
@@ -432,7 +415,7 @@ docs/design-docs/core-beliefs.md
 
 ### 분기별 점검
 
-- [ ] `architecture/` 문서를 분해할 수 있는가?
+- [ ] 레거시 설계 문서를 `design-docs/`, `domains/`, `product-specs/` 중 알맞은 위치로 정리할 수 있는가?
 - [ ] 중복된 설계 문서를 통합할 수 있는가?
 - [ ] `references/`의 외부 링크가 유효한가?
 - [ ] 디렉토리 구조 개선 기회가 있는가?

@@ -106,7 +106,6 @@ README.md (프로젝트 개요)
 | `docs/generated/` | 코드/모델 파생 산출물 | 파생 |
 | `docs/references/` | 외부 도구, 플랫폼 메모 | 참고 |
 | `docs/study/` | 학습, 실험, 비정본 메모 | 참고 |
-| `docs/architecture/` | 레거시 또는 전환기 아키텍처 문서 | 정리 대상 |
 
 ## 작업 흐름 프로세스
 
