@@ -12,8 +12,11 @@ Proposal API의 외부 계약 정본은 [`../../api-spec/README.md`](../../api-s
 - `POST /v1/proposal`
 - `PUT /v1/proposal/{id}`
 - `POST /v1/proposal/{id}/cancel`
+- `POST /v1/proposal/{id}/confirm-received`
+- `POST /v1/proposal/{id}/dispute`
 
 ## 참고
 
 - 상태 정책: [`../../domain.md`](../../domain.md)
+- 도메인 테스트 보장: [`../../domains/proposal/test-scenarios.md`](../../domains/proposal/test-scenarios.md)
 - 구현 갭: [`../../api-spec/implementation-gaps.md`](../../api-spec/implementation-gaps.md)

@@ -11,13 +11,13 @@
 
 | 테이블 | 담당 도메인 | ORM 매핑 | 세부 문서 | 설명 |
 |--------|-------------|----------|-----------|------|
-| `users` | user/auth | O | `docs/exec-plans/active/user-auth/model.md` | 사용자 계정 |
-| `auth_phone_verifications` | auth | O | `docs/exec-plans/active/user-auth/model.md` | 회원가입/로그인 전화번호 인증 |
+| `users` | user/auth | O | `docs/exec-plans/completed/user-auth/model.md` | 사용자 계정 |
+| `auth_phone_verifications` | auth | O | `docs/exec-plans/completed/user-auth/model.md` | 회원가입/로그인 전화번호 인증 |
 | `phone_verifications` | user legacy | X | 이 문서 | 구 전화번호 인증 테이블. 현재 코드 미사용 |
-| `user_fcm_tokens` | user | O | `docs/exec-plans/active/user-auth/model.md` | 사용자별 FCM 토큰 |
-| `terms_agreements` | terms | O | `docs/exec-plans/active/terms-agreement/model.md` | 사용자별 필수 약관 동의 |
-| `proposals` | bidding/proposal | O | `docs/exec-plans/active/proposal/model.md` | 심부름 모집 공고 |
-| `offers` | bidding/offer | O | `docs/exec-plans/active/offer/model.md` | 러너 지원서 |
+| `user_fcm_tokens` | user | O | `docs/exec-plans/completed/user-auth/model.md` | 사용자별 FCM 토큰 |
+| `terms_agreements` | terms | O | `docs/exec-plans/completed/terms-agreement/model.md` | 사용자별 필수 약관 동의 |
+| `proposals` | bidding/proposal | O | `docs/exec-plans/completed/proposal/model.md` | 심부름 모집 공고 |
+| `offers` | bidding/offer | O | `docs/exec-plans/completed/offer/model.md` | 러너 지원서 |
 | `proofs` | execution/proof | O | `docs/domain.md` | 배송 사진/분쟁 사유 증빙 |
 | `payments` | settlement | 목표 O / 현재 미구현 | 이 문서 | 결제/정산 처리 |
 | `settlement_accounts` | settlement | O | 이 문서 | 러너 정산 계좌 |

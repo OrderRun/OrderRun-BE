@@ -7,14 +7,14 @@
 
 ## 시스템 개요
 
-`OrderRun`은 요청 등록, 제안 경쟁, 미션 수행, 결제 정산으로 이어지는 매칭 플랫폼 백엔드다.
+`OrderRun`은 요청 등록, 제안 경쟁, 수락된 Offer 기반 수행, 결제 정산으로 이어지는 매칭 플랫폼 백엔드다.
 
 핵심 컨텍스트:
 
 - `User`: 사용자 식별, 프로필, 역할, 약관 동의 상태
 - `Proposal`: 요청 생성과 공개
 - `Offer`: 수행자의 제안 등록과 경쟁
-- `Mission`: 수락된 작업의 수행 상태
+- `Proof`: 수행 완료 증빙과 분쟁 사유 기록
 - `Payment`: 결제 승인, 확정, 환불, 정산 기록
 
 현재 기술 방향:
@@ -34,6 +34,7 @@
 - [`docs/architecture/orderrun-domain-model.md`](./docs/architecture/orderrun-domain-model.md)
 - [`docs/api-spec/README.md`](./docs/api-spec/README.md): 외부 API 요청/응답 계약 정본
 - [`docs/domain.md`](./docs/domain.md): 도메인 상태와 정책 정본
+- [`docs/domains/README.md`](./docs/domains/README.md): 도메인별 개념과 테스트 보장 문서
 - [`docs/architecture/orderrun-api-contract.md`](./docs/architecture/orderrun-api-contract.md): API 계약 레거시 진입점
 - [`docs/architecture/orderrun-fastapi-transition.md`](./docs/architecture/orderrun-fastapi-transition.md)
 
@@ -51,10 +52,11 @@
 - [`docs/product-specs/index.md`](./docs/product-specs/index.md): 사용자 관점 요구사항과 행동 정의
 - [`docs/api-spec/README.md`](./docs/api-spec/README.md): 외부 API 통합 명세
 - [`docs/domain.md`](./docs/domain.md): 도메인 상태와 정책 기준
+- [`docs/domains/README.md`](./docs/domains/README.md): 도메인별 개념과 테스트 보장 범위
 - [`docs/exec-plans/active/README.md`](./docs/exec-plans/active/README.md): 진행 중 실행 계획
 - [`docs/exec-plans/completed/README.md`](./docs/exec-plans/completed/README.md): 완료된 실행 계획 보관
 - [`docs/generated/db-schema.md`](./docs/generated/db-schema.md): 도메인 문서 기반 파생 스키마 스냅샷
-- [`docs/generated/test-inventory.md`](./docs/generated/test-inventory.md): 현재 pytest 테스트의 도메인별 파생 인벤토리
+- [`docs/generated/test-inventory.md`](./docs/generated/test-inventory.md): 현재 pytest 테스트 파일/함수 파생 인벤토리
 - [`docs/references/`](./docs/references/): 외부 도구와 플랫폼 참고 메모
 
 ## 문서 책임 규칙
@@ -63,6 +65,7 @@
 - 횡단 관심사나 장기 구조 결정은 `docs/design-docs/`에 남긴다.
 - 실행 순서, 검증, 후속 작업은 `docs/exec-plans/`에서 관리한다.
 - 구현이나 모델에서 파생된 사실은 `docs/generated/`에 반영한다.
+- 도메인별 개념과 테스트가 보장하는 시나리오는 `docs/domains/`에 기록한다.
 - 영구 가드레일은 해당 `docs/*.md` 상위 문서에 기록한다.
 
 ## 단기 우선순위

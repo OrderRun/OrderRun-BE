@@ -536,4 +536,4 @@ Mission 도메인과 Mission 상태 enum은 제거되었다.
 
 - 이 파일은 전체 API 요청/응답 스펙의 통합 명세로 유지한다.
 - 상세 동작, 예시, 도메인별 추가 설명은 `docs/api-spec/` 하위 문서를 참고한다.
-- 상태 전이와 정책 해석은 [`../domain.md`](../domain.md) 또는 관련 도메인 문서를 우선한다.
+- 상태 전이와 정책 해석은 [`../domain.md`](../domain.md)를 우선하고, 도메인별 해설과 테스트 보장 범위는 [`../domains/README.md`](../domains/README.md)를 참고한다.

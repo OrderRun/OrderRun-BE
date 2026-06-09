@@ -1,6 +1,7 @@
 # Offer API
 
-`Offer` 도메인의 엔티티 정의, API 스펙, 통합 테스트 기준 문서를 모아둔 디렉터리다.
+`Offer` 도메인의 과거 상세 문서 위치를 유지하는 디렉터리다.
+현재 도메인 개념과 테스트 보장 범위는 [`../domains/offer/`](../domains/offer/)를 우선한다.
 
 ## 문서 목록
 
@@ -15,7 +16,7 @@ Offer는 Proposal(요청)에 대해 Runner가 제안하는 도메인입니다.
 ### 주요 기능
 1. **Offer 생성**: Runner가 특정 Proposal에 제안을 제출
 2. **Offer 조회**: Proposal별 목록, 상세, 내 목록 조회
-3. **Offer 수락**: Proposal 작성자가 Offer를 수락하고 Mission 생성
+3. **Offer 수락**: Proposal 작성자가 Offer를 수락하고 수락된 Offer를 수행 건 기준으로 확정
 4. **Offer 수행 상태 추적**: Runner 전달 완료와 분쟁 접수
 5. **Offer 취소**: Runner가 본인의 대기 Offer 취소
 
@@ -42,3 +43,4 @@ DISPUTED
 - Proposal 상태가 `POSTED` 또는 `OFFERED`일 때만 Offer 생성 가능
 - 첫 Offer가 생성되면 Proposal 상태가 `POSTED` → `OFFERED`로 변경
 - 매칭 이후 러너 관점 수행 상태는 Offer에서 추적
+- 완료 증빙과 분쟁 사유는 Proof에 기록

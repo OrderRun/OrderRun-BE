@@ -3,7 +3,8 @@
 ## 목적
 
 이 문서는 현재 코드베이스에 존재하는 pytest 테스트의 파생 스냅샷이다.
-테스트 추가, 삭제, 이동 시 현재 테스트 자산을 빠르게 파악할 수 있도록 도메인별로 묶어 관리한다.
+테스트 추가, 삭제, 이동 시 현재 테스트 자산을 빠르게 파악할 수 있도록 파일별 색인으로 관리한다.
+도메인별 상세 보장 시나리오는 [`../domains/README.md`](../domains/README.md)를 기준으로 읽는다.
 
 기준 시점은 현재 워킹트리이며, 테스트 수는 `tests/test_*.py` 안의 `test_*` 함수 기준이다.
 
@@ -13,7 +14,7 @@
 - pytest 설정: `pyproject.toml`의 `[tool.pytest.ini_options]`
 - 테스트 파일 패턴: `test_*.py`
 - 테스트 함수 패턴: `test_*`
-- 현재 테스트 함수 수: 70개
+- 현재 테스트 함수 수: 72개
 - 현재 테스트 파일 수: 13개
 - 지원 파일: `tests/conftest.py`, `tests/factories.py`, `tests/__init__.py`
 
@@ -24,23 +25,23 @@ rg -n "^(def test_|async def test_)" tests | wc -l
 rg --files tests | sort
 ```
 
-## 도메인별 테스트 현황
+## 테스트 파일 현황
 
-| 도메인 | 파일 | 테스트 수 | 주요 검증 범위 |
+| 도메인 | 파일 | 테스트 수 | 상세 보장 문서 |
 |--------|------|-----------|----------------|
-| User/Auth | `tests/test_user_auth_integration.py` | 10 | 회원가입, 로그인, 토큰 갱신/로그아웃, 우회 인증 코드 허용/거부, 사용자 상세, 알림 설정, FCM 토큰, 인증 상태 규칙, SMS 실패 시 인증 저장, 문서 모델 정합성 |
-| User/Auth | `tests/test_timestamps.py` | 1 | 전화번호 인증 모델의 ORM timestamp 관리 |
-| Terms Agreement | `tests/test_terms_agreement_integration.py` | 4 | 약관 동의 생성/수정, validation error, 인증 error, 문서 모델 정합성 |
-| Proposal | `tests/test_proposal_integration.py` | 9 | 공개/내 요청 목록, 상태 필터, 상세 조회, matched timestamp, 생성 계약 검증, validation error, 수정/취소 권한과 상태 규칙, 모델 계약 |
-| Offer/Delivery Flow | `tests/test_offer_integration.py` | 13 | offer 생성, proposal offered 전이, 목록/상세/내 목록, accept 상태 전이와 timestamp, active offer 중복 방지, cancel 규칙, 배송 완료 전이, validation/domain error |
-| Admin/Payment/Settlement Operations | `tests/test_admin_integration.py` | 5 | payment confirm, holding proposal 검증, offer settlement confirm, completed 상태 검증, disputed offer refund |
-| Settlement Account | `tests/test_settlement_integration.py` | 3 | 정산 계좌 미등록 조회, 저장/수정, validation과 인증 |
-| Notification/SMS | `tests/test_notification_integration.py` | 3 | root 응답 OpenAPI 예시 정합성, 알림 목록/통계/상세/read 처리, 알림 발송과 실패 케이스 |
-| Notification/SMS | `tests/test_sms_service.py` | 3 | AWS SNS 전화번호 포맷, SMS attribute 포함 발송, provider error 전파 |
-| API Contract/OpenAPI | `tests/test_openapi.py` | 11 | 한국어 API metadata, 응답 예시 shape, 표준 error wrapper, operation별 성공/error 예시, 대표 계약 예시, request/response body 계약, Mission API 제거 문서화, 반복 status query, DTO 상속 금지 |
-| API Contract/OpenAPI | `tests/test_errors.py` | 4 | error catalog 필수 필드, 표준 HTTP exception detail, detail/header 보존, validation catalog message |
-| Health | `tests/test_health_integration.py` | 1 | health endpoint의 v1 API 응답 래퍼 |
-| Config | `tests/test_config.py` | 2 | OAuth/email 미설정 settings 로드, AWS SNS settings 로드 |
+| User/Auth | `tests/test_user_auth_integration.py` | 10 | [`../domains/user-auth/test-scenarios.md`](../domains/user-auth/test-scenarios.md) |
+| User/Auth | `tests/test_timestamps.py` | 1 | [`../domains/user-auth/test-scenarios.md`](../domains/user-auth/test-scenarios.md) |
+| Terms Agreement | `tests/test_terms_agreement_integration.py` | 4 | [`../domains/terms-agreement/test-scenarios.md`](../domains/terms-agreement/test-scenarios.md) |
+| Proposal | `tests/test_proposal_integration.py` | 12 | [`../domains/proposal/test-scenarios.md`](../domains/proposal/test-scenarios.md) |
+| Offer/Delivery Flow | `tests/test_offer_integration.py` | 15 | [`../domains/offer/test-scenarios.md`](../domains/offer/test-scenarios.md) |
+| Admin/Payment/Settlement Operations | `tests/test_admin_integration.py` | 3 | [`../domains/admin-payment-settlement/test-scenarios.md`](../domains/admin-payment-settlement/test-scenarios.md) |
+| Settlement Account | `tests/test_settlement_integration.py` | 3 | [`../domains/settlement/test-scenarios.md`](../domains/settlement/test-scenarios.md) |
+| Notification/SMS | `tests/test_notification_integration.py` | 3 | [`../domains/notification/test-scenarios.md`](../domains/notification/test-scenarios.md) |
+| Notification/SMS | `tests/test_sms_service.py` | 3 | [`../domains/notification/test-scenarios.md`](../domains/notification/test-scenarios.md) |
+| API Contract/OpenAPI | `tests/test_openapi.py` | 11 | [`../domains/api-contract/test-scenarios.md`](../domains/api-contract/test-scenarios.md) |
+| API Contract/OpenAPI | `tests/test_errors.py` | 4 | [`../domains/api-contract/test-scenarios.md`](../domains/api-contract/test-scenarios.md) |
+| Health/Config | `tests/test_health_integration.py` | 1 | [`../domains/health-config/test-scenarios.md`](../domains/health-config/test-scenarios.md) |
+| Health/Config | `tests/test_config.py` | 2 | [`../domains/health-config/test-scenarios.md`](../domains/health-config/test-scenarios.md) |
 
 ## 공통 테스트 기반
 
@@ -55,5 +56,4 @@ rg --files tests | sort
 
 - `tests/test_mission_integration.py`는 현재 워킹트리에서 삭제된 상태라 인벤토리에서 제외한다.
 - Mission API 제거 회귀는 `tests/test_openapi.py`의 `test_mission_collection_get_is_not_documented`에서 확인한다.
-- 로컬 시스템 Python에는 현재 pytest가 설치되어 있지 않아 `python3 -m pytest --collect-only -q`는 실행되지 않았다. 실제 pytest 수집과 실행은 프로젝트 가상환경에 dev 의존성을 설치한 뒤 수행한다.
-
+- 프로젝트 가상환경의 `python -m pytest --collect-only -q`는 현재 테스트용 env 또는 `apscheduler` 의존성 누락 시 import 단계에서 실패한다. 실제 pytest 수집과 실행은 테스트용 env와 dev 의존성을 채운 뒤 수행한다.

@@ -28,7 +28,7 @@
 
 ```
 [비즈니스 트랜잭션]
-  비즈니스 서비스 (OfferService, MissionService)
+  비즈니스 서비스 (OfferService, ProposalService)
     → EventBus.publish(DomainEvent, db)  ← 같은 DB 세션
       → NotificationEventListener
           → Notification INSERT (status=PENDING)

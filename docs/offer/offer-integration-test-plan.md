@@ -26,8 +26,8 @@
 
 - 엔드포인트: `GET /v1/offer/{offerId}`
 - 검증:
-  - Offer 제출자 본인과 Proposal 작성자는 200 OK
-  - 그 외 사용자는 403 `FORBIDDEN`
+  - 인증된 사용자는 200 OK
+  - 수락 이후 상태 timestamp를 포함
 
 ### 내 목록 조회 성공
 
@@ -42,10 +42,25 @@
 - 엔드포인트: `POST /v1/offer/{offerId}/accept`
 - 요청: 본문 없음
 - 검증:
-  - Mission `CREATED` 생성
   - 선택 Offer `ACCEPTED`
   - 같은 Proposal의 다른 `WAITING` Offer `REJECTED`
   - Proposal `MATCHED`
+  - 수락 timestamp 기록
+
+### 러너 완료 성공
+
+- 엔드포인트: `POST /v1/offer/{offerId}/complete-delivery`
+- 검증:
+  - 러너가 완료하면 Offer `RUNNER_COMPLETED`
+  - 오더러 완료가 이미 있으면 Proposal과 Offer 모두 `ALL_COMPLETED`
+  - 완료 timestamp 기록
+
+### 러너 분쟁 성공
+
+- 엔드포인트: `POST /v1/offer/{offerId}/dispute`
+- 검증:
+  - Offer와 Proposal 모두 `DISPUTED`
+  - 분쟁 timestamp 기록
 
 ### 취소 성공
 
@@ -65,5 +80,6 @@
 - 상세/수락/취소 권한 없음: 403 `FORBIDDEN`
 - 수락 불가능 Offer 상태: 409 `OFFER_NOT_ACCEPTABLE`
 - 매칭 불가능 Proposal 상태: 409 `PROPOSAL_NOT_MATCHABLE`
-- 기존 Mission 존재: 409 `MISSION_ALREADY_EXISTS`
+- 기존 활성 수락 Offer 존재: 409 `ACTIVE_OFFER_EXISTS`
 - 취소 불가능 Offer 상태: 409 `OFFER_NOT_CANCELLABLE`
+- 완료/분쟁 불가능 상태 또는 권한 없음은 정본 error 계약을 따른다.

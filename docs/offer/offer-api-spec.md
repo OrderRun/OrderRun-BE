@@ -11,9 +11,12 @@ Offer API의 외부 계약 정본은 [`../api-spec/README.md`](../api-spec/READM
 - `GET /v1/offer/{offerId}`
 - `GET /v1/offer?proposalId={id}`
 - `GET /v1/offer/own`
+- `POST /v1/offer/{offerId}/complete-delivery`
+- `POST /v1/offer/{offerId}/dispute`
 - `DELETE /v1/offer/{offerId}`
 
 ## 참고
 
 - 상태 정책: [`../domain.md`](../domain.md)
+- 도메인 테스트 보장: [`../domains/offer/test-scenarios.md`](../domains/offer/test-scenarios.md)
 - 구현 갭: [`../api-spec/implementation-gaps.md`](../api-spec/implementation-gaps.md)

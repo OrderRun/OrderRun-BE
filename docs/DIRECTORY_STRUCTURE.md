@@ -129,6 +129,29 @@ docs/exec-plans/
 3. 완료 후 `completed/`로 이동
 4. 남은 부채는 `tech-debt-tracker.md`에 기록
 
+### 도메인 문서 (domains/)
+
+```
+docs/domains/
+├── README.md                    # 도메인별 문서 카탈로그
+├── proposal/
+│   ├── README.md                # 도메인 개념과 책임
+│   └── test-scenarios.md        # 테스트가 보장하는 시나리오
+├── offer/
+│   ├── README.md
+│   └── test-scenarios.md
+└── ...
+```
+
+**용도:**
+- 도메인별 개념, 책임, 주요 정책 해석
+- 각 도메인 테스트가 보장하는 정상/실패/계약 시나리오
+- `api-spec/README.md`, `domain.md`, `generated/test-inventory.md` 사이의 사람이 읽는 연결 문서
+
+**금지:**
+- API 필드와 상태 enum의 정본화 (→ `api-spec/README.md`, `domain.md`)
+- 자동 생성 가능한 테스트 목록의 중복 수기 관리 (→ `generated/test-inventory.md`)
+
 ### 생성 문서 (generated/)
 
 ```
@@ -153,6 +176,7 @@ docs/generated/
 - 수동 편집 금지
 - 생성 스크립트로만 갱신
 - 소스는 코드, 문서는 결과물
+- 테스트의 상세 보장 시나리오는 `domains/`에 두고, `generated/test-inventory.md`는 파일/함수 색인으로 유지
 
 ### 참고 자료 (references/)
 
@@ -335,7 +359,7 @@ ARCHITECTURE.md
     ↓
 docs/design-docs/index.md
     ↓
-docs/design-docs/api-versioning.md
+docs/design-docs/core-beliefs.md
 ```
 
 **아래에서 위로 (제한적):**
@@ -356,7 +380,7 @@ docs/design-docs/api-versioning.md
 
 **앵커 링크 사용:**
 ```markdown
-[API Versioning](./design-docs/api-versioning.md#backward-compatibility)
+[Core Beliefs](./design-docs/core-beliefs.md)
 ```
 
 ## 파일명 규칙

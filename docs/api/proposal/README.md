@@ -24,4 +24,5 @@
 
 - [통합 API 명세](../../api-spec/README.md)
 - [도메인 정책 정본](../../domain.md)
+- [Proposal 도메인 문서](../../domains/proposal/README.md)
 - [구현 갭 점검](../../api-spec/implementation-gaps.md)
