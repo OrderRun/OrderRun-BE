@@ -1,7 +1,7 @@
 """Create notifications table.
 
 Revision ID: 0005_create_notifications_table
-Revises: 0004_notification_retry_and_types
+Revises: 0004_notification_retry_types
 Create Date: 2026-06-02
 """
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "0005_create_notifications_table"
-down_revision = "0004_notification_retry_and_types"
+down_revision = "0004_notification_retry_types"
 branch_labels = None
 depends_on = None
 
