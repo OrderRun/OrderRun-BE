@@ -54,6 +54,7 @@
 - [`docs/exec-plans/active/README.md`](./docs/exec-plans/active/README.md): 진행 중 실행 계획
 - [`docs/exec-plans/completed/README.md`](./docs/exec-plans/completed/README.md): 완료된 실행 계획 보관
 - [`docs/generated/db-schema.md`](./docs/generated/db-schema.md): 도메인 문서 기반 파생 스키마 스냅샷
+- [`docs/generated/test-inventory.md`](./docs/generated/test-inventory.md): 현재 pytest 테스트의 도메인별 파생 인벤토리
 - [`docs/references/`](./docs/references/): 외부 도구와 플랫폼 참고 메모
 
 ## 문서 책임 규칙
