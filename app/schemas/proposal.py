@@ -58,7 +58,13 @@ class ProposalDetailResponse(BaseModel):
     deadline: datetime
     errand_fee: int = Field(..., serialization_alias="errandFee")
     status: ProposalStatus
-    mission_id: int | None = Field(None, serialization_alias="missionId")
+    matched_at: datetime | None = Field(None, serialization_alias="matchedAt")
+    delivery_reported_at: datetime | None = Field(None, serialization_alias="deliveryReportedAt")
+    received_confirmed_at: datetime | None = Field(None, serialization_alias="receivedConfirmedAt")
+    settled_at: datetime | None = Field(None, serialization_alias="settledAt")
+    disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
+    refunded_at: datetime | None = Field(None, serialization_alias="refundedAt")
+    offers: list[ProposalOwnOfferResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

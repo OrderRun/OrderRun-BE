@@ -6,7 +6,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.mission import MissionStatus
 from app.models.offer import OfferStatus
 from app.models.proposal import ProposalStatus
 
@@ -27,7 +26,12 @@ class OfferResponse(BaseModel):
     runner_id: str = Field(..., serialization_alias="runnerId")
     runner_name: str = Field(..., serialization_alias="runnerName")
     status: OfferStatus
-    mission_id: int | None = Field(None, serialization_alias="missionId")
+    accepted_at: datetime | None = Field(None, serialization_alias="acceptedAt")
+    delivery_completed_at: datetime | None = Field(None, serialization_alias="deliveryCompletedAt")
+    receipt_confirmed_at: datetime | None = Field(None, serialization_alias="receiptConfirmedAt")
+    settled_at: datetime | None = Field(None, serialization_alias="settledAt")
+    disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
+    refunded_at: datetime | None = Field(None, serialization_alias="refundedAt")
     created_at: datetime = Field(..., serialization_alias="createdAt")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
@@ -38,13 +42,11 @@ class OfferAcceptResponse(BaseModel):
 
     proposal_id: int = Field(..., serialization_alias="proposalId")
     offer_id: int = Field(..., serialization_alias="offerId")
-    mission_id: int = Field(..., serialization_alias="missionId")
     proposal_status: ProposalStatus = Field(..., serialization_alias="proposalStatus")
     accepted_offer_status: OfferStatus = Field(..., serialization_alias="acceptedOfferStatus")
     rejected_offer_count: int = Field(..., serialization_alias="rejectedOfferCount")
-    mission_status: MissionStatus = Field(..., serialization_alias="missionStatus")
     orderer_id: str = Field(..., serialization_alias="ordererId")
     runner_id: str = Field(..., serialization_alias="runnerId")
-    created_at: datetime = Field(..., serialization_alias="createdAt")
+    accepted_at: datetime = Field(..., serialization_alias="acceptedAt")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)

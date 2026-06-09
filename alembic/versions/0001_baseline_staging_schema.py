@@ -12,7 +12,7 @@ from alembic import op
 from app.core.database import Base
 
 # Import models so Base.metadata includes every baseline table.
-from app.models import mission, offer, proposal, settlement, user  # noqa: F401
+from app.models import offer, proof, proposal, settlement, user  # noqa: F401
 
 revision = "0001_baseline"
 down_revision = None
@@ -25,7 +25,7 @@ BASELINE_TABLES = (
     "user_fcm_tokens",
     "proposals",
     "offers",
-    "missions",
+    "proofs",
     "settlement_accounts",
 )
 

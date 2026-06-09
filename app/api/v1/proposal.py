@@ -11,9 +11,11 @@ from app.core.openapi import (
     PROPOSAL_CANCEL_EXAMPLE,
     PROPOSAL_CREATE_EXAMPLE,
     PROPOSAL_DETAIL_EXAMPLE,
-    PROPOSAL_DETAIL_WITH_MISSION_EXAMPLE,
+    PROPOSAL_MATCHED_DETAIL_EXAMPLE,
+    PROPOSAL_DISPUTE_EXAMPLE,
     PROPOSAL_OWN_PAGE_EXAMPLE,
     PROPOSAL_PAGE_EXAMPLE,
+    PROPOSAL_RECEIVED_EXAMPLE,
     PROPOSAL_UPDATE_EXAMPLE,
     error_responses,
     success_response,
@@ -29,6 +31,7 @@ from app.schemas.proposal import (
     ProposalRequest,
     ProposalResponse,
 )
+from app.schemas.proof import ProofDisputeRequest
 from app.services.proposal_service import ProposalService
 
 
@@ -110,10 +113,10 @@ def list_own_proposals(
     responses={
         200: success_response_examples(
             {
-                "without_mission": {"success": True, "data": PROPOSAL_DETAIL_EXAMPLE, "message": None},
-                "with_mission": {
+                "posted": {"success": True, "data": PROPOSAL_DETAIL_EXAMPLE, "message": None},
+                "matched": {
                     "success": True,
-                    "data": PROPOSAL_DETAIL_WITH_MISSION_EXAMPLE,
+                    "data": PROPOSAL_MATCHED_DETAIL_EXAMPLE,
                     "message": None,
                 },
             }
@@ -210,3 +213,62 @@ def cancel_proposal(
 ) -> ApiResponse[ProposalResponse]:
     proposal = ProposalService.cancel(db, proposal_id=proposal_id, orderer_id=current_user.id)
     return ApiResponse(success=True, data=proposal, message="제안이 취소되었습니다.")
+
+
+@router.post(
+    "/{proposal_id}/confirm-received",
+    response_model=ApiResponse[ProposalDetailResponse],
+    status_code=status.HTTP_200_OK,
+    summary="오더 수령 확인",
+    description="오더러가 수령을 확인하고 요청과 연결 제안을 수령 확인 상태로 변경합니다.",
+    responses={
+        200: success_response(PROPOSAL_RECEIVED_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.PROPOSAL_NOT_FOUND,
+            AppError.OFFER_NOT_FOUND,
+            AppError.FORBIDDEN,
+            AppError.PROPOSAL_NOT_UPDATABLE,
+        ),
+    },
+)
+def confirm_received(
+    proposal_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApiResponse[ProposalDetailResponse]:
+    proposal = ProposalService.confirm_received(db, proposal_id=proposal_id, orderer_id=current_user.id)
+    return ApiResponse(success=True, data=proposal, message="수령 확인되었습니다.")
+
+
+@router.post(
+    "/{proposal_id}/dispute",
+    response_model=ApiResponse[ProposalDetailResponse],
+    status_code=status.HTTP_200_OK,
+    summary="오더 분쟁 접수",
+    description="오더러가 요청의 분쟁을 접수합니다.",
+    responses={
+        200: success_response(PROPOSAL_DISPUTE_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.VALIDATION_ERROR,
+            AppError.PROPOSAL_NOT_FOUND,
+            AppError.OFFER_NOT_FOUND,
+            AppError.FORBIDDEN,
+            AppError.PROPOSAL_NOT_UPDATABLE,
+        ),
+    },
+)
+def raise_proposal_dispute(
+    proposal_id: int,
+    request: ProofDisputeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApiResponse[ProposalDetailResponse]:
+    proposal = ProposalService.raise_dispute(
+        db,
+        proposal_id=proposal_id,
+        orderer_id=current_user.id,
+        dispute_reason=request.dispute_reason,
+    )
+    return ApiResponse(success=True, data=proposal, message="분쟁이 접수되었습니다.")

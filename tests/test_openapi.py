@@ -107,27 +107,30 @@ def test_representative_success_examples_match_contracts():
     ]["example"]
     assert offer_accept["message"] == "제안이 수락되었습니다."
     assert offer_accept["data"]["proposalStatus"] == "MATCHED"
-    assert offer_accept["data"]["missionStatus"] == "CREATED"
+    assert "missionStatus" not in offer_accept["data"]
+    assert "missionId" not in offer_accept["data"]
+    assert "acceptedAt" in offer_accept["data"]
     assert {"runFee", "itemPrice", "totalAmount"}.isdisjoint(offer_accept["data"])
 
     proposal_detail_examples = schema["paths"]["/v1/proposal/{proposal_id}"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["examples"]
-    assert proposal_detail_examples["without_mission"]["value"]["data"]["missionId"] is None
-    assert proposal_detail_examples["with_mission"]["value"]["data"]["missionId"] == 100
+    assert "missionId" not in proposal_detail_examples["posted"]["value"]["data"]
+    assert proposal_detail_examples["matched"]["value"]["data"]["matchedAt"] is not None
 
     offer_detail_examples = schema["paths"]["/v1/offer/{offer_id}"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["examples"]
-    assert offer_detail_examples["without_mission"]["value"]["data"]["missionId"] is None
-    assert offer_detail_examples["with_mission"]["value"]["data"]["missionId"] == 100
+    assert "missionId" not in offer_detail_examples["waiting"]["value"]["data"]
+    assert offer_detail_examples["accepted"]["value"]["data"]["acceptedAt"] is not None
 
-    mission_delivery = schema["paths"]["/v1/mission/{mission_id}/complete-delivery"]["post"]["responses"]["200"][
+    offer_delivery = schema["paths"]["/v1/offer/{offer_id}/complete-delivery"]["post"]["responses"]["200"][
         "content"
     ]["application/json"]["example"]
-    assert mission_delivery["message"] == "전달 완료되었습니다."
-    assert mission_delivery["data"]["status"] == "DELIVERY_COMPLETED"
-    assert mission_delivery["data"]["deliveryProofImageUrl"] == "https://cdn.example/proof.jpg"
+    assert offer_delivery["message"] == "전달 완료되었습니다."
+    assert offer_delivery["data"]["status"] == "DELIVERY_COMPLETED"
+    assert "missionId" not in offer_delivery["data"]
+    assert offer_delivery["data"]["deliveryCompletedAt"] is not None
 
     settlement = schema["paths"]["/v1/settlement/account"]["put"]["responses"]["200"]["content"]["application/json"][
         "example"

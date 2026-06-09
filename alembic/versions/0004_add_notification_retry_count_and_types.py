@@ -59,7 +59,7 @@ def downgrade() -> None:
         "ALTER TABLE notifications MODIFY COLUMN notification_type "
         "ENUM('proposal_new','proposal_matched','proposal_cancelled',"
         "'offer_new','offer_accepted','offer_rejected',"
-        "'mission_started','mission_completed',"
+        "'execution_started','execution_completed',"
         "'payment_completed','payment_failed',"
         "'system_announcement','custom') NOT NULL"
     )

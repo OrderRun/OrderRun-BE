@@ -45,6 +45,7 @@ class AppError(str, Enum):
     PROPOSAL_NOT_CANCELLABLE = "PROPOSAL_NOT_CANCELLABLE"
     PROPOSAL_NOT_OPEN = "PROPOSAL_NOT_OPEN"
     PROPOSAL_NOT_MATCHABLE = "PROPOSAL_NOT_MATCHABLE"
+    PROPOSAL_NOT_UPDATABLE = "PROPOSAL_NOT_UPDATABLE"
     INVALID_STATUS = "INVALID_STATUS"
     FORBIDDEN = "FORBIDDEN"
 
@@ -53,12 +54,7 @@ class AppError(str, Enum):
     DUPLICATE_OFFER = "DUPLICATE_OFFER"
     OFFER_NOT_CANCELLABLE = "OFFER_NOT_CANCELLABLE"
     OFFER_NOT_ACCEPTABLE = "OFFER_NOT_ACCEPTABLE"
-
-    MISSION_NOT_FOUND = "MISSION_NOT_FOUND"
-    MISSION_ALREADY_EXISTS = "MISSION_ALREADY_EXISTS"
-    MISSION_NOT_UPDATABLE = "MISSION_NOT_UPDATABLE"
-    MISSION_PROOF_IMAGE_REQUIRED = "MISSION_PROOF_IMAGE_REQUIRED"
-    MISSION_DISPUTE_REASON_REQUIRED = "MISSION_DISPUTE_REASON_REQUIRED"
+    OFFER_NOT_UPDATABLE = "OFFER_NOT_UPDATABLE"
 
     NOTIFICATION_NOT_FOUND = "NOTIFICATION_NOT_FOUND"
 
@@ -169,6 +165,11 @@ ERRORS: dict[AppError, ApiErrorSpec] = {
         "PROPOSAL_NOT_MATCHABLE",
         "매칭할 수 없는 요청 상태입니다.",
     ),
+    AppError.PROPOSAL_NOT_UPDATABLE: ApiErrorSpec(
+        status.HTTP_409_CONFLICT,
+        "PROPOSAL_NOT_UPDATABLE",
+        "업데이트할 수 없는 요청 상태입니다.",
+    ),
     AppError.INVALID_STATUS: ApiErrorSpec(status.HTTP_400_BAD_REQUEST, "INVALID_STATUS", "입금 확인 대기 상태가 아닙니다."),
     AppError.FORBIDDEN: ApiErrorSpec(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다."),
     AppError.OFFER_NOT_FOUND: ApiErrorSpec(status.HTTP_404_NOT_FOUND, "OFFER_NOT_FOUND", "제안을 찾을 수 없습니다."),
@@ -192,30 +193,10 @@ ERRORS: dict[AppError, ApiErrorSpec] = {
         "OFFER_NOT_ACCEPTABLE",
         "수락할 수 없는 제안 상태입니다.",
     ),
-    AppError.MISSION_NOT_FOUND: ApiErrorSpec(
-        status.HTTP_404_NOT_FOUND,
-        "MISSION_NOT_FOUND",
-        "미션을 찾을 수 없습니다.",
-    ),
-    AppError.MISSION_ALREADY_EXISTS: ApiErrorSpec(
+    AppError.OFFER_NOT_UPDATABLE: ApiErrorSpec(
         status.HTTP_409_CONFLICT,
-        "MISSION_ALREADY_EXISTS",
-        "이미 생성된 미션이 있습니다.",
-    ),
-    AppError.MISSION_NOT_UPDATABLE: ApiErrorSpec(
-        status.HTTP_409_CONFLICT,
-        "MISSION_NOT_UPDATABLE",
-        "업데이트할 수 없는 미션 상태입니다.",
-    ),
-    AppError.MISSION_PROOF_IMAGE_REQUIRED: ApiErrorSpec(
-        status.HTTP_400_BAD_REQUEST,
-        "VALIDATION_ERROR",
-        "요청 값이 올바르지 않습니다.",
-    ),
-    AppError.MISSION_DISPUTE_REASON_REQUIRED: ApiErrorSpec(
-        status.HTTP_400_BAD_REQUEST,
-        "VALIDATION_ERROR",
-        "요청 값이 올바르지 않습니다.",
+        "OFFER_NOT_UPDATABLE",
+        "업데이트할 수 없는 제안 상태입니다.",
     ),
     AppError.NOTIFICATION_NOT_FOUND: ApiErrorSpec(status.HTTP_404_NOT_FOUND, "ERROR", "Notification not found"),
 }

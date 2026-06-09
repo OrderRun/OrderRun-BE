@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import inspect
 
 from app.core.security import create_access_token
-from app.models.mission import Mission, MissionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
@@ -87,42 +86,41 @@ def test_list_public_requires_auth_and_supports_multi_status_filter(client, db, 
     assert invalid.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
-def test_detail_hides_holding_and_allows_cancelled(client, db, auth_headers, sample_user):
+def test_detail_returns_proposal_regardless_of_status(client, db, auth_headers, sample_user):
     holding = make_proposal(db, sample_user.id, ProposalStatus.HOLDING)
     cancelled = make_proposal(db, sample_user.id, ProposalStatus.CANCELLED)
 
     holding_response = client.get(f"/v1/proposal/{holding.id}", headers=auth_headers)
-    assert holding_response.status_code == 404
-    assert holding_response.json()["error"]["code"] == "PROPOSAL_NOT_FOUND"
+    assert holding_response.status_code == 200
+    holding_data = holding_response.json()["data"]
+    assert holding_data["status"] == "HOLDING"
+    assert holding_data["offers"] == []
 
     cancelled_response = client.get(f"/v1/proposal/{cancelled.id}", headers=auth_headers)
     assert cancelled_response.status_code == 200
-    assert cancelled_response.json()["data"]["status"] == "CANCELLED"
-    assert cancelled_response.json()["data"]["missionId"] is None
+    data = cancelled_response.json()["data"]
+    assert data["status"] == "CANCELLED"
+    assert data["matchedAt"] is None
+    assert data["offers"] == []
 
 
-def test_detail_returns_mission_id_when_mission_exists(client, db, auth_headers, sample_user):
+def test_detail_returns_state_timestamps_when_matched(client, db, auth_headers, sample_user):
     runner = make_user(db, "01099990003")
     proposal = make_proposal(db, sample_user.id, ProposalStatus.MATCHED)
+    proposal.matched_at = datetime.now(timezone.utc)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
     db.add(offer)
     db.commit()
-    db.refresh(offer)
-    mission = Mission(
-        proposal_id=proposal.id,
-        offer_id=offer.id,
-        orderer_id=sample_user.id,
-        runner_id=runner.id,
-        status=MissionStatus.CREATED,
-    )
-    db.add(mission)
-    db.commit()
-    db.refresh(mission)
+    db.refresh(proposal)
 
     response = client.get(f"/v1/proposal/{proposal.id}", headers=auth_headers)
 
     assert response.status_code == 200
-    assert response.json()["data"]["missionId"] == mission.id
+    data = response.json()["data"]
+    assert data["matchedAt"] is not None
+    assert "missionId" not in data
+    assert len(data["offers"]) == 1
+    assert data["offers"][0]["id"] == offer.id
 
 
 def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(client, db, auth_headers, sample_user):
@@ -289,6 +287,11 @@ def test_proposal_model_contract(db):
         "POSTED",
         "OFFERED",
         "MATCHED",
+        "DELIVERY_REPORTED",
+        "RECEIVED_CONFIRMED",
+        "SETTLED",
+        "DISPUTED",
+        "REFUNDED",
         "CANCELLED",
     }
     foreign_keys = inspect(db.bind).get_foreign_keys("proposals")

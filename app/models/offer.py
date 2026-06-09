@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import enum
 
-from sqlalchemy import BigInteger, Column, DateTime, Enum, Integer, String, UniqueConstraint
+from sqlalchemy import BigInteger, Column, DateTime, Enum, String, UniqueConstraint
 
 from app.core.time import utcnow_naive
 from app.core.database import Base
@@ -15,7 +15,11 @@ class OfferStatus(str, enum.Enum):
 
     WAITING = "WAITING"
     ACCEPTED = "ACCEPTED"
-    COMPLETED = "COMPLETED"
+    DELIVERY_COMPLETED = "DELIVERY_COMPLETED"
+    RECEIPT_CONFIRMED = "RECEIPT_CONFIRMED"
+    SETTLED = "SETTLED"
+    DISPUTED = "DISPUTED"
+    REFUNDED = "REFUNDED"
     REJECTED = "REJECTED"
     CANCELLED = "CANCELLED"
 
@@ -25,12 +29,18 @@ class Offer(Base):
 
     __tablename__ = "offers"
 
-    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, index=True, autoincrement=True)
-    proposal_id = Column(BigInteger().with_variant(Integer, "sqlite"), nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    proposal_id = Column(BigInteger, nullable=False, index=True)
     runner_id = Column(String(36), nullable=False, index=True)
     status = Column(Enum(OfferStatus), nullable=False, default=OfferStatus.WAITING, index=True)
 
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    accepted_at = Column(DateTime(timezone=True), nullable=True)
+    delivery_completed_at = Column(DateTime(timezone=True), nullable=True)
+    receipt_confirmed_at = Column(DateTime(timezone=True), nullable=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
+    disputed_at = Column(DateTime(timezone=True), nullable=True)
+    refunded_at = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
     __table_args__ = (
@@ -50,6 +60,56 @@ class Offer(Base):
         if not self.can_accept():
             raise ValueError("Cannot accept offer that is not in WAITING status")
         self.status = OfferStatus.ACCEPTED
+        self.accepted_at = utcnow_naive()
+
+    def can_complete_delivery(self) -> bool:
+        return self.status == OfferStatus.ACCEPTED
+
+    def complete_delivery(self) -> None:
+        if not self.can_complete_delivery():
+            raise ValueError("Cannot complete delivery for offer not in ACCEPTED status")
+        self.status = OfferStatus.DELIVERY_COMPLETED
+        self.delivery_completed_at = utcnow_naive()
+
+    def can_confirm_receipt(self) -> bool:
+        return self.status == OfferStatus.DELIVERY_COMPLETED
+
+    def confirm_receipt(self) -> None:
+        if not self.can_confirm_receipt():
+            raise ValueError("Cannot confirm receipt for offer not in DELIVERY_COMPLETED status")
+        self.status = OfferStatus.RECEIPT_CONFIRMED
+        self.receipt_confirmed_at = utcnow_naive()
+
+    def can_settle(self) -> bool:
+        return self.status == OfferStatus.RECEIPT_CONFIRMED
+
+    def settle(self) -> None:
+        if not self.can_settle():
+            raise ValueError("Cannot settle offer not in RECEIPT_CONFIRMED status")
+        self.status = OfferStatus.SETTLED
+        self.settled_at = utcnow_naive()
+
+    def can_raise_dispute(self) -> bool:
+        return self.status in {
+            OfferStatus.ACCEPTED,
+            OfferStatus.DELIVERY_COMPLETED,
+            OfferStatus.RECEIPT_CONFIRMED,
+        }
+
+    def raise_dispute(self) -> None:
+        if not self.can_raise_dispute():
+            raise ValueError("Cannot raise dispute for offer at this stage")
+        self.status = OfferStatus.DISPUTED
+        self.disputed_at = utcnow_naive()
+
+    def can_refund(self) -> bool:
+        return self.status == OfferStatus.DISPUTED
+
+    def refund(self) -> None:
+        if not self.can_refund():
+            raise ValueError("Cannot refund offer not in DISPUTED status")
+        self.status = OfferStatus.REFUNDED
+        self.refunded_at = utcnow_naive()
 
     def reject(self) -> None:
         if self.status != OfferStatus.WAITING:

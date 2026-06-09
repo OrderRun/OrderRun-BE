@@ -11,10 +11,12 @@ from app.core.firebase import get_notification_worker
 from app.core.openapi import (
     OFFER_ACCEPT_EXAMPLE,
     OFFER_CREATE_EXAMPLE,
+    OFFER_DELIVERY_EXAMPLE,
     OFFER_DETAIL_EXAMPLE,
-    OFFER_DETAIL_WITH_MISSION_EXAMPLE,
+    OFFER_DISPUTE_EXAMPLE,
     OFFER_LIST_EXAMPLE,
     OFFER_PAGE_EXAMPLE,
+    OFFER_ACCEPTED_DETAIL_EXAMPLE,
     error_responses,
     no_content_response,
     success_response,
@@ -25,6 +27,7 @@ from app.models.offer import OfferStatus
 from app.models.user import User
 from app.schemas.common import ApiResponse, PageResponse
 from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferResponse
+from app.schemas.proof import ProofDeliveryRequest, ProofDisputeRequest
 from app.services.offer_service import OfferService
 
 
@@ -146,11 +149,11 @@ def get_offers(
     responses={
         200: success_response_examples(
             {
-                "without_mission": OFFER_DETAIL_EXAMPLE,
-                "with_mission": OFFER_DETAIL_WITH_MISSION_EXAMPLE,
+                "waiting": OFFER_DETAIL_EXAMPLE,
+                "accepted": OFFER_ACCEPTED_DETAIL_EXAMPLE,
             }
         ),
-        **error_responses(AppError.INVALID_TOKEN, AppError.OFFER_NOT_FOUND, AppError.FORBIDDEN),
+        **error_responses(AppError.INVALID_TOKEN, AppError.OFFER_NOT_FOUND),
     },
 )
 def get_offer(
@@ -158,7 +161,7 @@ def get_offer(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[OfferResponse]:
-    offer = OfferService.get_offer_detail(db, offer_id=offer_id, user_id=current_user.id)
+    offer = OfferService.get_offer_detail(db, offer_id=offer_id)
     return ApiResponse(success=True, data=offer, message="Success")
 
 
@@ -167,7 +170,7 @@ def get_offer(
     response_model=ApiResponse[OfferAcceptResponse],
     status_code=status.HTTP_201_CREATED,
     summary="제안 수락",
-    description="오더러가 제안을 수락하고 미션을 생성합니다.",
+    description="오더러가 제안을 수락하고 요청/제안 상태를 매칭 상태로 전환합니다.",
     responses={
         201: success_response(OFFER_ACCEPT_EXAMPLE),
         **error_responses(
@@ -175,7 +178,6 @@ def get_offer(
             AppError.VALIDATION_ERROR,
             AppError.OFFER_NOT_FOUND,
             AppError.FORBIDDEN,
-            AppError.MISSION_ALREADY_EXISTS,
             AppError.OFFER_NOT_ACCEPTABLE,
             AppError.PROPOSAL_NOT_MATCHABLE,
         ),
@@ -190,6 +192,72 @@ def accept_offer(
     accepted = OfferService.accept(db, offer_id=offer_id, orderer_id=current_user.id)
     background_tasks.add_task(get_notification_worker().flush_pending, SessionLocal)
     return ApiResponse(success=True, data=accepted, message="제안이 수락되었습니다.")
+
+
+@router.post(
+    "/{offer_id}/complete-delivery",
+    response_model=ApiResponse[OfferResponse],
+    status_code=status.HTTP_200_OK,
+    summary="러너 전달 완료",
+    description="러너가 전달 완료 증빙 이미지를 등록하고 제안을 전달 완료 상태로 변경합니다.",
+    responses={
+        200: success_response(OFFER_DELIVERY_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.VALIDATION_ERROR,
+            AppError.OFFER_NOT_FOUND,
+            AppError.FORBIDDEN,
+            AppError.OFFER_NOT_UPDATABLE,
+        ),
+    },
+)
+def complete_delivery(
+    offer_id: int,
+    request: ProofDeliveryRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApiResponse[OfferResponse]:
+    offer = OfferService.complete_delivery(
+        db,
+        offer_id=offer_id,
+        runner_id=current_user.id,
+        proof_image_url=request.proof_image_url,
+    )
+    background_tasks.add_task(get_notification_worker().flush_pending, SessionLocal)
+    return ApiResponse(success=True, data=offer, message="전달 완료되었습니다.")
+
+
+@router.post(
+    "/{offer_id}/dispute",
+    response_model=ApiResponse[OfferResponse],
+    status_code=status.HTTP_200_OK,
+    summary="러너 분쟁 접수",
+    description="러너가 수락된 제안의 분쟁을 접수합니다.",
+    responses={
+        200: success_response(OFFER_DISPUTE_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.VALIDATION_ERROR,
+            AppError.OFFER_NOT_FOUND,
+            AppError.FORBIDDEN,
+            AppError.OFFER_NOT_UPDATABLE,
+        ),
+    },
+)
+def raise_offer_dispute(
+    offer_id: int,
+    request: ProofDisputeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApiResponse[OfferResponse]:
+    offer = OfferService.raise_dispute(
+        db,
+        offer_id=offer_id,
+        runner_id=current_user.id,
+        dispute_reason=request.dispute_reason,
+    )
+    return ApiResponse(success=True, data=offer, message="분쟁이 접수되었습니다.")
 
 
 @router.delete(

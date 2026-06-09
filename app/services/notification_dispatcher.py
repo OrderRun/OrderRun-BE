@@ -89,58 +89,58 @@ class NotificationDispatcher:
                 data={"offer_id": offer_id, "proposal_id": proposal_id},
             )
 
-    def notify_mission_started(
-        self, db: Session, mission_id: int, customer_id: str, runner_id: str, mission_title: str
+    def notify_execution_started(
+        self, db: Session, offer_id: int, proposal_id: int, customer_id: str, runner_id: str, proposal_title: str
     ) -> None:
         if self._should_send_notification(db, customer_id):
             self.fcm_service.send_to_user(
-                db=db, user_id=customer_id, notification_type=NotificationType.MISSION_STARTED,
-                title="미션이 시작되었습니다", body=f"'{mission_title}' 미션이 진행 중입니다.",
-                related_entity_type="mission", related_entity_id=mission_id,
-                data={"mission_id": mission_id, "runner_id": runner_id},
+                db=db, user_id=customer_id, notification_type=NotificationType.EXECUTION_STARTED,
+                title="수행이 시작되었습니다", body=f"'{proposal_title}' 요청이 진행 중입니다.",
+                related_entity_type="offer", related_entity_id=offer_id,
+                data={"offer_id": offer_id, "proposal_id": proposal_id, "runner_id": runner_id},
             )
         if self._should_send_notification(db, runner_id):
             self.fcm_service.send_to_user(
-                db=db, user_id=runner_id, notification_type=NotificationType.MISSION_STARTED,
-                title="미션을 시작하세요", body=f"'{mission_title}' 미션이 시작되었습니다.",
-                related_entity_type="mission", related_entity_id=mission_id,
-                data={"mission_id": mission_id, "customer_id": customer_id},
+                db=db, user_id=runner_id, notification_type=NotificationType.EXECUTION_STARTED,
+                title="수행을 시작하세요", body=f"'{proposal_title}' 요청이 시작되었습니다.",
+                related_entity_type="offer", related_entity_id=offer_id,
+                data={"offer_id": offer_id, "proposal_id": proposal_id, "customer_id": customer_id},
             )
 
-    def notify_mission_completed(
-        self, db: Session, mission_id: int, customer_id: str, runner_id: str, mission_title: str
+    def notify_execution_completed(
+        self, db: Session, offer_id: int, proposal_id: int, customer_id: str, runner_id: str, proposal_title: str
     ) -> None:
         if self._should_send_notification(db, customer_id):
             self.fcm_service.send_to_user(
-                db=db, user_id=customer_id, notification_type=NotificationType.MISSION_COMPLETED,
-                title="미션이 완료되었습니다!", body=f"'{mission_title}' 미션이 성공적으로 완료되었습니다.",
-                related_entity_type="mission", related_entity_id=mission_id,
-                data={"mission_id": mission_id, "runner_id": runner_id},
+                db=db, user_id=customer_id, notification_type=NotificationType.EXECUTION_COMPLETED,
+                title="수행이 완료되었습니다!", body=f"'{proposal_title}' 요청이 성공적으로 완료되었습니다.",
+                related_entity_type="offer", related_entity_id=offer_id,
+                data={"offer_id": offer_id, "proposal_id": proposal_id, "runner_id": runner_id},
             )
         if self._should_send_notification(db, runner_id):
             self.fcm_service.send_to_user(
-                db=db, user_id=runner_id, notification_type=NotificationType.MISSION_COMPLETED,
-                title="미션 완료!", body=f"'{mission_title}' 미션을 완료했습니다. 수고하셨습니다!",
-                related_entity_type="mission", related_entity_id=mission_id,
-                data={"mission_id": mission_id, "customer_id": customer_id},
+                db=db, user_id=runner_id, notification_type=NotificationType.EXECUTION_COMPLETED,
+                title="수행 완료!", body=f"'{proposal_title}' 요청을 완료했습니다. 수고하셨습니다!",
+                related_entity_type="offer", related_entity_id=offer_id,
+                data={"offer_id": offer_id, "proposal_id": proposal_id, "customer_id": customer_id},
             )
 
     def notify_payment_completed(
-        self, db: Session, payment_id: int, user_id: str, amount: int, mission_title: str
+        self, db: Session, payment_id: int, user_id: str, amount: int, proposal_title: str
     ) -> None:
         if self._should_send_notification(db, user_id):
             self.fcm_service.send_to_user(
                 db=db, user_id=user_id, notification_type=NotificationType.PAYMENT_COMPLETED,
-                title="결제가 완료되었습니다", body=f"'{mission_title}' 미션 결제 {amount:,}원이 완료되었습니다.",
+                title="결제가 완료되었습니다", body=f"'{proposal_title}' 요청 결제 {amount:,}원이 완료되었습니다.",
                 related_entity_type="payment", related_entity_id=payment_id,
                 data={"payment_id": payment_id, "amount": str(amount)},
             )
 
     def notify_payment_failed(
-        self, db: Session, payment_id: int, user_id: str, amount: int, mission_title: str, reason: Optional[str] = None
+        self, db: Session, payment_id: int, user_id: str, amount: int, proposal_title: str, reason: Optional[str] = None
     ) -> None:
         if self._should_send_notification(db, user_id):
-            body = f"'{mission_title}' 미션 결제 {amount:,}원이 실패했습니다."
+            body = f"'{proposal_title}' 요청 결제 {amount:,}원이 실패했습니다."
             if reason:
                 body += f" 사유: {reason}"
             self.fcm_service.send_to_user(

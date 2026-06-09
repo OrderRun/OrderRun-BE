@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from app.core.security import create_access_token
-from app.models.mission import Mission, MissionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
@@ -65,7 +64,12 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
         "runnerId": runner.id,
         "runnerName": "Runner One",
         "status": "WAITING",
-        "missionId": None,
+        "acceptedAt": None,
+        "deliveryCompletedAt": None,
+        "receiptConfirmedAt": None,
+        "settledAt": None,
+        "disputedAt": None,
+        "refundedAt": None,
         "createdAt": body["data"]["createdAt"],
     }
 
@@ -123,7 +127,7 @@ def test_get_offers_returns_latest_first_and_supports_multi_status_filter(client
     assert invalid.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
-def test_get_offer_detail_allows_runner_and_orderer_only(client, db, sample_user):
+def test_get_offer_detail_allows_any_logged_in_user(client, db, sample_user):
     runner = make_user(db, "01077770007")
     stranger = make_user(db, "01077770008")
     proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
@@ -133,37 +137,29 @@ def test_get_offer_detail_allows_runner_and_orderer_only(client, db, sample_user
 
     runner_response = client.get(f"/v1/offer/{offer.id}", headers=headers_for(runner))
     orderer_response = client.get(f"/v1/offer/{offer.id}", headers=headers_for(sample_user))
-    forbidden = client.get(f"/v1/offer/{offer.id}", headers=headers_for(stranger))
+    stranger_response = client.get(f"/v1/offer/{offer.id}", headers=headers_for(stranger))
 
     assert runner_response.status_code == 200
     assert orderer_response.status_code == 200
-    assert runner_response.json()["data"]["missionId"] is None
-    assert forbidden.status_code == 403
-    assert forbidden.json()["error"]["code"] == "FORBIDDEN"
+    assert stranger_response.status_code == 200
+    assert "missionId" not in runner_response.json()["data"]
+    assert runner_response.json()["data"]["acceptedAt"] is None
 
 
-def test_get_offer_detail_returns_mission_id_when_mission_exists(client, db, sample_user):
+def test_get_offer_detail_returns_state_timestamps_when_accepted(client, db, sample_user):
     runner = make_user(db, "01077770020")
     proposal = make_proposal(db, sample_user.id, ProposalStatus.MATCHED)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    offer.accepted_at = datetime.now(timezone.utc)
     db.add(offer)
     db.commit()
     db.refresh(offer)
-    mission = Mission(
-        proposal_id=proposal.id,
-        offer_id=offer.id,
-        orderer_id=sample_user.id,
-        runner_id=runner.id,
-        status=MissionStatus.CREATED,
-    )
-    db.add(mission)
-    db.commit()
-    db.refresh(mission)
 
     response = client.get(f"/v1/offer/{offer.id}", headers=headers_for(runner))
 
     assert response.status_code == 200
-    assert response.json()["data"]["missionId"] == mission.id
+    assert response.json()["data"]["acceptedAt"] is not None
+    assert "missionId" not in response.json()["data"]
 
 
 def test_get_own_offers_supports_paging_and_multi_status_filter(client, db, sample_user):
@@ -186,7 +182,7 @@ def test_get_own_offers_supports_paging_and_multi_status_filter(client, db, samp
     assert [item["id"] for item in page["content"]] == [accepted.id, waiting.id]
 
 
-def test_accept_offer_creates_mission_and_updates_states(client, db, sample_user):
+def test_accept_offer_updates_states_and_timestamps(client, db, sample_user):
     runner1 = make_user(db, "01077770011")
     runner2 = make_user(db, "01077770012")
     proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
@@ -208,7 +204,9 @@ def test_accept_offer_creates_mission_and_updates_states(client, db, sample_user
     assert body["data"]["proposalStatus"] == "MATCHED"
     assert body["data"]["acceptedOfferStatus"] == "ACCEPTED"
     assert body["data"]["rejectedOfferCount"] == 1
-    assert body["data"]["missionStatus"] == "CREATED"
+    assert "missionStatus" not in body["data"]
+    assert "missionId" not in body["data"]
+    assert body["data"]["acceptedAt"] is not None
     assert "runFee" not in body["data"]
     assert "itemPrice" not in body["data"]
     assert "totalAmount" not in body["data"]
@@ -216,11 +214,11 @@ def test_accept_offer_creates_mission_and_updates_states(client, db, sample_user
     db.refresh(proposal)
     db.refresh(selected)
     db.refresh(other)
-    mission = db.query(Mission).filter(Mission.id == body["data"]["missionId"]).one()
     assert proposal.status == ProposalStatus.MATCHED
     assert selected.status == OfferStatus.ACCEPTED
     assert other.status == OfferStatus.REJECTED
-    assert mission.status == MissionStatus.CREATED
+    assert proposal.matched_at is not None
+    assert selected.accepted_at is not None
 
 
 def test_accept_offer_domain_and_validation_errors(client, db, sample_user):
@@ -237,6 +235,10 @@ def test_accept_offer_domain_and_validation_errors(client, db, sample_user):
         f"/v1/offer/{posted_offer.id}/accept",
         headers=headers_for(other_user),
     )
+    runner_forbidden = client.post(
+        f"/v1/offer/{posted_offer.id}/accept",
+        headers=headers_for(runner),
+    )
     not_acceptable = client.post(
         f"/v1/offer/{accepted_offer.id}/accept",
         headers=headers_for(sample_user),
@@ -248,26 +250,21 @@ def test_accept_offer_domain_and_validation_errors(client, db, sample_user):
 
     assert forbidden.status_code == 403
     assert forbidden.json()["error"]["code"] == "FORBIDDEN"
+    assert runner_forbidden.status_code == 403
+    assert runner_forbidden.json()["error"]["code"] == "FORBIDDEN"
     assert not_acceptable.status_code == 409
     assert not_acceptable.json()["error"]["code"] == "OFFER_NOT_ACCEPTABLE"
     assert not_matchable.status_code == 409
     assert not_matchable.json()["error"]["code"] == "PROPOSAL_NOT_MATCHABLE"
 
 
-def test_duplicate_mission_blocks_accept(client, db, sample_user):
+def test_existing_active_offer_blocks_accept(client, db, sample_user):
     runner = make_user(db, "01077770015")
+    other_runner = make_user(db, "01077770021")
     proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id)
-    db.add(offer)
-    db.commit()
-    mission = Mission(
-        proposal_id=proposal.id,
-        offer_id=offer.id,
-        orderer_id=sample_user.id,
-        runner_id=runner.id,
-        status=MissionStatus.CREATED,
-    )
-    db.add(mission)
+    active_offer = Offer(proposal_id=proposal.id, runner_id=other_runner.id, status=OfferStatus.ACCEPTED)
+    db.add_all([offer, active_offer])
     db.commit()
 
     response = client.post(
@@ -276,7 +273,7 @@ def test_duplicate_mission_blocks_accept(client, db, sample_user):
     )
 
     assert response.status_code == 409
-    assert response.json()["error"]["code"] == "MISSION_ALREADY_EXISTS"
+    assert response.json()["error"]["code"] == "PROPOSAL_NOT_MATCHABLE"
 
 
 def test_cancel_offer_author_and_status_rules(client, db, sample_user):

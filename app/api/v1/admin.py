@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.errors import AppError
 from app.core.openapi import (
-    MISSION_REFUNDED_EXAMPLE,
-    MISSION_SETTLED_EXAMPLE,
+    OFFER_REFUNDED_EXAMPLE,
+    OFFER_SETTLED_EXAMPLE,
     PROPOSAL_EXAMPLE,
     PROPOSAL_PAGE_EXAMPLE,
     error_responses,
@@ -14,10 +14,10 @@ from app.core.openapi import (
 )
 from app.core.security import get_current_user
 from app.models.user import User
-from app.schemas.mission import MissionResponse
+from app.schemas.offer import OfferResponse
 from app.schemas.proposal import ProposalResponse
 from app.schemas.common import ApiResponse
-from app.services.mission_service import MissionService
+from app.services.offer_service import OfferService
 from app.services.proposal_service import ProposalService
 
 
@@ -126,50 +126,50 @@ def list_pending_payment_proposals(
 
 
 @router.post(
-    "/mission/{mission_id}/confirm-settlement",
-    response_model=ApiResponse[MissionResponse],
+    "/offer/{offer_id}/confirm-settlement",
+    response_model=ApiResponse[OfferResponse],
     status_code=status.HTTP_200_OK,
-    summary="미션 정산 완료 처리 (관리자 전용)",
-    description="관리자가 러너 정산 입금을 확인하여 미션을 SETTLED 상태로 전환합니다.",
+    summary="제안 정산 완료 처리 (관리자 전용)",
+    description="관리자가 러너 정산 입금을 확인하여 수락된 제안을 SETTLED 상태로 전환합니다.",
     responses={
-        200: success_response(MISSION_SETTLED_EXAMPLE),
+        200: success_response(OFFER_SETTLED_EXAMPLE),
         **error_responses(
             AppError.INVALID_TOKEN,
-            AppError.MISSION_NOT_FOUND,
-            AppError.MISSION_NOT_UPDATABLE,
+            AppError.OFFER_NOT_FOUND,
+            AppError.OFFER_NOT_UPDATABLE,
         ),
     },
 )
-def confirm_mission_settlement(
-    mission_id: int,
+def confirm_offer_settlement(
+    offer_id: int,
     db: Session = Depends(get_db),
     admin_user: User = Depends(get_admin_user),
-) -> ApiResponse[MissionResponse]:
+) -> ApiResponse[OfferResponse]:
     _ = admin_user
-    mission = MissionService.confirm_settlement(db, mission_id=mission_id)
-    return ApiResponse(success=True, data=mission, message="미션 정산이 완료되었습니다.")
+    offer = OfferService.confirm_settlement(db, offer_id=offer_id)
+    return ApiResponse(success=True, data=offer, message="제안 정산이 완료되었습니다.")
 
 
 @router.post(
-    "/mission/{mission_id}/refund",
-    response_model=ApiResponse[MissionResponse],
+    "/offer/{offer_id}/refund",
+    response_model=ApiResponse[OfferResponse],
     status_code=status.HTTP_200_OK,
-    summary="미션 환불 완료 처리 (관리자 전용)",
-    description="관리자가 분쟁 미션을 환불 완료 상태로 전환합니다.",
+    summary="제안 환불 완료 처리 (관리자 전용)",
+    description="관리자가 분쟁 제안을 환불 완료 상태로 전환합니다.",
     responses={
-        200: success_response(MISSION_REFUNDED_EXAMPLE),
+        200: success_response(OFFER_REFUNDED_EXAMPLE),
         **error_responses(
             AppError.INVALID_TOKEN,
-            AppError.MISSION_NOT_FOUND,
-            AppError.MISSION_NOT_UPDATABLE,
+            AppError.OFFER_NOT_FOUND,
+            AppError.OFFER_NOT_UPDATABLE,
         ),
     },
 )
-def refund_mission(
-    mission_id: int,
+def refund_offer(
+    offer_id: int,
     db: Session = Depends(get_db),
     admin_user: User = Depends(get_admin_user),
-) -> ApiResponse[MissionResponse]:
+) -> ApiResponse[OfferResponse]:
     _ = admin_user
-    mission = MissionService.refund_mission(db, mission_id=mission_id)
-    return ApiResponse(success=True, data=mission, message="미션 환불이 완료되었습니다.")
+    offer = OfferService.refund(db, offer_id=offer_id)
+    return ApiResponse(success=True, data=offer, message="제안 환불이 완료되었습니다.")

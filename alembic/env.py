@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.database import Base
 
 # Import models so Base.metadata is populated for autogenerate.
-from app.models import mission, notification, offer, proposal, settlement, terms, user  # noqa: F401
+from app.models import notification, offer, proof, proposal, settlement, terms, user  # noqa: F401
 
 
 config = context.config

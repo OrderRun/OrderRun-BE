@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 from app.core.errors import AppError, api_error
 from app.events.base import EventBus
 from app.events.offer_events import OfferAcceptedEvent, OfferCreatedEvent
-from app.models.mission import Mission, MissionStatus
+from app.events.execution_events import MeetingConfirmedByRunnerEvent
 from app.models.offer import Offer, OfferStatus
+from app.models.proof import Proof, ProofType
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
@@ -17,6 +18,13 @@ from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferResponse
 
 
 OPEN_PROPOSAL_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)
+ACTIVE_OFFER_STATUSES = (
+    OfferStatus.ACCEPTED,
+    OfferStatus.DELIVERY_COMPLETED,
+    OfferStatus.RECEIPT_CONFIRMED,
+    OfferStatus.SETTLED,
+    OfferStatus.DISPUTED,
+)
 
 
 class OfferService:
@@ -46,11 +54,6 @@ class OfferService:
         return runner.name if runner is not None else ""
 
     @staticmethod
-    def _mission_id(db: Session, offer_id: int) -> int | None:
-        mission = db.query(Mission).filter(Mission.offer_id == offer_id).first()
-        return mission.id if mission is not None else None
-
-    @staticmethod
     def _to_response(db: Session, offer: Offer) -> OfferResponse:
         return OfferResponse(
             id=offer.id,
@@ -58,7 +61,12 @@ class OfferService:
             runner_id=offer.runner_id,
             runner_name=OfferService._runner_name(db, offer.runner_id),
             status=offer.status,
-            mission_id=OfferService._mission_id(db, offer.id),
+            accepted_at=offer.accepted_at,
+            delivery_completed_at=offer.delivery_completed_at,
+            receipt_confirmed_at=offer.receipt_confirmed_at,
+            settled_at=offer.settled_at,
+            disputed_at=offer.disputed_at,
+            refunded_at=offer.refunded_at,
             created_at=offer.created_at,
         )
 
@@ -118,11 +126,8 @@ class OfferService:
         return [OfferService._to_response(db, offer) for offer in offers]
 
     @staticmethod
-    def get_offer_detail(db: Session, offer_id: int, user_id: str) -> OfferResponse:
+    def get_offer_detail(db: Session, offer_id: int) -> OfferResponse:
         offer = OfferService._get_offer(db, offer_id)
-        proposal = OfferService._get_proposal(db, offer.proposal_id)
-        if offer.runner_id != user_id and proposal.orderer_id != user_id:
-            raise api_error(AppError.FORBIDDEN)
         return OfferService._to_response(db, offer)
 
     @staticmethod
@@ -170,16 +175,20 @@ class OfferService:
         if proposal.orderer_id != orderer_id:
             raise api_error(AppError.FORBIDDEN)
 
-        existing_mission = (
-            db.query(Mission)
-            .filter((Mission.proposal_id == proposal.id) | (Mission.offer_id == offer.id))
-            .first()
-        )
-        if existing_mission is not None:
-            raise api_error(AppError.MISSION_ALREADY_EXISTS)
-
         if offer.status != OfferStatus.WAITING:
             raise api_error(AppError.OFFER_NOT_ACCEPTABLE)
+
+        existing_active_offer = (
+            db.query(Offer)
+            .filter(
+                Offer.proposal_id == proposal.id,
+                Offer.id != offer.id,
+                Offer.status.in_(ACTIVE_OFFER_STATUSES),
+            )
+            .first()
+        )
+        if existing_active_offer is not None:
+            raise api_error(AppError.PROPOSAL_NOT_MATCHABLE)
 
         if proposal.status != ProposalStatus.OFFERED:
             raise api_error(AppError.PROPOSAL_NOT_MATCHABLE)
@@ -192,17 +201,9 @@ class OfferService:
             ).all()
         )
 
-        mission = Mission(
-            proposal_id=proposal.id,
-            offer_id=offer.id,
-            orderer_id=proposal.orderer_id,
-            runner_id=offer.runner_id,
-            status=MissionStatus.CREATED,
-        )
-
-        db.add(mission)
         offer.accept()
         proposal.status = ProposalStatus.MATCHED
+        proposal.matched_at = offer.accepted_at
         rejected_count = (
             db.query(Offer)
             .filter(
@@ -222,19 +223,106 @@ class OfferService:
             proposal_title=proposal.title,
         ), db)
         db.commit()
-        db.refresh(mission)
         db.refresh(offer)
         db.refresh(proposal)
 
         return OfferAcceptResponse(
             proposal_id=proposal.id,
             offer_id=offer.id,
-            mission_id=mission.id,
             proposal_status=proposal.status,
             accepted_offer_status=offer.status,
             rejected_offer_count=rejected_count,
-            mission_status=mission.status,
             orderer_id=proposal.orderer_id,
             runner_id=offer.runner_id,
-            created_at=mission.created_at,
+            accepted_at=offer.accepted_at,
         )
+
+    @staticmethod
+    def complete_delivery(
+        db: Session,
+        offer_id: int,
+        runner_id: str,
+        proof_image_url: str | None,
+    ) -> OfferResponse:
+        offer = OfferService._get_offer(db, offer_id)
+        if offer.runner_id != runner_id:
+            raise api_error(AppError.FORBIDDEN)
+
+        proposal = OfferService._get_proposal(db, offer.proposal_id)
+        if not offer.can_complete_delivery() or not proposal.can_report_delivery():
+            raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
+
+        offer.complete_delivery()
+        proposal.report_delivery()
+        db.add(Proof(
+            proposal_id=proposal.id,
+            offer_id=offer.id,
+            actor_id=runner_id,
+            proof_type=ProofType.DELIVERY,
+            image_url=proof_image_url,
+        ))
+        db.flush()
+        EventBus.publish(MeetingConfirmedByRunnerEvent(
+            offer_id=offer.id,
+            proposal_id=proposal.id,
+            runner_id=offer.runner_id,
+            orderer_id=proposal.orderer_id,
+            proposal_title=proposal.title,
+        ), db)
+        db.commit()
+        db.refresh(offer)
+        return OfferService._to_response(db, offer)
+
+    @staticmethod
+    def raise_dispute(
+        db: Session,
+        offer_id: int,
+        runner_id: str,
+        dispute_reason: str,
+    ) -> OfferResponse:
+        offer = OfferService._get_offer(db, offer_id)
+        if offer.runner_id != runner_id:
+            raise api_error(AppError.FORBIDDEN)
+
+        proposal = OfferService._get_proposal(db, offer.proposal_id)
+        if not offer.can_raise_dispute() or not proposal.can_raise_dispute():
+            raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
+
+        offer.raise_dispute()
+        proposal.raise_dispute()
+        db.add(Proof(
+            proposal_id=proposal.id,
+            offer_id=offer.id,
+            actor_id=runner_id,
+            proof_type=ProofType.DISPUTE,
+            reason=dispute_reason,
+        ))
+        db.commit()
+        db.refresh(offer)
+        return OfferService._to_response(db, offer)
+
+    @staticmethod
+    def confirm_settlement(db: Session, offer_id: int) -> OfferResponse:
+        offer = OfferService._get_offer(db, offer_id)
+        proposal = OfferService._get_proposal(db, offer.proposal_id)
+        if not offer.can_settle() or not proposal.can_settle():
+            raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
+
+        offer.settle()
+        proposal.settle()
+        db.commit()
+        db.refresh(offer)
+        return OfferService._to_response(db, offer)
+
+    @staticmethod
+    def refund(db: Session, offer_id: int) -> OfferResponse:
+        offer = OfferService._get_offer(db, offer_id)
+        proposal = OfferService._get_proposal(db, offer.proposal_id)
+        if not offer.can_refund() or not proposal.can_refund():
+            raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
+
+        offer.refund()
+        proposal.refund()
+        db.commit()
+        db.refresh(offer)
+        return OfferService._to_response(db, offer)

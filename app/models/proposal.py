@@ -19,6 +19,11 @@ class ProposalStatus(str, enum.Enum):
     POSTED = "POSTED"
     OFFERED = "OFFERED"
     MATCHED = "MATCHED"
+    DELIVERY_REPORTED = "DELIVERY_REPORTED"
+    RECEIVED_CONFIRMED = "RECEIVED_CONFIRMED"
+    SETTLED = "SETTLED"
+    DISPUTED = "DISPUTED"
+    REFUNDED = "REFUNDED"
     CANCELLED = "CANCELLED"
 
 
@@ -27,7 +32,7 @@ class Proposal(Base):
 
     __tablename__ = "proposals"
 
-    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     orderer_id = Column(String(36), nullable=False, index=True)
     title = Column(String(50), nullable=False)
     content = Column(String(500), nullable=False)
@@ -41,6 +46,12 @@ class Proposal(Base):
     deposit = Column(Integer, nullable=False, default=0, server_default="0")
 
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    matched_at = Column(DateTime(timezone=True), nullable=True)
+    delivery_reported_at = Column(DateTime(timezone=True), nullable=True)
+    received_confirmed_at = Column(DateTime(timezone=True), nullable=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
+    disputed_at = Column(DateTime(timezone=True), nullable=True)
+    refunded_at = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
     __table_args__ = (Index("idx_proposals_orderer_id", "orderer_id"),)
@@ -51,6 +62,55 @@ class Proposal(Base):
     def mark_as_offered(self) -> None:
         if self.status == ProposalStatus.POSTED:
             self.status = ProposalStatus.OFFERED
+
+    def can_report_delivery(self) -> bool:
+        return self.status == ProposalStatus.MATCHED
+
+    def report_delivery(self) -> None:
+        if not self.can_report_delivery():
+            raise ValueError("Cannot report delivery for proposal not in MATCHED status")
+        self.status = ProposalStatus.DELIVERY_REPORTED
+        self.delivery_reported_at = utcnow_naive()
+
+    def can_confirm_receipt(self) -> bool:
+        return self.status == ProposalStatus.DELIVERY_REPORTED
+
+    def confirm_receipt(self) -> None:
+        if not self.can_confirm_receipt():
+            raise ValueError("Cannot confirm receipt for proposal not in DELIVERY_REPORTED status")
+        self.status = ProposalStatus.RECEIVED_CONFIRMED
+        self.received_confirmed_at = utcnow_naive()
+
+    def can_settle(self) -> bool:
+        return self.status == ProposalStatus.RECEIVED_CONFIRMED
+
+    def settle(self) -> None:
+        if not self.can_settle():
+            raise ValueError("Cannot settle proposal not in RECEIVED_CONFIRMED status")
+        self.status = ProposalStatus.SETTLED
+        self.settled_at = utcnow_naive()
+
+    def can_raise_dispute(self) -> bool:
+        return self.status in {
+            ProposalStatus.MATCHED,
+            ProposalStatus.DELIVERY_REPORTED,
+            ProposalStatus.RECEIVED_CONFIRMED,
+        }
+
+    def raise_dispute(self) -> None:
+        if not self.can_raise_dispute():
+            raise ValueError("Cannot raise dispute for proposal at this stage")
+        self.status = ProposalStatus.DISPUTED
+        self.disputed_at = utcnow_naive()
+
+    def can_refund(self) -> bool:
+        return self.status == ProposalStatus.DISPUTED
+
+    def refund(self) -> None:
+        if not self.can_refund():
+            raise ValueError("Cannot refund proposal not in DISPUTED status")
+        self.status = ProposalStatus.REFUNDED
+        self.refunded_at = utcnow_naive()
 
     @classmethod
     def create_proposal(

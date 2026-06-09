@@ -138,8 +138,22 @@ PROPOSAL_EXAMPLE = {
     "errandFee": 5000,
     "status": "POSTED",
 }
-PROPOSAL_DETAIL_EXAMPLE = {**PROPOSAL_EXAMPLE, "missionId": None}
-PROPOSAL_DETAIL_WITH_MISSION_EXAMPLE = {**PROPOSAL_EXAMPLE, "status": "MATCHED", "missionId": 100}
+PROPOSAL_STATE_TIMESTAMPS = {
+    "matchedAt": None,
+    "deliveryReportedAt": None,
+    "receivedConfirmedAt": None,
+    "settledAt": None,
+    "disputedAt": None,
+    "refundedAt": None,
+    "offers": [],
+}
+PROPOSAL_DETAIL_EXAMPLE = {**PROPOSAL_EXAMPLE, **PROPOSAL_STATE_TIMESTAMPS}
+PROPOSAL_MATCHED_DETAIL_EXAMPLE = {
+    **PROPOSAL_EXAMPLE,
+    **PROPOSAL_STATE_TIMESTAMPS,
+    "status": "MATCHED",
+    "matchedAt": EXAMPLE_UPDATED_AT,
+}
 PROPOSAL_HOLDING_EXAMPLE = {**PROPOSAL_EXAMPLE, "status": "HOLDING"}
 PROPOSAL_CANCELLED_EXAMPLE = {**PROPOSAL_EXAMPLE, "status": "CANCELLED"}
 PROPOSAL_PAGE_EXAMPLE = {
@@ -199,6 +213,21 @@ PROPOSAL_CANCEL_EXAMPLE = {
     "data": PROPOSAL_CANCELLED_EXAMPLE,
     "message": "제안이 취소되었습니다.",
 }
+PROPOSAL_RECEIVED_EXAMPLE = {
+    "success": True,
+    "data": {
+        **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
+        "status": "RECEIVED_CONFIRMED",
+        "deliveryReportedAt": EXAMPLE_UPDATED_AT,
+        "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
+    },
+    "message": "수령 확인되었습니다.",
+}
+PROPOSAL_DISPUTE_EXAMPLE = {
+    "success": True,
+    "data": {**PROPOSAL_MATCHED_DETAIL_EXAMPLE, "status": "DISPUTED", "disputedAt": EXAMPLE_UPDATED_AT},
+    "message": "분쟁이 접수되었습니다.",
+}
 
 OFFER_EXAMPLE = {
     "id": 10,
@@ -206,7 +235,12 @@ OFFER_EXAMPLE = {
     "runnerId": EXAMPLE_RUNNER_ID,
     "runnerName": "Runner One",
     "status": "WAITING",
-    "missionId": None,
+    "acceptedAt": None,
+    "deliveryCompletedAt": None,
+    "receiptConfirmedAt": None,
+    "settledAt": None,
+    "disputedAt": None,
+    "refundedAt": None,
     "createdAt": EXAMPLE_CREATED_AT,
 }
 OFFER_PAGE_EXAMPLE = {
@@ -225,78 +259,57 @@ OFFER_PAGE_EXAMPLE = {
 OFFER_LIST_EXAMPLE = {"success": True, "data": [OFFER_EXAMPLE], "message": "Success"}
 OFFER_CREATE_EXAMPLE = {"success": True, "data": OFFER_EXAMPLE, "message": "제안이 제출되었습니다."}
 OFFER_DETAIL_EXAMPLE = {"success": True, "data": OFFER_EXAMPLE, "message": "Success"}
-OFFER_DETAIL_WITH_MISSION_EXAMPLE = {
+OFFER_ACCEPTED_DETAIL_EXAMPLE = {
     "success": True,
-    "data": {**OFFER_EXAMPLE, "status": "ACCEPTED", "missionId": 100},
+    "data": {**OFFER_EXAMPLE, "status": "ACCEPTED", "acceptedAt": EXAMPLE_UPDATED_AT},
     "message": "Success",
+}
+OFFER_DELIVERY_EXAMPLE = {
+    "success": True,
+    "data": {
+        **OFFER_EXAMPLE,
+        "status": "DELIVERY_COMPLETED",
+        "acceptedAt": EXAMPLE_CREATED_AT,
+        "deliveryCompletedAt": EXAMPLE_UPDATED_AT,
+    },
+    "message": "전달 완료되었습니다.",
+}
+OFFER_DISPUTE_EXAMPLE = {
+    "success": True,
+    "data": {**OFFER_EXAMPLE, "status": "DISPUTED", "acceptedAt": EXAMPLE_CREATED_AT, "disputedAt": EXAMPLE_UPDATED_AT},
+    "message": "분쟁이 접수되었습니다.",
 }
 OFFER_ACCEPT_EXAMPLE = {
     "success": True,
     "data": {
         "proposalId": 1,
         "offerId": 10,
-        "missionId": 100,
         "proposalStatus": "MATCHED",
         "acceptedOfferStatus": "ACCEPTED",
         "rejectedOfferCount": 1,
-        "missionStatus": "CREATED",
         "ordererId": EXAMPLE_USER_ID,
         "runnerId": EXAMPLE_RUNNER_ID,
-        "createdAt": EXAMPLE_CREATED_AT,
+        "acceptedAt": EXAMPLE_CREATED_AT,
     },
     "message": "제안이 수락되었습니다.",
 }
 
-MISSION_EXAMPLE = {
-    "id": 100,
-    "proposalId": 1,
-    "offerId": 10,
-    "orderer": {"id": EXAMPLE_USER_ID, "name": "홍길동", "phone": "01012345678"},
-    "runner": {"id": EXAMPLE_RUNNER_ID, "name": "Runner One", "phone": "01077770001"},
-    "status": "CREATED",
-    "deliveryProofImageUrl": None,
-    "disputeReason": None,
-    "createdAt": EXAMPLE_CREATED_AT,
-    "pickupAt": None,
-    "deliveryCompletedAt": None,
-    "receivedConfirmedAt": None,
-    "settledAt": None,
-}
-MISSION_DELIVERY_EXAMPLE = {
+OFFER_SETTLED_EXAMPLE = {
     "success": True,
     "data": {
-        **MISSION_EXAMPLE,
-        "status": "DELIVERY_COMPLETED",
-        "deliveryProofImageUrl": "https://cdn.example/proof.jpg",
+        **OFFER_EXAMPLE,
+        "status": "SETTLED",
+        "acceptedAt": EXAMPLE_CREATED_AT,
         "deliveryCompletedAt": EXAMPLE_UPDATED_AT,
+        "receiptConfirmedAt": EXAMPLE_UPDATED_AT,
+        "settledAt": EXAMPLE_UPDATED_AT,
     },
-    "message": "전달 완료되었습니다.",
+    "message": "제안 정산이 완료되었습니다.",
 }
-MISSION_RECEIVED_EXAMPLE = {
+OFFER_REFUNDED_EXAMPLE = {
     "success": True,
-    "data": {
-        **MISSION_EXAMPLE,
-        "status": "COMPLETED",
-        "deliveryProofImageUrl": "https://cdn.example/proof.jpg",
-        "deliveryCompletedAt": EXAMPLE_UPDATED_AT,
-        "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
-    },
-    "message": "수령 확인되었습니다.",
-}
-MISSION_DISPUTE_EXAMPLE = {
-    "success": True,
-    "data": {**MISSION_EXAMPLE, "status": "DISPUTED", "disputeReason": "물품이 다릅니다."},
-    "message": "분쟁이 접수되었습니다.",
-}
-MISSION_SETTLED_EXAMPLE = {
-    "success": True,
-    "data": {**MISSION_EXAMPLE, "status": "SETTLED", "settledAt": EXAMPLE_UPDATED_AT},
-    "message": "미션 정산이 완료되었습니다.",
-}
-MISSION_REFUNDED_EXAMPLE = {
-    "success": True,
-    "data": {**MISSION_EXAMPLE, "status": "REFUNDED"},
-    "message": "미션 환불이 완료되었습니다.",
+    "data": {**OFFER_EXAMPLE, "status": "REFUNDED", "acceptedAt": EXAMPLE_CREATED_AT, "disputedAt": EXAMPLE_UPDATED_AT, "refundedAt": EXAMPLE_UPDATED_AT},
+    "message": "제안 환불이 완료되었습니다.",
 }
 
 SETTLEMENT_ACCOUNT_EXAMPLE = {

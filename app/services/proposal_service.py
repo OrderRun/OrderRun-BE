@@ -5,8 +5,10 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError, api_error
-from app.models.mission import Mission
+from app.events.base import EventBus
+from app.events.execution_events import MeetingConfirmedByOrdererEvent
 from app.models.offer import Offer, OfferStatus
+from app.models.proof import Proof, ProofType
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
@@ -15,11 +17,12 @@ from app.schemas.proposal import ProposalDetailResponse, ProposalOwnOfferRespons
 
 EDITABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED)
 CANCELLABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED, ProposalStatus.OFFERED)
-DETAIL_VISIBLE_STATUSES = (
-    ProposalStatus.POSTED,
-    ProposalStatus.OFFERED,
-    ProposalStatus.MATCHED,
-    ProposalStatus.CANCELLED,
+EXECUTION_OFFER_STATUSES = (
+    OfferStatus.ACCEPTED,
+    OfferStatus.DELIVERY_COMPLETED,
+    OfferStatus.RECEIPT_CONFIRMED,
+    OfferStatus.SETTLED,
+    OfferStatus.DISPUTED,
 )
 
 
@@ -46,6 +49,21 @@ class ProposalService:
             raise api_error(AppError.FORBIDDEN)
 
     @staticmethod
+    def _get_execution_offer(db: Session, proposal_id: int) -> Offer:
+        offer = (
+            db.query(Offer)
+            .filter(
+                Offer.proposal_id == proposal_id,
+                Offer.status.in_(EXECUTION_OFFER_STATUSES),
+            )
+            .order_by(Offer.accepted_at.desc(), Offer.id.desc())
+            .first()
+        )
+        if offer is None:
+            raise api_error(AppError.OFFER_NOT_FOUND)
+        return offer
+
+    @staticmethod
     def search_proposals(
         db: Session,
         proposal_statuses: list[ProposalStatus] | None,
@@ -67,9 +85,12 @@ class ProposalService:
     @staticmethod
     def get_proposal_detail(db: Session, proposal_id: int) -> ProposalDetailResponse:
         proposal = ProposalService._get_proposal(db, proposal_id)
-        if proposal.status not in DETAIL_VISIBLE_STATUSES:
-            raise api_error(AppError.PROPOSAL_NOT_FOUND, f"id: {proposal_id}")
-        mission = db.query(Mission).filter(Mission.proposal_id == proposal.id).first()
+        offers = (
+            db.query(Offer)
+            .filter(Offer.proposal_id == proposal_id)
+            .order_by(Offer.created_at.desc(), Offer.id.desc())
+            .all()
+        )
         return ProposalDetailResponse(
             id=proposal.id,
             title=proposal.title,
@@ -77,7 +98,22 @@ class ProposalService:
             deadline=proposal.deadline,
             errand_fee=proposal.errand_fee,
             status=proposal.status,
-            mission_id=mission.id if mission is not None else None,
+            matched_at=proposal.matched_at,
+            delivery_reported_at=proposal.delivery_reported_at,
+            received_confirmed_at=proposal.received_confirmed_at,
+            settled_at=proposal.settled_at,
+            disputed_at=proposal.disputed_at,
+            refunded_at=proposal.refunded_at,
+            offers=[
+                ProposalOwnOfferResponse(
+                    id=offer.id,
+                    proposal_id=offer.proposal_id,
+                    runner_id=offer.runner_id,
+                    status=offer.status,
+                    created_at=offer.created_at,
+                )
+                for offer in offers
+            ],
         )
 
     @staticmethod
@@ -200,6 +236,56 @@ class ProposalService:
         db.commit()
         db.refresh(proposal)
         return proposal
+
+    @staticmethod
+    def confirm_received(db: Session, proposal_id: int, orderer_id: str) -> ProposalDetailResponse:
+        proposal = ProposalService._get_proposal(db, proposal_id)
+        ProposalService._ensure_owner(proposal, orderer_id)
+        offer = ProposalService._get_execution_offer(db, proposal.id)
+
+        if not proposal.can_confirm_receipt() or not offer.can_confirm_receipt():
+            raise api_error(AppError.PROPOSAL_NOT_UPDATABLE, f"status: {proposal.status.value}")
+
+        proposal.confirm_receipt()
+        offer.confirm_receipt()
+        db.flush()
+        EventBus.publish(MeetingConfirmedByOrdererEvent(
+            offer_id=offer.id,
+            proposal_id=proposal.id,
+            orderer_id=proposal.orderer_id,
+            runner_id=offer.runner_id,
+            proposal_title=proposal.title,
+        ), db)
+        db.commit()
+        db.refresh(proposal)
+        return ProposalService.get_proposal_detail(db, proposal.id)
+
+    @staticmethod
+    def raise_dispute(
+        db: Session,
+        proposal_id: int,
+        orderer_id: str,
+        dispute_reason: str,
+    ) -> ProposalDetailResponse:
+        proposal = ProposalService._get_proposal(db, proposal_id)
+        ProposalService._ensure_owner(proposal, orderer_id)
+        offer = ProposalService._get_execution_offer(db, proposal.id)
+
+        if not proposal.can_raise_dispute() or not offer.can_raise_dispute():
+            raise api_error(AppError.PROPOSAL_NOT_UPDATABLE, f"status: {proposal.status.value}")
+
+        proposal.raise_dispute()
+        offer.raise_dispute()
+        db.add(Proof(
+            proposal_id=proposal.id,
+            offer_id=offer.id,
+            actor_id=orderer_id,
+            proof_type=ProofType.DISPUTE,
+            reason=dispute_reason,
+        ))
+        db.commit()
+        db.refresh(proposal)
+        return ProposalService.get_proposal_detail(db, proposal.id)
 
     @staticmethod
     def delete_expired_proposals(db: Session) -> int:
