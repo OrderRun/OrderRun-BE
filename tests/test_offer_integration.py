@@ -2,41 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from app.core.security import create_access_token
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
-from app.models.user import User
-
-
-def headers_for(user: User) -> dict:
-    return {"Authorization": f"Bearer {create_access_token({'sub': user.id})}"}
-
-
-def make_user(db, phone: str, name: str = "Offer User") -> User:
-    user = User(name=name, phone=phone, alarm_enabled=False)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
-
-
-def make_proposal(db, orderer_id: str, proposal_status: ProposalStatus = ProposalStatus.POSTED) -> Proposal:
-    deadline = datetime.now(timezone.utc) + timedelta(days=1)
-    proposal = Proposal(
-        orderer_id=orderer_id,
-        title="요청",
-        content="요청 내용",
-        deadline=deadline,
-        errand_fee=5000,
-        status=proposal_status,
-        meeting_at=deadline,
-        item_price=0,
-        deposit=0,
-    )
-    db.add(proposal)
-    db.commit()
-    db.refresh(proposal)
-    return proposal
 
 
 def offer_payload(proposal_id: int, **overrides) -> dict:
@@ -45,14 +12,14 @@ def offer_payload(proposal_id: int, **overrides) -> dict:
     return payload
 
 
-def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, db, sample_user):
-    runner = make_user(db, "01077770001", name="Runner One")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.POSTED)
+def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, db, factory, sample_user):
+    runner = factory.user("01077770001", name="Runner One")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.POSTED)
 
     response = client.post(
         "/v1/offer",
         json=offer_payload(proposal.id),
-        headers=headers_for(runner),
+        headers=factory.headers_for(runner),
     )
 
     assert response.status_code == 201
@@ -79,13 +46,13 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
     assert proposal.status == ProposalStatus.OFFERED
 
 
-def test_create_second_offer_keeps_proposal_offered(client, db, sample_user):
-    runner1 = make_user(db, "01077770002")
-    runner2 = make_user(db, "01077770003")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
+def test_create_second_offer_keeps_proposal_offered(client, db, factory, sample_user):
+    runner1 = factory.user("01077770002")
+    runner2 = factory.user("01077770003")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
 
-    first = client.post("/v1/offer", json=offer_payload(proposal.id), headers=headers_for(runner1))
-    second = client.post("/v1/offer", json=offer_payload(proposal.id), headers=headers_for(runner2))
+    first = client.post("/v1/offer", json=offer_payload(proposal.id), headers=factory.headers_for(runner1))
+    second = client.post("/v1/offer", json=offer_payload(proposal.id), headers=factory.headers_for(runner2))
 
     assert first.status_code == 201
     assert second.status_code == 201
@@ -93,13 +60,13 @@ def test_create_second_offer_keeps_proposal_offered(client, db, sample_user):
     assert proposal.status == ProposalStatus.OFFERED
 
 
-def test_get_offers_returns_latest_first_and_supports_multi_status_filter(client, db, sample_user):
-    runner1 = make_user(db, "01077770004", name="Old Runner")
-    runner2 = make_user(db, "01077770005", name="New Runner")
-    runner3 = make_user(db, "01077770019", name="Accepted Runner")
-    other_orderer = make_user(db, "01077770006")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
-    other_proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
+def test_get_offers_returns_latest_first_and_supports_multi_status_filter(client, db, factory, sample_user):
+    runner1 = factory.user("01077770004", name="Old Runner")
+    runner2 = factory.user("01077770005", name="New Runner")
+    runner3 = factory.user("01077770019", name="Accepted Runner")
+    other_orderer = factory.user("01077770006")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
+    other_proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
 
     old_offer = Offer(proposal_id=proposal.id, runner_id=runner1.id, status=OfferStatus.WAITING)
     new_offer = Offer(proposal_id=proposal.id, runner_id=runner2.id, status=OfferStatus.REJECTED)
@@ -108,7 +75,7 @@ def test_get_offers_returns_latest_first_and_supports_multi_status_filter(client
     db.add_all([old_offer, new_offer, accepted_offer, other_offer])
     db.commit()
 
-    response = client.get(f"/v1/offer?proposalId={proposal.id}", headers=headers_for(other_orderer))
+    response = client.get(f"/v1/offer?proposalId={proposal.id}", headers=factory.headers_for(other_orderer))
     assert response.status_code == 200
     items = response.json()["data"]
     assert [item["id"] for item in items] == [accepted_offer.id, new_offer.id, old_offer.id]
@@ -116,28 +83,28 @@ def test_get_offers_returns_latest_first_and_supports_multi_status_filter(client
 
     filtered = client.get(
         f"/v1/offer?proposalId={proposal.id}&status=WAITING&status=ACCEPTED",
-        headers=headers_for(other_orderer),
+        headers=factory.headers_for(other_orderer),
     )
     assert filtered.status_code == 200
     filtered_items = filtered.json()["data"]
     assert [item["id"] for item in filtered_items] == [accepted_offer.id, old_offer.id]
 
-    invalid = client.get(f"/v1/offer?proposalId={proposal.id}&status=INVALID", headers=headers_for(other_orderer))
+    invalid = client.get(f"/v1/offer?proposalId={proposal.id}&status=INVALID", headers=factory.headers_for(other_orderer))
     assert invalid.status_code == 400
     assert invalid.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
-def test_get_offer_detail_allows_any_logged_in_user(client, db, sample_user):
-    runner = make_user(db, "01077770007")
-    stranger = make_user(db, "01077770008")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
+def test_get_offer_detail_allows_any_logged_in_user(client, db, factory, sample_user):
+    runner = factory.user("01077770007")
+    stranger = factory.user("01077770008")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id)
     db.add(offer)
     db.commit()
 
-    runner_response = client.get(f"/v1/offer/{offer.id}", headers=headers_for(runner))
-    orderer_response = client.get(f"/v1/offer/{offer.id}", headers=headers_for(sample_user))
-    stranger_response = client.get(f"/v1/offer/{offer.id}", headers=headers_for(stranger))
+    runner_response = client.get(f"/v1/offer/{offer.id}", headers=factory.headers_for(runner))
+    orderer_response = client.get(f"/v1/offer/{offer.id}", headers=factory.headers_for(sample_user))
+    stranger_response = client.get(f"/v1/offer/{offer.id}", headers=factory.headers_for(stranger))
 
     assert runner_response.status_code == 200
     assert orderer_response.status_code == 200
@@ -146,35 +113,35 @@ def test_get_offer_detail_allows_any_logged_in_user(client, db, sample_user):
     assert runner_response.json()["data"]["acceptedAt"] is None
 
 
-def test_get_offer_detail_returns_state_timestamps_when_accepted(client, db, sample_user):
-    runner = make_user(db, "01077770020")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.MATCHED)
+def test_get_offer_detail_returns_state_timestamps_when_accepted(client, db, factory, sample_user):
+    runner = factory.user("01077770020")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
     offer.accepted_at = datetime.now(timezone.utc)
     db.add(offer)
     db.commit()
     db.refresh(offer)
 
-    response = client.get(f"/v1/offer/{offer.id}", headers=headers_for(runner))
+    response = client.get(f"/v1/offer/{offer.id}", headers=factory.headers_for(runner))
 
     assert response.status_code == 200
     assert response.json()["data"]["acceptedAt"] is not None
     assert "missionId" not in response.json()["data"]
 
 
-def test_get_own_offers_supports_paging_and_multi_status_filter(client, db, sample_user):
-    runner = make_user(db, "01077770009")
-    other_runner = make_user(db, "01077770010")
-    proposal1 = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
-    proposal2 = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
-    proposal3 = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
+def test_get_own_offers_supports_paging_and_multi_status_filter(client, db, factory, sample_user):
+    runner = factory.user("01077770009")
+    other_runner = factory.user("01077770010")
+    proposal1 = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
+    proposal2 = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
+    proposal3 = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
     waiting = Offer(proposal_id=proposal1.id, runner_id=runner.id, status=OfferStatus.WAITING)
     accepted = Offer(proposal_id=proposal2.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
     other = Offer(proposal_id=proposal3.id, runner_id=other_runner.id, status=OfferStatus.WAITING)
     db.add_all([waiting, accepted, other])
     db.commit()
 
-    response = client.get("/v1/offer/own?status=WAITING&status=ACCEPTED&page=0&size=10", headers=headers_for(runner))
+    response = client.get("/v1/offer/own?status=WAITING&status=ACCEPTED&page=0&size=10", headers=factory.headers_for(runner))
 
     assert response.status_code == 200
     page = response.json()["data"]
@@ -182,10 +149,10 @@ def test_get_own_offers_supports_paging_and_multi_status_filter(client, db, samp
     assert [item["id"] for item in page["content"]] == [accepted.id, waiting.id]
 
 
-def test_accept_offer_updates_states_and_timestamps(client, db, sample_user):
-    runner1 = make_user(db, "01077770011")
-    runner2 = make_user(db, "01077770012")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
+def test_accept_offer_updates_states_and_timestamps(client, db, factory, sample_user):
+    runner1 = factory.user("01077770011")
+    runner2 = factory.user("01077770012")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
     selected = Offer(proposal_id=proposal.id, runner_id=runner1.id)
     other = Offer(proposal_id=proposal.id, runner_id=runner2.id)
     db.add_all([selected, other])
@@ -193,7 +160,7 @@ def test_accept_offer_updates_states_and_timestamps(client, db, sample_user):
 
     response = client.post(
         f"/v1/offer/{selected.id}/accept",
-        headers=headers_for(sample_user),
+        headers=factory.headers_for(sample_user),
     )
 
     assert response.status_code == 201
@@ -221,11 +188,11 @@ def test_accept_offer_updates_states_and_timestamps(client, db, sample_user):
     assert selected.accepted_at is not None
 
 
-def test_accept_offer_domain_and_validation_errors(client, db, sample_user):
-    runner = make_user(db, "01077770013")
-    other_user = make_user(db, "01077770014")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
-    posted_proposal = make_proposal(db, sample_user.id, ProposalStatus.POSTED)
+def test_accept_offer_domain_and_validation_errors(client, db, factory, sample_user):
+    runner = factory.user("01077770013")
+    other_user = factory.user("01077770014")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
+    posted_proposal = factory.proposal(sample_user.id, ProposalStatus.POSTED)
     accepted_offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
     posted_offer = Offer(proposal_id=posted_proposal.id, runner_id=runner.id, status=OfferStatus.WAITING)
     db.add_all([accepted_offer, posted_offer])
@@ -233,19 +200,19 @@ def test_accept_offer_domain_and_validation_errors(client, db, sample_user):
 
     forbidden = client.post(
         f"/v1/offer/{posted_offer.id}/accept",
-        headers=headers_for(other_user),
+        headers=factory.headers_for(other_user),
     )
     runner_forbidden = client.post(
         f"/v1/offer/{posted_offer.id}/accept",
-        headers=headers_for(runner),
+        headers=factory.headers_for(runner),
     )
     not_acceptable = client.post(
         f"/v1/offer/{accepted_offer.id}/accept",
-        headers=headers_for(sample_user),
+        headers=factory.headers_for(sample_user),
     )
     not_matchable = client.post(
         f"/v1/offer/{posted_offer.id}/accept",
-        headers=headers_for(sample_user),
+        headers=factory.headers_for(sample_user),
     )
 
     assert forbidden.status_code == 403
@@ -258,10 +225,10 @@ def test_accept_offer_domain_and_validation_errors(client, db, sample_user):
     assert not_matchable.json()["error"]["code"] == "PROPOSAL_NOT_MATCHABLE"
 
 
-def test_existing_active_offer_blocks_accept(client, db, sample_user):
-    runner = make_user(db, "01077770015")
-    other_runner = make_user(db, "01077770021")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
+def test_existing_active_offer_blocks_accept(client, db, factory, sample_user):
+    runner = factory.user("01077770015")
+    other_runner = factory.user("01077770021")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id)
     active_offer = Offer(proposal_id=proposal.id, runner_id=other_runner.id, status=OfferStatus.ACCEPTED)
     db.add_all([offer, active_offer])
@@ -269,25 +236,25 @@ def test_existing_active_offer_blocks_accept(client, db, sample_user):
 
     response = client.post(
         f"/v1/offer/{offer.id}/accept",
-        headers=headers_for(sample_user),
+        headers=factory.headers_for(sample_user),
     )
 
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "PROPOSAL_NOT_MATCHABLE"
 
 
-def test_cancel_offer_author_and_status_rules(client, db, sample_user):
-    runner = make_user(db, "01077770016")
-    other_runner = make_user(db, "01077770017")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
+def test_cancel_offer_author_and_status_rules(client, db, factory, sample_user):
+    runner = factory.user("01077770016")
+    other_runner = factory.user("01077770017")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
     waiting = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.WAITING)
     accepted = Offer(proposal_id=proposal.id, runner_id=other_runner.id, status=OfferStatus.ACCEPTED)
     db.add_all([waiting, accepted])
     db.commit()
 
-    forbidden = client.delete(f"/v1/offer/{waiting.id}", headers=headers_for(other_runner))
-    not_cancellable = client.delete(f"/v1/offer/{accepted.id}", headers=headers_for(other_runner))
-    cancelled = client.delete(f"/v1/offer/{waiting.id}", headers=headers_for(runner))
+    forbidden = client.delete(f"/v1/offer/{waiting.id}", headers=factory.headers_for(other_runner))
+    not_cancellable = client.delete(f"/v1/offer/{accepted.id}", headers=factory.headers_for(other_runner))
+    cancelled = client.delete(f"/v1/offer/{waiting.id}", headers=factory.headers_for(runner))
 
     assert forbidden.status_code == 403
     assert forbidden.json()["error"]["code"] == "FORBIDDEN"
@@ -300,17 +267,94 @@ def test_cancel_offer_author_and_status_rules(client, db, sample_user):
     assert waiting.status == OfferStatus.CANCELLED
 
 
-def test_offer_validation_and_domain_errors(client, db, sample_user):
-    runner = make_user(db, "01077770018")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.POSTED)
-    closed_proposal = make_proposal(db, sample_user.id, ProposalStatus.MATCHED)
+def test_complete_delivery_marks_offer_completed_without_finishing_proposal(client, db, factory, sample_user):
+    runner = factory.user("01077770022")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
+    offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    offer.accepted_at = datetime.now(timezone.utc)
+    db.add(offer)
+    db.commit()
 
-    invalid = client.post("/v1/offer", json={"proposalId": 0}, headers=headers_for(runner))
-    missing = client.post("/v1/offer", json=offer_payload(999999), headers=headers_for(runner))
-    closed = client.post("/v1/offer", json=offer_payload(closed_proposal.id), headers=headers_for(runner))
-    first = client.post("/v1/offer", json=offer_payload(proposal.id), headers=headers_for(runner))
-    duplicate = client.post("/v1/offer", json=offer_payload(proposal.id), headers=headers_for(runner))
-    self_offer = client.post("/v1/offer", json=offer_payload(proposal.id), headers=headers_for(sample_user))
+    response = client.post(
+        f"/v1/offer/{offer.id}/complete-delivery",
+        json={"proofImageUrl": "https://example.com/proof.jpg"},
+        headers=factory.headers_for(runner),
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["status"] == "COMPLETED"
+    assert data["deliveryCompletedAt"] is not None
+
+    db.refresh(offer)
+    db.refresh(proposal)
+    assert offer.status == OfferStatus.COMPLETED
+    assert offer.delivery_completed_at is not None
+    assert proposal.status == ProposalStatus.MATCHED
+    assert proposal.delivery_reported_at is not None
+
+
+def test_complete_delivery_after_orderer_completion_marks_both_all_completed(client, db, factory, sample_user):
+    runner = factory.user("01077770025")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.COMPLETED)
+    offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    offer.accepted_at = datetime.now(timezone.utc)
+    db.add(offer)
+    db.commit()
+
+    response = client.post(
+        f"/v1/offer/{offer.id}/complete-delivery",
+        json={"proofImageUrl": "https://example.com/proof.jpg"},
+        headers=factory.headers_for(runner),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["status"] == "ALL_COMPLETED"
+    db.refresh(offer)
+    db.refresh(proposal)
+    assert offer.status == OfferStatus.ALL_COMPLETED
+    assert proposal.status == ProposalStatus.ALL_COMPLETED
+
+
+def test_complete_delivery_forbidden_and_wrong_status_errors(client, db, factory, sample_user):
+    runner = factory.user("01077770023")
+    other_runner = factory.user("01077770024")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
+    accepted_offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    accepted_offer.accepted_at = datetime.now(timezone.utc)
+    waiting_proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
+    waiting_offer = Offer(proposal_id=waiting_proposal.id, runner_id=runner.id, status=OfferStatus.WAITING)
+    db.add_all([accepted_offer, waiting_offer])
+    db.commit()
+
+    forbidden = client.post(
+        f"/v1/offer/{accepted_offer.id}/complete-delivery",
+        json={"proofImageUrl": None},
+        headers=factory.headers_for(other_runner),
+    )
+    not_updatable = client.post(
+        f"/v1/offer/{waiting_offer.id}/complete-delivery",
+        json={"proofImageUrl": None},
+        headers=factory.headers_for(runner),
+    )
+
+    assert forbidden.status_code == 403
+    assert forbidden.json()["error"]["code"] == "FORBIDDEN"
+    assert not_updatable.status_code == 409
+    assert not_updatable.json()["error"]["code"] == "OFFER_NOT_UPDATABLE"
+
+
+def test_offer_validation_and_domain_errors(client, db, factory, sample_user):
+    runner = factory.user("01077770018")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.POSTED)
+    closed_proposal = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
+
+    invalid = client.post("/v1/offer", json={"proposalId": 0}, headers=factory.headers_for(runner))
+    missing = client.post("/v1/offer", json=offer_payload(999999), headers=factory.headers_for(runner))
+    closed = client.post("/v1/offer", json=offer_payload(closed_proposal.id), headers=factory.headers_for(runner))
+    first = client.post("/v1/offer", json=offer_payload(proposal.id), headers=factory.headers_for(runner))
+    duplicate = client.post("/v1/offer", json=offer_payload(proposal.id), headers=factory.headers_for(runner))
+    self_offer = client.post("/v1/offer", json=offer_payload(proposal.id), headers=factory.headers_for(sample_user))
 
     assert invalid.status_code == 400
     assert invalid.json()["error"]["code"] == "VALIDATION_ERROR"

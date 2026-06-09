@@ -21,6 +21,7 @@ from app.core.security import create_access_token
 from app.main import app
 from app.models.user import User
 from app.services.sms_service import get_sms_sender
+from tests.factories import TestDataFactory
 
 
 @dataclass
@@ -234,6 +235,11 @@ def db() -> Generator[Session, None, None]:
 @pytest.fixture(scope="function")
 def sms_sender() -> RecordingSmsSender:
     return RecordingSmsSender()
+
+
+@pytest.fixture
+def factory(db: Session) -> TestDataFactory:
+    return TestDataFactory(db)
 
 
 @pytest.fixture(scope="function")

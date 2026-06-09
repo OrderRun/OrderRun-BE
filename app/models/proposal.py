@@ -19,8 +19,8 @@ class ProposalStatus(str, enum.Enum):
     POSTED = "POSTED"
     OFFERED = "OFFERED"
     MATCHED = "MATCHED"
-    DELIVERY_REPORTED = "DELIVERY_REPORTED"
-    RECEIVED_CONFIRMED = "RECEIVED_CONFIRMED"
+    COMPLETED = "COMPLETED"
+    ALL_COMPLETED = "ALL_COMPLETED"
     SETTLED = "SETTLED"
     DISPUTED = "DISPUTED"
     REFUNDED = "REFUNDED"
@@ -69,32 +69,36 @@ class Proposal(Base):
     def report_delivery(self) -> None:
         if not self.can_report_delivery():
             raise ValueError("Cannot report delivery for proposal not in MATCHED status")
-        self.status = ProposalStatus.DELIVERY_REPORTED
         self.delivery_reported_at = utcnow_naive()
 
     def can_confirm_receipt(self) -> bool:
-        return self.status == ProposalStatus.DELIVERY_REPORTED
+        return self.status == ProposalStatus.MATCHED
 
     def confirm_receipt(self) -> None:
         if not self.can_confirm_receipt():
-            raise ValueError("Cannot confirm receipt for proposal not in DELIVERY_REPORTED status")
-        self.status = ProposalStatus.RECEIVED_CONFIRMED
+            raise ValueError("Cannot confirm receipt for proposal not in MATCHED status")
+        self.status = ProposalStatus.COMPLETED
         self.received_confirmed_at = utcnow_naive()
 
+    def mark_all_completed(self) -> None:
+        if self.status not in {ProposalStatus.COMPLETED, ProposalStatus.MATCHED}:
+            raise ValueError("Cannot mark all completed for proposal at this stage")
+        self.status = ProposalStatus.ALL_COMPLETED
+
     def can_settle(self) -> bool:
-        return self.status == ProposalStatus.RECEIVED_CONFIRMED
+        return self.status == ProposalStatus.ALL_COMPLETED
 
     def settle(self) -> None:
         if not self.can_settle():
-            raise ValueError("Cannot settle proposal not in RECEIVED_CONFIRMED status")
+            raise ValueError("Cannot settle proposal not in ALL_COMPLETED status")
         self.status = ProposalStatus.SETTLED
         self.settled_at = utcnow_naive()
 
     def can_raise_dispute(self) -> bool:
         return self.status in {
             ProposalStatus.MATCHED,
-            ProposalStatus.DELIVERY_REPORTED,
-            ProposalStatus.RECEIVED_CONFIRMED,
+            ProposalStatus.COMPLETED,
+            ProposalStatus.ALL_COMPLETED,
         }
 
     def raise_dispute(self) -> None:

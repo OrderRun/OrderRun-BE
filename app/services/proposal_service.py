@@ -19,8 +19,8 @@ EDITABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED)
 CANCELLABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED, ProposalStatus.OFFERED)
 EXECUTION_OFFER_STATUSES = (
     OfferStatus.ACCEPTED,
-    OfferStatus.DELIVERY_COMPLETED,
-    OfferStatus.RECEIPT_CONFIRMED,
+    OfferStatus.COMPLETED,
+    OfferStatus.ALL_COMPLETED,
     OfferStatus.SETTLED,
     OfferStatus.DISPUTED,
 )
@@ -62,6 +62,12 @@ class ProposalService:
         if offer is None:
             raise api_error(AppError.OFFER_NOT_FOUND)
         return offer
+
+    @staticmethod
+    def _sync_all_completed(proposal: Proposal, offer: Offer) -> None:
+        if proposal.status == ProposalStatus.COMPLETED and offer.status == OfferStatus.COMPLETED:
+            proposal.mark_all_completed()
+            offer.mark_all_completed()
 
     @staticmethod
     def search_proposals(
@@ -248,6 +254,7 @@ class ProposalService:
 
         proposal.confirm_receipt()
         offer.confirm_receipt()
+        ProposalService._sync_all_completed(proposal, offer)
         db.flush()
         EventBus.publish(MeetingConfirmedByOrdererEvent(
             offer_id=offer.id,

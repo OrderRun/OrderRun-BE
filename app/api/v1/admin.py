@@ -130,7 +130,7 @@ def list_pending_payment_proposals(
     response_model=ApiResponse[OfferResponse],
     status_code=status.HTTP_200_OK,
     summary="제안 정산 완료 처리 (관리자 전용)",
-    description="관리자가 러너 정산 입금을 확인하여 수락된 제안을 SETTLED 상태로 전환합니다.",
+    description="관리자가 러너 정산 입금을 확인하여 양측 완료된 제안을 SETTLED 상태로 전환합니다.",
     responses={
         200: success_response(OFFER_SETTLED_EXAMPLE),
         **error_responses(

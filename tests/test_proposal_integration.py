@@ -4,10 +4,8 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import inspect
 
-from app.core.security import create_access_token
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
-from app.models.user import User
 
 
 def future_deadline(days: int = 1) -> str:
@@ -25,43 +23,12 @@ def proposal_payload(**overrides):
     return payload
 
 
-def make_user(db, phone: str = "01099990000") -> User:
-    user = User(name="Other User", phone=phone, alarm_enabled=False)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
-
-
-def headers_for(user: User) -> dict:
-    return {"Authorization": f"Bearer {create_access_token({'sub': user.id})}"}
-
-
-def make_proposal(db, orderer_id: str, status: ProposalStatus, title: str = "요청") -> Proposal:
-    deadline = datetime.now(timezone.utc) + timedelta(days=1)
-    proposal = Proposal(
-        orderer_id=orderer_id,
-        title=title,
-        content="요청 내용",
-        deadline=deadline,
-        errand_fee=5000,
-        status=status,
-        meeting_at=deadline,
-        item_price=0,
-        deposit=0,
-    )
-    db.add(proposal)
-    db.commit()
-    db.refresh(proposal)
-    return proposal
-
-
-def test_list_public_requires_auth_and_supports_multi_status_filter(client, db, auth_headers, sample_user):
-    holding = make_proposal(db, sample_user.id, ProposalStatus.HOLDING, "holding")
-    posted = make_proposal(db, sample_user.id, ProposalStatus.POSTED, "posted")
-    offered = make_proposal(db, sample_user.id, ProposalStatus.OFFERED, "offered")
-    matched = make_proposal(db, sample_user.id, ProposalStatus.MATCHED, "matched")
-    cancelled = make_proposal(db, sample_user.id, ProposalStatus.CANCELLED, "cancelled")
+def test_list_public_requires_auth_and_supports_multi_status_filter(client, db, factory, auth_headers, sample_user):
+    holding = factory.proposal(sample_user.id, ProposalStatus.HOLDING, "holding")
+    posted = factory.proposal(sample_user.id, ProposalStatus.POSTED, "posted")
+    offered = factory.proposal(sample_user.id, ProposalStatus.OFFERED, "offered")
+    matched = factory.proposal(sample_user.id, ProposalStatus.MATCHED, "matched")
+    cancelled = factory.proposal(sample_user.id, ProposalStatus.CANCELLED, "cancelled")
 
     unauthenticated = client.get("/v1/proposal")
     assert unauthenticated.status_code == 401
@@ -86,9 +53,9 @@ def test_list_public_requires_auth_and_supports_multi_status_filter(client, db, 
     assert invalid.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
-def test_detail_returns_proposal_regardless_of_status(client, db, auth_headers, sample_user):
-    holding = make_proposal(db, sample_user.id, ProposalStatus.HOLDING)
-    cancelled = make_proposal(db, sample_user.id, ProposalStatus.CANCELLED)
+def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_headers, sample_user):
+    holding = factory.proposal(sample_user.id, ProposalStatus.HOLDING)
+    cancelled = factory.proposal(sample_user.id, ProposalStatus.CANCELLED)
 
     holding_response = client.get(f"/v1/proposal/{holding.id}", headers=auth_headers)
     assert holding_response.status_code == 200
@@ -104,9 +71,9 @@ def test_detail_returns_proposal_regardless_of_status(client, db, auth_headers, 
     assert data["offers"] == []
 
 
-def test_detail_returns_state_timestamps_when_matched(client, db, auth_headers, sample_user):
-    runner = make_user(db, "01099990003")
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.MATCHED)
+def test_detail_returns_state_timestamps_when_matched(client, db, factory, auth_headers, sample_user):
+    runner = factory.user("01099990003")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
     proposal.matched_at = datetime.now(timezone.utc)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
     db.add(offer)
@@ -123,12 +90,12 @@ def test_detail_returns_state_timestamps_when_matched(client, db, auth_headers, 
     assert data["offers"][0]["id"] == offer.id
 
 
-def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(client, db, auth_headers, sample_user):
-    other_user = make_user(db)
-    own_posted = make_proposal(db, sample_user.id, ProposalStatus.POSTED)
-    own_holding = make_proposal(db, sample_user.id, ProposalStatus.HOLDING)
-    own_cancelled = make_proposal(db, sample_user.id, ProposalStatus.CANCELLED)
-    make_proposal(db, other_user.id, ProposalStatus.POSTED)
+def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(client, db, factory, auth_headers, sample_user):
+    other_user = factory.user()
+    own_posted = factory.proposal(sample_user.id, ProposalStatus.POSTED)
+    own_holding = factory.proposal(sample_user.id, ProposalStatus.HOLDING)
+    own_cancelled = factory.proposal(sample_user.id, ProposalStatus.CANCELLED)
+    factory.proposal(other_user.id, ProposalStatus.POSTED)
 
     old_offer = Offer(
         proposal_id=own_posted.id,
@@ -137,7 +104,7 @@ def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(
     )
     new_offer = Offer(
         proposal_id=own_posted.id,
-        runner_id=make_user(db, "01099990001").id,
+        runner_id=factory.user("01099990001").id,
         status=OfferStatus.REJECTED,
     )
     db.add_all([old_offer, new_offer])
@@ -160,7 +127,7 @@ def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(
     }
 
 
-def test_create_proposal_validates_contract_and_stores_holding(client, db, auth_headers, sample_user):
+def test_create_proposal_validates_contract_and_stores_holding(client, db, factory, auth_headers, sample_user):
     response = client.post("/v1/proposal", json=proposal_payload(), headers=auth_headers)
     assert response.status_code == 201
     body = response.json()
@@ -194,15 +161,15 @@ def test_create_proposal_validation_errors(client, auth_headers):
         assert response.json()["error"]["code"] == expected_code
 
 
-def test_update_proposal_author_and_status_rules(client, db, auth_headers, sample_user):
-    other_user = make_user(db)
-    holding = make_proposal(db, sample_user.id, ProposalStatus.HOLDING)
-    posted = make_proposal(db, sample_user.id, ProposalStatus.POSTED)
-    offered = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
-    matched = make_proposal(db, sample_user.id, ProposalStatus.MATCHED)
-    cancelled = make_proposal(db, sample_user.id, ProposalStatus.CANCELLED)
+def test_update_proposal_author_and_status_rules(client, db, factory, auth_headers, sample_user):
+    other_user = factory.user()
+    holding = factory.proposal(sample_user.id, ProposalStatus.HOLDING)
+    posted = factory.proposal(sample_user.id, ProposalStatus.POSTED)
+    offered = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
+    matched = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
+    cancelled = factory.proposal(sample_user.id, ProposalStatus.CANCELLED)
 
-    forbidden = client.put(f"/v1/proposal/{holding.id}", json=proposal_payload(), headers=headers_for(other_user))
+    forbidden = client.put(f"/v1/proposal/{holding.id}", json=proposal_payload(), headers=factory.headers_for(other_user))
     assert forbidden.status_code == 403
     assert forbidden.json()["error"]["code"] == "FORBIDDEN"
 
@@ -229,13 +196,13 @@ def test_update_proposal_author_and_status_rules(client, db, auth_headers, sampl
     assert missing.json()["error"]["code"] == "PROPOSAL_NOT_FOUND"
 
 
-def test_cancel_proposal_author_status_rules_and_rejects_waiting_offers(client, db, auth_headers, sample_user):
-    other_user = make_user(db)
-    holding = make_proposal(db, sample_user.id, ProposalStatus.HOLDING)
-    posted = make_proposal(db, sample_user.id, ProposalStatus.POSTED)
-    offered = make_proposal(db, sample_user.id, ProposalStatus.OFFERED)
-    matched = make_proposal(db, sample_user.id, ProposalStatus.MATCHED)
-    cancelled = make_proposal(db, sample_user.id, ProposalStatus.CANCELLED)
+def test_cancel_proposal_author_status_rules_and_rejects_waiting_offers(client, db, factory, auth_headers, sample_user):
+    other_user = factory.user()
+    holding = factory.proposal(sample_user.id, ProposalStatus.HOLDING)
+    posted = factory.proposal(sample_user.id, ProposalStatus.POSTED)
+    offered = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
+    matched = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
+    cancelled = factory.proposal(sample_user.id, ProposalStatus.CANCELLED)
 
     waiting_offer = Offer(
         proposal_id=offered.id,
@@ -244,13 +211,13 @@ def test_cancel_proposal_author_status_rules_and_rejects_waiting_offers(client, 
     )
     cancelled_offer = Offer(
         proposal_id=offered.id,
-        runner_id=make_user(db, "01099990002").id,
+        runner_id=factory.user("01099990002").id,
         status=OfferStatus.REJECTED,
     )
     db.add_all([waiting_offer, cancelled_offer])
     db.commit()
 
-    forbidden = client.post(f"/v1/proposal/{holding.id}/cancel", headers=headers_for(other_user))
+    forbidden = client.post(f"/v1/proposal/{holding.id}/cancel", headers=factory.headers_for(other_user))
     assert forbidden.status_code == 403
     assert forbidden.json()["error"]["code"] == "FORBIDDEN"
 
@@ -271,6 +238,37 @@ def test_cancel_proposal_author_status_rules_and_rejects_waiting_offers(client, 
         assert response.json()["error"]["code"] == "PROPOSAL_NOT_CANCELLABLE"
 
 
+def test_confirm_received_marks_proposal_completed_without_finishing_offer(client, db, factory, auth_headers, sample_user):
+    runner = factory.user("01055550001")
+    proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.ACCEPTED)
+
+    response = client.post(f"/v1/proposal/{proposal.id}/confirm-received", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["message"] == "완료 확인되었습니다."
+    assert response.json()["data"]["status"] == "COMPLETED"
+    assert response.json()["data"]["receivedConfirmedAt"] is not None
+    db.refresh(proposal)
+    db.refresh(offer)
+    assert proposal.status == ProposalStatus.COMPLETED
+    assert offer.status == OfferStatus.ACCEPTED
+    assert offer.receipt_confirmed_at is not None
+
+
+def test_confirm_received_after_runner_completion_marks_both_all_completed(client, db, factory, auth_headers, sample_user):
+    runner = factory.user("01055550002")
+    proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.COMPLETED)
+
+    response = client.post(f"/v1/proposal/{proposal.id}/confirm-received", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["data"]["status"] == "ALL_COMPLETED"
+    db.refresh(proposal)
+    db.refresh(offer)
+    assert proposal.status == ProposalStatus.ALL_COMPLETED
+    assert offer.status == OfferStatus.ALL_COMPLETED
+
+
 def test_proposal_model_contract(db):
     table = inspect(db.bind).get_columns("proposals")
     columns = {column["name"]: column for column in table}
@@ -287,8 +285,8 @@ def test_proposal_model_contract(db):
         "POSTED",
         "OFFERED",
         "MATCHED",
-        "DELIVERY_REPORTED",
-        "RECEIVED_CONFIRMED",
+        "COMPLETED",
+        "ALL_COMPLETED",
         "SETTLED",
         "DISPUTED",
         "REFUNDED",

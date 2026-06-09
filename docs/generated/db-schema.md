@@ -148,11 +148,11 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `errand_fee` | `integer` | NO |  | 심부름비 |
 | `item_price` | `integer` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
 | `deposit` | `integer` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
-| `status` | `varchar(20)` | NO |  | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `DELIVERY_REPORTED`, `RECEIVED_CONFIRMED`, `SETTLED`, `DISPUTED`, `REFUNDED`, `CANCELLED` |
+| `status` | `varchar(20)` | NO |  | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `COMPLETED`, `ALL_COMPLETED`, `SETTLED`, `DISPUTED`, `REFUNDED`, `CANCELLED` |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 | `matched_at` | `datetime(6)` | YES |  | Offer 수락으로 매칭된 시각 |
-| `delivery_reported_at` | `datetime(6)` | YES |  | 러너 전달 완료가 Proposal에 반영된 시각 |
-| `received_confirmed_at` | `datetime(6)` | YES |  | 오더 수령 확인 시각 |
+| `delivery_reported_at` | `datetime(6)` | YES |  | 러너 완료가 Proposal에 반영된 시각 |
+| `received_confirmed_at` | `datetime(6)` | YES |  | 오더러 완료 확인 시각 |
 | `settled_at` | `datetime(6)` | YES |  | 정산 완료 시각 |
 | `disputed_at` | `datetime(6)` | YES |  | 분쟁 접수 시각 |
 | `refunded_at` | `datetime(6)` | YES |  | 환불 완료 시각 |
@@ -165,11 +165,11 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `id` | `bigint` | NO | PK, auto increment | Offer ID |
 | `proposal_id` | `bigint` | NO | UNIQUE `uk_proposal_runner` 일부 | 대상 Proposal ID |
 | `runner_id` | `varchar(36)` | NO | UNIQUE `uk_proposal_runner` 일부, INDEX `idx_offers_runner_id` | 지원자 사용자 ID |
-| `status` | `varchar(20)` | NO |  | `WAITING`, `ACCEPTED`, `DELIVERY_COMPLETED`, `RECEIPT_CONFIRMED`, `SETTLED`, `DISPUTED`, `REFUNDED`, `REJECTED`, `CANCELLED` |
+| `status` | `varchar(20)` | NO |  | `WAITING`, `ACCEPTED`, `COMPLETED`, `ALL_COMPLETED`, `SETTLED`, `DISPUTED`, `REFUNDED`, `REJECTED`, `CANCELLED` |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 | `accepted_at` | `datetime(6)` | YES |  | 오더가 Offer를 수락한 시각 |
-| `delivery_completed_at` | `datetime(6)` | YES |  | 러너 전달 완료 시각 |
-| `receipt_confirmed_at` | `datetime(6)` | YES |  | 오더 수령 확인이 Offer에 반영된 시각 |
+| `delivery_completed_at` | `datetime(6)` | YES |  | 러너 완료 시각 |
+| `receipt_confirmed_at` | `datetime(6)` | YES |  | 오더러 완료 확인이 Offer에 반영된 시각 |
 | `settled_at` | `datetime(6)` | YES |  | 정산 완료 시각 |
 | `disputed_at` | `datetime(6)` | YES |  | 분쟁 접수 시각 |
 | `refunded_at` | `datetime(6)` | YES |  | 환불 완료 시각 |

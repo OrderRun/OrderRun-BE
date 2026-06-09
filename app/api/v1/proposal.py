@@ -219,8 +219,8 @@ def cancel_proposal(
     "/{proposal_id}/confirm-received",
     response_model=ApiResponse[ProposalDetailResponse],
     status_code=status.HTTP_200_OK,
-    summary="오더 수령 확인",
-    description="오더러가 수령을 확인하고 요청과 연결 제안을 수령 확인 상태로 변경합니다.",
+    summary="오더러 완료 처리",
+    description="오더러가 완료를 확인하고 요청을 완료 상태로 변경합니다.",
     responses={
         200: success_response(PROPOSAL_RECEIVED_EXAMPLE),
         **error_responses(
@@ -238,7 +238,7 @@ def confirm_received(
     db: Session = Depends(get_db),
 ) -> ApiResponse[ProposalDetailResponse]:
     proposal = ProposalService.confirm_received(db, proposal_id=proposal_id, orderer_id=current_user.id)
-    return ApiResponse(success=True, data=proposal, message="수령 확인되었습니다.")
+    return ApiResponse(success=True, data=proposal, message="완료 확인되었습니다.")
 
 
 @router.post(

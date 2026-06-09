@@ -127,8 +127,8 @@ def test_representative_success_examples_match_contracts():
     offer_delivery = schema["paths"]["/v1/offer/{offer_id}/complete-delivery"]["post"]["responses"]["200"][
         "content"
     ]["application/json"]["example"]
-    assert offer_delivery["message"] == "전달 완료되었습니다."
-    assert offer_delivery["data"]["status"] == "DELIVERY_COMPLETED"
+    assert offer_delivery["message"] == "완료 처리되었습니다."
+    assert offer_delivery["data"]["status"] == "COMPLETED"
     assert "missionId" not in offer_delivery["data"]
     assert offer_delivery["data"]["deliveryCompletedAt"] is not None
 

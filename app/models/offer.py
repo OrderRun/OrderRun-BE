@@ -15,8 +15,8 @@ class OfferStatus(str, enum.Enum):
 
     WAITING = "WAITING"
     ACCEPTED = "ACCEPTED"
-    DELIVERY_COMPLETED = "DELIVERY_COMPLETED"
-    RECEIPT_CONFIRMED = "RECEIPT_CONFIRMED"
+    COMPLETED = "COMPLETED"
+    ALL_COMPLETED = "ALL_COMPLETED"
     SETTLED = "SETTLED"
     DISPUTED = "DISPUTED"
     REFUNDED = "REFUNDED"
@@ -68,32 +68,36 @@ class Offer(Base):
     def complete_delivery(self) -> None:
         if not self.can_complete_delivery():
             raise ValueError("Cannot complete delivery for offer not in ACCEPTED status")
-        self.status = OfferStatus.DELIVERY_COMPLETED
+        self.status = OfferStatus.COMPLETED
         self.delivery_completed_at = utcnow_naive()
 
     def can_confirm_receipt(self) -> bool:
-        return self.status == OfferStatus.DELIVERY_COMPLETED
+        return self.status in {OfferStatus.ACCEPTED, OfferStatus.COMPLETED}
 
     def confirm_receipt(self) -> None:
         if not self.can_confirm_receipt():
-            raise ValueError("Cannot confirm receipt for offer not in DELIVERY_COMPLETED status")
-        self.status = OfferStatus.RECEIPT_CONFIRMED
+            raise ValueError("Cannot confirm receipt for offer not in active execution status")
         self.receipt_confirmed_at = utcnow_naive()
 
+    def mark_all_completed(self) -> None:
+        if self.status not in {OfferStatus.COMPLETED, OfferStatus.ACCEPTED}:
+            raise ValueError("Cannot mark all completed for offer at this stage")
+        self.status = OfferStatus.ALL_COMPLETED
+
     def can_settle(self) -> bool:
-        return self.status == OfferStatus.RECEIPT_CONFIRMED
+        return self.status == OfferStatus.ALL_COMPLETED
 
     def settle(self) -> None:
         if not self.can_settle():
-            raise ValueError("Cannot settle offer not in RECEIPT_CONFIRMED status")
+            raise ValueError("Cannot settle offer not in ALL_COMPLETED status")
         self.status = OfferStatus.SETTLED
         self.settled_at = utcnow_naive()
 
     def can_raise_dispute(self) -> bool:
         return self.status in {
             OfferStatus.ACCEPTED,
-            OfferStatus.DELIVERY_COMPLETED,
-            OfferStatus.RECEIPT_CONFIRMED,
+            OfferStatus.COMPLETED,
+            OfferStatus.ALL_COMPLETED,
         }
 
     def raise_dispute(self) -> None:

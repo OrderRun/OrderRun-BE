@@ -26,12 +26,12 @@ WAITING (생성 시 기본값)
   ├─→ REJECTED (거절됨)
   └─→ CANCELLED (러너 취소)
 ACCEPTED
-  ├─→ DELIVERY_COMPLETED (러너 전달 완료)
+  ├─→ COMPLETED (러너 완료)
   └─→ DISPUTED (분쟁 접수)
-DELIVERY_COMPLETED
-  ├─→ RECEIPT_CONFIRMED (오더 수령 확인 반영)
+COMPLETED
+  ├─→ ALL_COMPLETED (오더러 완료도 접수됨)
   └─→ DISPUTED (분쟁 접수)
-RECEIPT_CONFIRMED
+ALL_COMPLETED
   ├─→ SETTLED (정산 완료)
   └─→ DISPUTED (분쟁 접수)
 DISPUTED

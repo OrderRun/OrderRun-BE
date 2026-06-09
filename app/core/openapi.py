@@ -217,11 +217,10 @@ PROPOSAL_RECEIVED_EXAMPLE = {
     "success": True,
     "data": {
         **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
-        "status": "RECEIVED_CONFIRMED",
-        "deliveryReportedAt": EXAMPLE_UPDATED_AT,
+        "status": "COMPLETED",
         "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
     },
-    "message": "수령 확인되었습니다.",
+    "message": "완료 확인되었습니다.",
 }
 PROPOSAL_DISPUTE_EXAMPLE = {
     "success": True,
@@ -268,11 +267,11 @@ OFFER_DELIVERY_EXAMPLE = {
     "success": True,
     "data": {
         **OFFER_EXAMPLE,
-        "status": "DELIVERY_COMPLETED",
+        "status": "COMPLETED",
         "acceptedAt": EXAMPLE_CREATED_AT,
         "deliveryCompletedAt": EXAMPLE_UPDATED_AT,
     },
-    "message": "전달 완료되었습니다.",
+    "message": "완료 처리되었습니다.",
 }
 OFFER_DISPUTE_EXAMPLE = {
     "success": True,

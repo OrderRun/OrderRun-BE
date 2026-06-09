@@ -180,8 +180,8 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | matchedAt | string, null | Offer 수락으로 매칭된 시각 |
-| deliveryReportedAt | string, null | 러너 전달 완료가 Proposal에 반영된 시각 |
-| receivedConfirmedAt | string, null | 오더 수령 확인 시각 |
+| deliveryReportedAt | string, null | 러너 완료가 Proposal에 반영된 시각 |
+| receivedConfirmedAt | string, null | 오더러 완료 확인 시각 |
 | settledAt | string, null | 정산 완료 시각 |
 | disputedAt | string, null | 분쟁 접수 시각 |
 | refundedAt | string, null | 환불 완료 시각 |
@@ -196,8 +196,8 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | runnerName | string, null | Offer 제출 러너 이름 |
 | status | string | Offer 상태. `OfferStatus` 참조 |
 | acceptedAt | string, null | 오더가 Offer를 수락한 시각 |
-| deliveryCompletedAt | string, null | 러너 전달 완료 시각 |
-| receiptConfirmedAt | string, null | 오더 수령 확인이 Offer에 반영된 시각 |
+| deliveryCompletedAt | string, null | 러너 완료 시각 |
+| receiptConfirmedAt | string, null | 오더러 완료 확인이 Offer에 반영된 시각 |
 | settledAt | string, null | 정산 완료 시각 |
 | disputedAt | string, null | 분쟁 접수 시각 |
 | refundedAt | string, null | 환불 완료 시각 |
@@ -418,7 +418,7 @@ Mission API는 제거되었고 관리자 정산/환불은 수락된 Offer ID 기
 
 | 필드 | 타입 | 필수 | 제약 |
 |------|------|------|------|
-| proofImageUrl | string | X | 전달 완료 인증 이미지 URL |
+| proofImageUrl | string | X | 완료 인증 이미지 URL |
 
 #### `POST /v1/offer/{offerId}/dispute`
 
@@ -472,8 +472,8 @@ Mission API는 제거되었고 관리자 정산/환불은 수락된 Offer ID 기
 | POSTED | 모집 중 |
 | OFFERED | 제안 도착 |
 | MATCHED | 매칭 완료 |
-| DELIVERY_REPORTED | 러너 전달 완료 보고 |
-| RECEIVED_CONFIRMED | 오더 수령 확인 완료 |
+| COMPLETED | 오더러 완료 확인 |
+| ALL_COMPLETED | 러너와 오더러 모두 완료 |
 | SETTLED | 정산 완료 |
 | DISPUTED | 분쟁 접수 |
 | REFUNDED | 환불 완료 |
@@ -485,8 +485,8 @@ Mission API는 제거되었고 관리자 정산/환불은 수락된 Offer ID 기
 |----|------|
 | WAITING | 수락 대기 |
 | ACCEPTED | 수락됨 |
-| DELIVERY_COMPLETED | 러너 전달 완료 |
-| RECEIPT_CONFIRMED | 오더 수령 확인 반영 |
+| COMPLETED | 러너 완료 |
+| ALL_COMPLETED | 러너와 오더러 모두 완료 |
 | SETTLED | 정산 완료 |
 | DISPUTED | 분쟁 접수 |
 | REFUNDED | 환불 완료 |
@@ -497,7 +497,7 @@ Mission API는 제거되었고 관리자 정산/환불은 수락된 Offer ID 기
 
 | 값 | 설명 |
 |----|------|
-| DELIVERY | 배송 사진 등 전달 완료 증빙 |
+| DELIVERY | 완료 증빙 |
 | DISPUTE | 분쟁 사유 등 분쟁 증빙 |
 
 Mission 도메인과 Mission 상태 enum은 제거되었다.

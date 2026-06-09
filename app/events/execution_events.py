@@ -7,7 +7,7 @@ from app.events.base import DomainEvent
 
 @dataclass(frozen=True)
 class MeetingConfirmedByRunnerEvent(DomainEvent):
-    """러너가 전달 완료했을 때 요청자에게 알림."""
+    """러너가 완료 처리했을 때 요청자에게 알림."""
 
     offer_id: int
     proposal_id: int
@@ -18,7 +18,7 @@ class MeetingConfirmedByRunnerEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class MeetingConfirmedByOrdererEvent(DomainEvent):
-    """요청자가 수령 확인했을 때 러너에게 알림."""
+    """요청자가 완료 확인했을 때 러너에게 알림."""
 
     offer_id: int
     proposal_id: int

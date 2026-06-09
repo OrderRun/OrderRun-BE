@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 from app.models.offer import OfferStatus
-from app.models.proposal import Proposal, ProposalStatus
-
-from tests.test_mission_integration import make_execution, make_user
-from tests.test_proposal_integration import make_proposal
+from app.models.proposal import ProposalStatus
 
 
-def test_confirm_payment_posts_holding_proposal_without_request_body(client, db, auth_headers, sample_user):
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.HOLDING)
+def test_confirm_payment_posts_holding_proposal_without_request_body(client, db, factory, auth_headers, sample_user):
+    proposal = factory.proposal(sample_user.id, ProposalStatus.HOLDING)
 
     response = client.post(f"/api/v1/admin/proposal/{proposal.id}/confirm-payment", headers=auth_headers)
 
@@ -18,8 +15,8 @@ def test_confirm_payment_posts_holding_proposal_without_request_body(client, db,
     assert proposal.status == ProposalStatus.POSTED
 
 
-def test_confirm_payment_rejects_non_holding_proposal(client, db, auth_headers, sample_user):
-    proposal = make_proposal(db, sample_user.id, ProposalStatus.POSTED)
+def test_confirm_payment_rejects_non_holding_proposal(client, db, factory, auth_headers, sample_user):
+    proposal = factory.proposal(sample_user.id, ProposalStatus.POSTED)
 
     response = client.post(f"/api/v1/admin/proposal/{proposal.id}/confirm-payment", headers=auth_headers)
 
@@ -27,14 +24,13 @@ def test_confirm_payment_rejects_non_holding_proposal(client, db, auth_headers, 
     assert response.json()["error"]["code"] == "INVALID_STATUS"
 
 
-def test_confirm_offer_settlement_sets_settled(client, db, auth_headers, sample_user):
-    runner = make_user(db, "01066660001")
-    proposal, offer = make_execution(
-        db,
+def test_confirm_offer_settlement_sets_settled(client, db, factory, auth_headers, sample_user):
+    runner = factory.user("01066660001")
+    proposal, offer = factory.execution(
         sample_user,
         runner,
-        ProposalStatus.RECEIVED_CONFIRMED,
-        OfferStatus.RECEIPT_CONFIRMED,
+        ProposalStatus.ALL_COMPLETED,
+        OfferStatus.ALL_COMPLETED,
     )
 
     response = client.post(f"/api/v1/admin/offer/{offer.id}/confirm-settlement", headers=auth_headers)
@@ -50,9 +46,9 @@ def test_confirm_offer_settlement_sets_settled(client, db, auth_headers, sample_
     assert offer.settled_at is not None
 
 
-def test_confirm_offer_settlement_rejects_non_completed(client, db, auth_headers, sample_user):
-    runner = make_user(db, "01066660002")
-    _, offer = make_execution(db, sample_user, runner, ProposalStatus.DELIVERY_REPORTED, OfferStatus.DELIVERY_COMPLETED)
+def test_confirm_offer_settlement_rejects_non_completed(client, factory, auth_headers, sample_user):
+    runner = factory.user("01066660002")
+    _, offer = factory.execution(sample_user, runner, ProposalStatus.COMPLETED, OfferStatus.COMPLETED)
 
     response = client.post(f"/api/v1/admin/offer/{offer.id}/confirm-settlement", headers=auth_headers)
 
@@ -60,9 +56,9 @@ def test_confirm_offer_settlement_rejects_non_completed(client, db, auth_headers
     assert response.json()["error"]["code"] == "OFFER_NOT_UPDATABLE"
 
 
-def test_refund_offer_sets_refunded_from_disputed(client, db, auth_headers, sample_user):
-    runner = make_user(db, "01066660003")
-    proposal, offer = make_execution(db, sample_user, runner, ProposalStatus.DISPUTED, OfferStatus.DISPUTED)
+def test_refund_offer_sets_refunded_from_disputed(client, db, factory, auth_headers, sample_user):
+    runner = factory.user("01066660003")
+    proposal, offer = factory.execution(sample_user, runner, ProposalStatus.DISPUTED, OfferStatus.DISPUTED)
 
     response = client.post(f"/api/v1/admin/offer/{offer.id}/refund", headers=auth_headers)
 

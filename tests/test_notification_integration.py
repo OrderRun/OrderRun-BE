@@ -1,31 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.api.v1.notifications import get_notification_dispatcher
 from app.main import app
 from app.models.notification import Notification, NotificationStatus, NotificationType
 
 
-def make_notification(db, user_id: str, **overrides) -> Notification:
-    values = {
-        "user_id": user_id,
-        "notification_type": NotificationType.CUSTOM,
-        "title": "테스트 알림",
-        "body": "테스트 알림 본문입니다.",
-        "data": '{"proposalId":1}',
-        "related_entity_type": "proposal",
-        "related_entity_id": 1,
-        "status": NotificationStatus.SENT,
-        "fcm_message_id": "projects/orderrun/messages/1",
-        "sent_at": datetime.utcnow(),
-    }
-    values.update(overrides)
-    notification = Notification(**values)
-    db.add(notification)
-    db.commit()
-    db.refresh(notification)
-    return notification
+def utcnow_naive() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class RecordingNotificationDispatcher:
@@ -51,7 +34,7 @@ class RecordingNotificationDispatcher:
             related_entity_id=related_entity_id,
             status=NotificationStatus.SENT,
             fcm_message_id="projects/orderrun/messages/1",
-            sent_at=datetime.utcnow(),
+            sent_at=utcnow_naive(),
         )
         db.add(notification)
         db.commit()
@@ -64,16 +47,14 @@ def test_root_response_matches_openapi_example(client):
     assert response.json()["docs"] == "/docs"
 
 
-def test_notification_list_stats_detail_and_mark_read(client, db, auth_headers, sample_user):
-    unread = make_notification(db, sample_user.id)
-    make_notification(
-        db,
+def test_notification_list_stats_detail_and_mark_read(client, db, factory, auth_headers, sample_user):
+    unread = factory.notification(sample_user.id)
+    factory.notification(
         sample_user.id,
         status=NotificationStatus.READ,
-        read_at=datetime.utcnow(),
+        read_at=utcnow_naive(),
     )
-    make_notification(
-        db,
+    factory.notification(
         sample_user.id,
         status=NotificationStatus.FAILED,
         error_message="No FCM token",

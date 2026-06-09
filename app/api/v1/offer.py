@@ -198,8 +198,8 @@ def accept_offer(
     "/{offer_id}/complete-delivery",
     response_model=ApiResponse[OfferResponse],
     status_code=status.HTTP_200_OK,
-    summary="러너 전달 완료",
-    description="러너가 전달 완료 증빙 이미지를 등록하고 제안을 전달 완료 상태로 변경합니다.",
+    summary="러너 완료 처리",
+    description="러너가 완료 증빙 이미지를 등록하고 제안을 완료 상태로 변경합니다.",
     responses={
         200: success_response(OFFER_DELIVERY_EXAMPLE),
         **error_responses(
@@ -225,7 +225,7 @@ def complete_delivery(
         proof_image_url=request.proof_image_url,
     )
     background_tasks.add_task(get_notification_worker().flush_pending, SessionLocal)
-    return ApiResponse(success=True, data=offer, message="전달 완료되었습니다.")
+    return ApiResponse(success=True, data=offer, message="완료 처리되었습니다.")
 
 
 @router.post(

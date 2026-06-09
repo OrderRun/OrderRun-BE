@@ -20,8 +20,8 @@ from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferResponse
 OPEN_PROPOSAL_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)
 ACTIVE_OFFER_STATUSES = (
     OfferStatus.ACCEPTED,
-    OfferStatus.DELIVERY_COMPLETED,
-    OfferStatus.RECEIPT_CONFIRMED,
+    OfferStatus.COMPLETED,
+    OfferStatus.ALL_COMPLETED,
     OfferStatus.SETTLED,
     OfferStatus.DISPUTED,
 )
@@ -69,6 +69,12 @@ class OfferService:
             refunded_at=offer.refunded_at,
             created_at=offer.created_at,
         )
+
+    @staticmethod
+    def _sync_all_completed(offer: Offer, proposal: Proposal) -> None:
+        if offer.status == OfferStatus.COMPLETED and proposal.status == ProposalStatus.COMPLETED:
+            offer.mark_all_completed()
+            proposal.mark_all_completed()
 
     @staticmethod
     def create(db: Session, request: OfferCreate, runner_id: str) -> OfferResponse:
@@ -249,11 +255,13 @@ class OfferService:
             raise api_error(AppError.FORBIDDEN)
 
         proposal = OfferService._get_proposal(db, offer.proposal_id)
-        if not offer.can_complete_delivery() or not proposal.can_report_delivery():
+        if not offer.can_complete_delivery() or proposal.status not in {ProposalStatus.MATCHED, ProposalStatus.COMPLETED}:
             raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
 
         offer.complete_delivery()
-        proposal.report_delivery()
+        if proposal.status == ProposalStatus.MATCHED:
+            proposal.report_delivery()
+        OfferService._sync_all_completed(offer, proposal)
         db.add(Proof(
             proposal_id=proposal.id,
             offer_id=offer.id,
