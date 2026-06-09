@@ -28,7 +28,7 @@ rg --files tests | sort
 
 | 도메인 | 파일 | 테스트 수 | 주요 검증 범위 |
 |--------|------|-----------|----------------|
-| User/Auth | `tests/test_user_auth_integration.py` | 11 | 회원가입, 로그인, 토큰 갱신/로그아웃, 환경별 테스트 코드 허용/거부, 사용자 상세, 알림 설정, FCM 토큰, 인증 상태 규칙, SMS 실패 시 인증 저장, 문서 모델 정합성 |
+| User/Auth | `tests/test_user_auth_integration.py` | 10 | 회원가입, 로그인, 토큰 갱신/로그아웃, 우회 인증 코드 허용/거부, 사용자 상세, 알림 설정, FCM 토큰, 인증 상태 규칙, SMS 실패 시 인증 저장, 문서 모델 정합성 |
 | User/Auth | `tests/test_timestamps.py` | 1 | 전화번호 인증 모델의 ORM timestamp 관리 |
 | Terms Agreement | `tests/test_terms_agreement_integration.py` | 4 | 약관 동의 생성/수정, validation error, 인증 error, 문서 모델 정합성 |
 | Proposal | `tests/test_proposal_integration.py` | 9 | 공개/내 요청 목록, 상태 필터, 상세 조회, matched timestamp, 생성 계약 검증, validation error, 수정/취소 권한과 상태 규칙, 모델 계약 |

@@ -8,6 +8,7 @@
 
 - [`core-beliefs.md`](./core-beliefs.md): 아키텍처 선택을 이끄는 핵심 신념
 - [`persistence-schema-canonicalization.md`](./persistence-schema-canonicalization.md): 전체 영속성 스키마 정본화와 현재 구현 갭
+- [`testing-conventions.md`](./testing-conventions.md): pytest 통합 테스트 작성 규칙 (이름, GWT 구조, 중복 방지)
 - [`../api-spec/README.md`](../api-spec/README.md): 외부 API 요청/응답 계약 정본
 - [`../domain.md`](../domain.md): 도메인 상태와 정책 정본
 - [`../architecture/orderrun-master.md`](../architecture/orderrun-master.md): 기존 통합 설계 요약
