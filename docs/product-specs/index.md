@@ -11,7 +11,7 @@
 - API 요청/응답 필드와 에러 코드는 [`../api-spec/README.md`](../api-spec/README.md)를 우선한다.
 - 상태 전이와 도메인 정책은 [`../domain.md`](../domain.md)를 우선한다.
 - 도메인별 개념과 테스트 보장 범위는 [`../domains/README.md`](../domains/README.md)를 우선한다.
-- 코드나 테스트에서 파생된 스냅샷은 [`../generated/`](../generated/)에 둔다.
+- 영속성 구조에서 파생된 스키마 스냅샷은 [`../generated/db-schema.md`](../generated/db-schema.md)에 둔다.
 
 ## 현재 스펙
 

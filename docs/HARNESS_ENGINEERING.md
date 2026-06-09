@@ -103,7 +103,7 @@ README.md (프로젝트 개요)
 | `docs/domains/` | 도메인 개념, 책임, 테스트 보장 범위 | 영구 |
 | `docs/exec-plans/active/` | 진행 중 작업 계획 | 임시 |
 | `docs/exec-plans/completed/` | 완료된 작업 기록 | 보관 |
-| `docs/generated/` | 코드/모델 파생 산출물 | 파생 |
+| `docs/generated/` | 코드/모델/설계 정본에서 파생된 스키마 스냅샷 | 파생 |
 | `docs/references/` | 외부 도구, 플랫폼 메모 | 참고 |
 | `docs/study/` | 학습, 실험, 비정본 메모 | 참고 |
 
@@ -173,7 +173,7 @@ README.md (프로젝트 개요)
 **실행 중 문서 갱신:**
 - 설계가 바뀌면 설계 문서 갱신
 - 제품 동작이 바뀌면 제품 스펙 갱신
-- 파생 산출물 (스키마, API 문서)은 `docs/generated/`에 반영
+- 영속성 구조가 바뀌면 파생 스냅샷인 `docs/generated/db-schema.md`를 갱신
 - 도메인별 테스트 보장 범위가 바뀌면 `docs/domains/*/test-scenarios.md`를 갱신
 
 ### Phase 4: 검증 (Verification)

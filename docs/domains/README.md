@@ -6,9 +6,10 @@
 
 - 외부 HTTP 요청/응답 계약 정본: [`../api-spec/README.md`](../api-spec/README.md)
 - 상태 전이와 정책 정본: [`../domain.md`](../domain.md)
-- 테스트 파일/함수 파생 색인: [`../generated/test-inventory.md`](../generated/test-inventory.md)
+- 실제 테스트 위치: `tests/`
 
 도메인별 문서는 사람이 읽는 해석 문서다. API 필드, 상태 enum, 에러 코드가 바뀌면 정본 문서를 먼저 갱신하고, 이 디렉터리의 도메인 문서는 그 변경의 의미와 테스트 보장 범위를 설명한다.
+테스트 파일 목록과 함수 수는 `rg --files tests | sort`, `rg -n "^(def test_|async def test_)" tests | wc -l`로 확인한다.
 
 ## 도메인 목록
 

@@ -52,7 +52,6 @@
 - [`docs/exec-plans/active/README.md`](./docs/exec-plans/active/README.md): 진행 중 실행 계획
 - [`docs/exec-plans/completed/README.md`](./docs/exec-plans/completed/README.md): 완료된 실행 계획 보관
 - [`docs/generated/db-schema.md`](./docs/generated/db-schema.md): 도메인 문서 기반 파생 스키마 스냅샷
-- [`docs/generated/test-inventory.md`](./docs/generated/test-inventory.md): 현재 pytest 테스트 파일/함수 파생 인벤토리
 - [`docs/references/`](./docs/references/): 외부 도구와 플랫폼 참고 메모
 
 ## 문서 책임 규칙
@@ -60,7 +59,7 @@
 - 제품 동작이 바뀌면 먼저 `docs/product-specs/`를 갱신한다.
 - 횡단 관심사나 장기 구조 결정은 `docs/design-docs/`에 남긴다.
 - 실행 순서, 검증, 후속 작업은 `docs/exec-plans/`에서 관리한다.
-- 구현이나 모델에서 파생된 사실은 `docs/generated/`에 반영한다.
+- 구현이나 모델에서 파생된 고가치 스냅샷은 `docs/generated/`에 반영한다.
 - 도메인별 개념과 테스트가 보장하는 시나리오는 `docs/domains/`에 기록한다.
 - 영구 가드레일은 해당 `docs/*.md` 상위 문서에 기록한다.
 

@@ -146,37 +146,33 @@ docs/domains/
 **용도:**
 - 도메인별 개념, 책임, 주요 정책 해석
 - 각 도메인 테스트가 보장하는 정상/실패/계약 시나리오
-- `api-spec/README.md`, `domain.md`, `generated/test-inventory.md` 사이의 사람이 읽는 연결 문서
+- `api-spec/README.md`, `domain.md`, 실제 테스트 사이의 사람이 읽는 연결 문서
 
 **금지:**
 - API 필드와 상태 enum의 정본화 (→ `api-spec/README.md`, `domain.md`)
-- 자동 생성 가능한 테스트 목록의 중복 수기 관리 (→ `generated/test-inventory.md`)
+- 테스트 파일 목록과 함수 수의 중복 수기 관리
 
 ### 생성 문서 (generated/)
 
 ```
 docs/generated/
-├── db-schema.md                 # 데이터베이스 스키마 스냅샷
-├── api-openapi.yaml             # OpenAPI 스펙
-├── domain-diagram.mmd           # 도메인 다이어그램
-└── ...
+└── db-schema.md                 # 데이터베이스 스키마 스냅샷
 ```
 
 **용도:**
-- 코드나 모델에서 파생된 사실
-- 자동 생성 가능한 산출물
-- 스냅샷 시점의 시스템 상태
+- 코드, 모델, 설계 정본에서 파생된 고가치 스냅샷
+- 리뷰 시 현재 구조를 빠르게 확인하기 위한 표 형식 산출물
 
 **생성 시점:**
 - 모델 변경 후
-- API 계약 변경 후
-- 아키텍처 리뷰 전
+- 영속성 설계 변경 후
+- 스키마 리뷰 전
 
 **주의:**
-- 수동 편집 금지
-- 생성 스크립트로만 갱신
-- 소스는 코드, 문서는 결과물
-- 테스트의 상세 보장 시나리오는 `domains/`에 두고, `generated/test-inventory.md`는 파일/함수 색인으로 유지
+- 정본은 `design-docs/`, `domain.md`, `api-spec/`, `domains/`다.
+- `generated/` 문서는 정본이 아니라 파생 스냅샷이다.
+- 새 generated 문서는 재생성 절차가 명확할 때만 추가한다.
+- 테스트 보장 시나리오는 `domains/`에 두고, 테스트 파일/함수 수는 명령으로 확인한다.
 
 ### 참고 자료 (references/)
 
@@ -389,7 +385,7 @@ docs/design-docs/core-beliefs.md
 5. `app/models/`에 모델 추가
 6. `app/schemas/`, `app/services/`, `app/repositories/` 순서로 레이어 구현
 7. `app/api/v1/`에 엔드포인트 추가
-8. `docs/generated/db-schema.md`와 `docs/generated/test-inventory.md` 갱신
+8. 영속성 구조가 바뀌면 `docs/generated/db-schema.md` 갱신
 
 ### 새 문서 유형 추가 시
 
