@@ -56,9 +56,8 @@
 | `POSTED` | 관리자 입금 확인 후 게시됨 |
 | `OFFERED` | 첫 Offer 생성 이후 |
 | `MATCHED` | Offer 수락 이후 |
-| `COMPLETED` | 오더러 완료 확인 이후 |
+| `ORDER_COMPLETED` | 오더러 완료 확인 이후 |
 | `ALL_COMPLETED` | 러너와 오더러 모두 완료 |
-| `SETTLED` | 정산 완료 |
 | `DISPUTED` | 분쟁 접수 |
 | `REFUNDED` | 환불 완료 |
 | `CANCELLED` | 매칭 전 취소 |
@@ -68,9 +67,8 @@
 - `HOLDING -> POSTED`: 관리자 입금 확인 시 DB에서 전환한다.
 - `POSTED -> OFFERED`: 첫 Offer 생성 시 전환한다.
 - `OFFERED -> MATCHED`: Offer 수락 시 전환한다.
-- `MATCHED -> COMPLETED`: 오더러 완료 확인 시 전환한다.
-- `COMPLETED -> ALL_COMPLETED`: 러너 완료도 접수되면 전환한다.
-- `ALL_COMPLETED -> SETTLED`: 관리자 정산 완료 시 전환한다.
+- `MATCHED -> ORDER_COMPLETED`: 오더러 완료 확인 시 전환한다.
+- `ORDER_COMPLETED -> ALL_COMPLETED`: 러너 완료도 접수되면 전환한다.
 - `HOLDING`, `POSTED`, `OFFERED -> CANCELLED`: 작성자 취소 시 전환한다.
 - `HOLDING`, `POSTED` 상태에서만 수정 가능하다.
 - 공개 목록은 status 미지정 시 모든 Proposal 상태를 반환하고, 반복 `status` 쿼리로 여러 상태를 필터링한다.

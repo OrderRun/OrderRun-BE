@@ -47,9 +47,8 @@
 |--------|------|
 | `WAITING` | 오더의 선택 대기 |
 | `ACCEPTED` | 수락되어 Mission 생성에 사용됨 |
-| `COMPLETED` | 러너 완료 |
+| `RUNNER_COMPLETED` | 러너 완료 |
 | `ALL_COMPLETED` | 러너와 오더러 모두 완료 |
-| `SETTLED` | 정산 완료 |
 | `DISPUTED` | 분쟁 접수 |
 | `REFUNDED` | 환불 완료 |
 | `REJECTED` | 다른 Offer 수락 또는 Proposal 취소로 탈락 |
@@ -60,10 +59,9 @@
 - `WAITING -> ACCEPTED`: Proposal 오더가 Offer 수락
 - `WAITING -> REJECTED`: 다른 Offer 수락 또는 Proposal 취소
 - `WAITING -> CANCELLED`: 러너 직접 취소
-- `ACCEPTED -> COMPLETED`: 러너 완료
-- `COMPLETED -> ALL_COMPLETED`: 오더러 완료도 접수됨
-- `ALL_COMPLETED -> SETTLED`: 정산 완료
-- `ACCEPTED/COMPLETED/ALL_COMPLETED -> DISPUTED`: 분쟁 접수
+- `ACCEPTED -> RUNNER_COMPLETED`: 러너 완료
+- `RUNNER_COMPLETED -> ALL_COMPLETED`: 오더러 완료도 접수됨
+- `ACCEPTED/RUNNER_COMPLETED/ALL_COMPLETED -> DISPUTED`: 분쟁 접수
 - `DISPUTED -> REFUNDED`: 환불 완료
 - 취소는 `WAITING`에서만 가능하다.
 - 수락은 `WAITING`에서만 가능하다.

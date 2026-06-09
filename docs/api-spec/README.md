@@ -182,7 +182,6 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | matchedAt | string, null | Offer 수락으로 매칭된 시각 |
 | deliveryReportedAt | string, null | 러너 완료가 Proposal에 반영된 시각 |
 | receivedConfirmedAt | string, null | 오더러 완료 확인 시각 |
-| settledAt | string, null | 정산 완료 시각 |
 | disputedAt | string, null | 분쟁 접수 시각 |
 | refundedAt | string, null | 환불 완료 시각 |
 
@@ -198,7 +197,6 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | acceptedAt | string, null | 오더가 Offer를 수락한 시각 |
 | deliveryCompletedAt | string, null | 러너 완료 시각 |
 | receiptConfirmedAt | string, null | 오더러 완료 확인이 Offer에 반영된 시각 |
-| settledAt | string, null | 정산 완료 시각 |
 | disputedAt | string, null | 분쟁 접수 시각 |
 | refundedAt | string, null | 환불 완료 시각 |
 | createdAt | string | Offer 생성 시각 |
@@ -310,11 +308,10 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 ### Admin Execution API
 
-Mission API는 제거되었고 관리자 정산/환불은 수락된 Offer ID 기준으로 처리한다.
+Mission API는 제거되었고 관리자 환불은 수락된 Offer ID 기준으로 처리한다.
 
 | 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
 |------|--------|------|------|-----------|-----------|
-| Offer 정산 완료 | `POST` | `/api/v1/admin/offer/{offerId}/confirm-settlement` | 관리자 필요 | `200 OK` | `OfferResponse` |
 | Offer 환불 완료 | `POST` | `/api/v1/admin/offer/{offerId}/refund` | 관리자 필요 | `200 OK` | `OfferResponse` |
 
 ### Settlement API
@@ -472,9 +469,8 @@ Mission API는 제거되었고 관리자 정산/환불은 수락된 Offer ID 기
 | POSTED | 모집 중 |
 | OFFERED | 제안 도착 |
 | MATCHED | 매칭 완료 |
-| COMPLETED | 오더러 완료 확인 |
+| ORDER_COMPLETED | 오더러 완료 확인 |
 | ALL_COMPLETED | 러너와 오더러 모두 완료 |
-| SETTLED | 정산 완료 |
 | DISPUTED | 분쟁 접수 |
 | REFUNDED | 환불 완료 |
 | CANCELLED | 취소됨 |
@@ -485,9 +481,8 @@ Mission API는 제거되었고 관리자 정산/환불은 수락된 Offer ID 기
 |----|------|
 | WAITING | 수락 대기 |
 | ACCEPTED | 수락됨 |
-| COMPLETED | 러너 완료 |
+| RUNNER_COMPLETED | 러너 완료 |
 | ALL_COMPLETED | 러너와 오더러 모두 완료 |
-| SETTLED | 정산 완료 |
 | DISPUTED | 분쟁 접수 |
 | REFUNDED | 환불 완료 |
 | REJECTED | 거절됨 |

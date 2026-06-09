@@ -13,9 +13,8 @@ Proposal은 오더 관점의 모집 및 수행 상태를 추적한다.
 | POSTED | 모집 중 |
 | OFFERED | 제안 도착 |
 | MATCHED | Offer 수락으로 수행 건이 확정된 상태 |
-| COMPLETED | 오더러가 완료 확인을 마친 상태 |
+| ORDER_COMPLETED | 오더러가 완료 확인을 마친 상태 |
 | ALL_COMPLETED | 러너와 오더러가 모두 완료 확인을 마친 상태 |
-| SETTLED | 정산 완료 |
 | DISPUTED | 분쟁 접수 |
 | REFUNDED | 환불 완료 |
 | CANCELLED | 매칭 전 취소됨 |
@@ -27,10 +26,9 @@ Proposal은 오더 관점의 모집 및 수행 상태를 추적한다.
 | `HOLDING -> POSTED` | 입금 또는 관리자 확인으로 모집이 공개될 때 |
 | `POSTED -> OFFERED` | 첫 Offer가 생성될 때 |
 | `OFFERED -> MATCHED` | 오더가 Offer 하나를 수락할 때 |
-| `MATCHED -> COMPLETED` | 오더러가 Proposal에서 완료를 확인할 때 |
-| `COMPLETED + Offer COMPLETED -> ALL_COMPLETED` | 러너와 오더러 완료가 모두 접수될 때 |
-| `ALL_COMPLETED -> SETTLED` | 정산이 완료될 때 |
-| `MATCHED/COMPLETED/ALL_COMPLETED -> DISPUTED` | 오더 또는 러너가 분쟁을 접수할 때 |
+| `MATCHED -> ORDER_COMPLETED` | 오더러가 Proposal에서 완료를 확인할 때 |
+| `ORDER_COMPLETED + Offer RUNNER_COMPLETED -> ALL_COMPLETED` | 러너와 오더러 완료가 모두 접수될 때 |
+| `MATCHED/ORDER_COMPLETED/ALL_COMPLETED -> DISPUTED` | 오더 또는 러너가 분쟁을 접수할 때 |
 | `DISPUTED -> REFUNDED` | 분쟁 처리 결과 환불이 확정될 때 |
 | `HOLDING/POSTED/OFFERED -> CANCELLED` | 오더가 매칭 전 Proposal을 취소할 때 |
 
@@ -42,9 +40,8 @@ Offer는 러너 관점의 제안 및 수행 상태를 추적한다.
 |----|------|
 | WAITING | 수락 대기 |
 | ACCEPTED | 수락되어 수행 건 기준이 된 상태 |
-| COMPLETED | 러너가 완료와 증빙 업로드를 마친 상태 |
+| RUNNER_COMPLETED | 러너가 완료와 증빙 업로드를 마친 상태 |
 | ALL_COMPLETED | 러너와 오더러가 모두 완료 확인을 마친 상태 |
-| SETTLED | 정산 완료 |
 | DISPUTED | 분쟁 접수 |
 | REFUNDED | 환불 완료 |
 | REJECTED | 거절됨 |
@@ -55,10 +52,9 @@ Offer는 러너 관점의 제안 및 수행 상태를 추적한다.
 | 전이 | 발생 시점 |
 |------|-----------|
 | `WAITING -> ACCEPTED` | 오더가 해당 Offer를 수락할 때 |
-| `ACCEPTED -> COMPLETED` | 러너가 Offer에서 완료를 등록할 때 |
-| `COMPLETED + Proposal COMPLETED -> ALL_COMPLETED` | 러너와 오더러 완료가 모두 접수될 때 |
-| `ALL_COMPLETED -> SETTLED` | 정산이 완료될 때 |
-| `ACCEPTED/COMPLETED/ALL_COMPLETED -> DISPUTED` | 오더 또는 러너가 분쟁을 접수할 때 |
+| `ACCEPTED -> RUNNER_COMPLETED` | 러너가 Offer에서 완료를 등록할 때 |
+| `RUNNER_COMPLETED + Proposal ORDER_COMPLETED -> ALL_COMPLETED` | 러너와 오더러 완료가 모두 접수될 때 |
+| `ACCEPTED/RUNNER_COMPLETED/ALL_COMPLETED -> DISPUTED` | 오더 또는 러너가 분쟁을 접수할 때 |
 | `DISPUTED -> REFUNDED` | 분쟁 처리 결과 환불이 확정될 때 |
 | `WAITING -> REJECTED` | 같은 Proposal의 다른 Offer가 수락되거나 Proposal 취소로 대기 Offer가 정리될 때 |
 | `WAITING -> CANCELLED` | 러너가 수락 전 Offer를 취소할 때 |
