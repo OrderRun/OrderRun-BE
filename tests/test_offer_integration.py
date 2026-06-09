@@ -43,6 +43,18 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
     offer = db.query(Offer).filter(Offer.id == body["data"]["id"]).one()
     assert offer.status == OfferStatus.WAITING
     assert proposal.status == ProposalStatus.OFFERED
+    assert offer.accepted_at is None
+    assert offer.delivery_completed_at is None
+    assert offer.receipt_confirmed_at is None
+    assert offer.disputed_at is None
+    assert offer.refunded_at is None
+    assert offer.settled_at is None
+    assert proposal.matched_at is None
+    assert proposal.delivery_reported_at is None
+    assert proposal.received_confirmed_at is None
+    assert proposal.disputed_at is None
+    assert proposal.refunded_at is None
+    assert proposal.settled_at is None
 
 
 def test_create_second_offer_keeps_proposal_offered(client, db, factory, sample_user):
@@ -185,6 +197,23 @@ def test_accept_offer_updates_states_and_timestamps(client, db, factory, sample_
     assert other.status == OfferStatus.REJECTED
     assert proposal.matched_at is not None
     assert selected.accepted_at is not None
+    assert proposal.matched_at == selected.accepted_at
+    assert selected.delivery_completed_at is None
+    assert selected.receipt_confirmed_at is None
+    assert selected.disputed_at is None
+    assert selected.refunded_at is None
+    assert selected.settled_at is None
+    assert other.accepted_at is None
+    assert other.delivery_completed_at is None
+    assert other.receipt_confirmed_at is None
+    assert other.disputed_at is None
+    assert other.refunded_at is None
+    assert other.settled_at is None
+    assert proposal.delivery_reported_at is None
+    assert proposal.received_confirmed_at is None
+    assert proposal.disputed_at is None
+    assert proposal.refunded_at is None
+    assert proposal.settled_at is None
 
 
 def test_accept_offer_domain_and_validation_errors(client, db, factory, sample_user):
@@ -291,6 +320,14 @@ def test_complete_delivery_marks_offer_completed_without_finishing_proposal(clie
     assert offer.delivery_completed_at is not None
     assert proposal.status == ProposalStatus.MATCHED
     assert proposal.delivery_reported_at is not None
+    assert offer.receipt_confirmed_at is None
+    assert offer.disputed_at is None
+    assert offer.refunded_at is None
+    assert offer.settled_at is None
+    assert proposal.received_confirmed_at is None
+    assert proposal.disputed_at is None
+    assert proposal.refunded_at is None
+    assert proposal.settled_at is None
 
 
 def test_complete_delivery_after_orderer_completion_marks_both_all_completed(client, db, factory, sample_user):
@@ -313,6 +350,44 @@ def test_complete_delivery_after_orderer_completion_marks_both_all_completed(cli
     db.refresh(proposal)
     assert offer.status == OfferStatus.ALL_COMPLETED
     assert proposal.status == ProposalStatus.ALL_COMPLETED
+    assert offer.delivery_completed_at is not None
+    assert proposal.delivery_reported_at is not None
+    assert offer.receipt_confirmed_at is None
+    assert proposal.received_confirmed_at is None
+    assert offer.disputed_at is None
+    assert proposal.disputed_at is None
+    assert offer.refunded_at is None
+    assert proposal.refunded_at is None
+    assert offer.settled_at is None
+    assert proposal.settled_at is None
+
+
+def test_raise_offer_dispute_updates_both_statuses_and_timestamps(client, db, factory, sample_user):
+    runner = factory.user("01077770026")
+    proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.ACCEPTED)
+    offer.accepted_at = datetime.now(timezone.utc)
+    db.commit()
+
+    response = client.post(
+        f"/v1/offer/{offer.id}/dispute",
+        json={"disputeReason": "배송 중 파손"},
+        headers=factory.headers_for(runner),
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["status"] == "DISPUTED"
+    assert data["disputedAt"] is not None
+    db.refresh(offer)
+    db.refresh(proposal)
+    assert offer.status == OfferStatus.DISPUTED
+    assert proposal.status == ProposalStatus.DISPUTED
+    assert offer.disputed_at is not None
+    assert proposal.disputed_at is not None
+    assert offer.refunded_at is None
+    assert proposal.refunded_at is None
+    assert offer.settled_at is None
+    assert proposal.settled_at is None
 
 
 def test_complete_delivery_forbidden_and_wrong_status_errors(client, db, factory, sample_user):

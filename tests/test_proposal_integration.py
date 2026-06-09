@@ -231,6 +231,20 @@ def test_cancel_proposal_author_status_rules_and_rejects_waiting_offers(client, 
     db.refresh(cancelled_offer)
     assert waiting_offer.status == OfferStatus.REJECTED
     assert cancelled_offer.status == OfferStatus.REJECTED
+    for cancelled_proposal in [holding, posted, offered]:
+        db.refresh(cancelled_proposal)
+        assert cancelled_proposal.matched_at is None
+        assert cancelled_proposal.delivery_reported_at is None
+        assert cancelled_proposal.received_confirmed_at is None
+        assert cancelled_proposal.disputed_at is None
+        assert cancelled_proposal.refunded_at is None
+        assert cancelled_proposal.settled_at is None
+    assert waiting_offer.accepted_at is None
+    assert waiting_offer.delivery_completed_at is None
+    assert waiting_offer.receipt_confirmed_at is None
+    assert waiting_offer.disputed_at is None
+    assert waiting_offer.refunded_at is None
+    assert waiting_offer.settled_at is None
 
     for not_cancellable in [matched, cancelled]:
         response = client.post(f"/v1/proposal/{not_cancellable.id}/cancel", headers=auth_headers)
@@ -252,12 +266,24 @@ def test_confirm_received_marks_proposal_completed_without_finishing_offer(clien
     db.refresh(offer)
     assert proposal.status == ProposalStatus.ORDER_COMPLETED
     assert offer.status == OfferStatus.ACCEPTED
+    assert proposal.received_confirmed_at is not None
     assert offer.receipt_confirmed_at is not None
+    assert proposal.delivery_reported_at is None
+    assert offer.delivery_completed_at is None
+    assert proposal.disputed_at is None
+    assert offer.disputed_at is None
+    assert proposal.refunded_at is None
+    assert offer.refunded_at is None
+    assert proposal.settled_at is None
+    assert offer.settled_at is None
 
 
 def test_confirm_received_after_runner_completion_marks_both_all_completed(client, db, factory, auth_headers, sample_user):
     runner = factory.user("01055550002")
     proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.RUNNER_COMPLETED)
+    proposal.delivery_reported_at = datetime.now(timezone.utc)
+    offer.delivery_completed_at = proposal.delivery_reported_at
+    db.commit()
 
     response = client.post(f"/v1/proposal/{proposal.id}/confirm-received", headers=auth_headers)
 
@@ -267,6 +293,45 @@ def test_confirm_received_after_runner_completion_marks_both_all_completed(clien
     db.refresh(offer)
     assert proposal.status == ProposalStatus.ALL_COMPLETED
     assert offer.status == OfferStatus.ALL_COMPLETED
+    assert proposal.delivery_reported_at is not None
+    assert offer.delivery_completed_at is not None
+    assert proposal.received_confirmed_at is not None
+    assert offer.receipt_confirmed_at is not None
+    assert proposal.disputed_at is None
+    assert offer.disputed_at is None
+    assert proposal.refunded_at is None
+    assert offer.refunded_at is None
+    assert proposal.settled_at is None
+    assert offer.settled_at is None
+
+
+def test_raise_proposal_dispute_updates_both_statuses_and_timestamps(client, db, factory, auth_headers, sample_user):
+    runner = factory.user("01055550003")
+    proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.ACCEPTED)
+    offer.accepted_at = datetime.now(timezone.utc)
+    proposal.matched_at = offer.accepted_at
+    db.commit()
+
+    response = client.post(
+        f"/v1/proposal/{proposal.id}/dispute",
+        json={"disputeReason": "물품 상태 불량"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["status"] == "DISPUTED"
+    assert data["disputedAt"] is not None
+    db.refresh(proposal)
+    db.refresh(offer)
+    assert proposal.status == ProposalStatus.DISPUTED
+    assert offer.status == OfferStatus.DISPUTED
+    assert proposal.disputed_at is not None
+    assert offer.disputed_at is not None
+    assert proposal.refunded_at is None
+    assert offer.refunded_at is None
+    assert proposal.settled_at is None
+    assert offer.settled_at is None
 
 
 def test_proposal_model_contract(db):

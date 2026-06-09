@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
+from app.models.offer import OfferStatus
 from app.models.proposal import ProposalStatus
 
 
@@ -24,10 +27,12 @@ def test_confirm_payment_rejects_non_holding_proposal(client, db, factory, auth_
 
 
 def test_refund_offer_sets_refunded_from_disputed(client, db, factory, auth_headers, sample_user):
-    from app.models.offer import OfferStatus
-
     runner = factory.user("01066660003")
     proposal, offer = factory.execution(sample_user, runner, ProposalStatus.DISPUTED, OfferStatus.DISPUTED)
+    disputed_at = datetime.now(timezone.utc)
+    proposal.disputed_at = disputed_at
+    offer.disputed_at = disputed_at
+    db.commit()
 
     response = client.post(f"/api/v1/admin/offer/{offer.id}/refund", headers=auth_headers)
 
@@ -38,3 +43,9 @@ def test_refund_offer_sets_refunded_from_disputed(client, db, factory, auth_head
     db.refresh(offer)
     assert proposal.status == ProposalStatus.REFUNDED
     assert offer.status == OfferStatus.REFUNDED
+    assert proposal.refunded_at is not None
+    assert offer.refunded_at is not None
+    assert proposal.disputed_at is not None
+    assert offer.disputed_at is not None
+    assert proposal.settled_at is None
+    assert offer.settled_at is None
