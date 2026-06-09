@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.core.errors import AppError
 from app.core.openapi import (
     PROPOSAL_CANCEL_EXAMPLE,
+    PROPOSAL_ALL_COMPLETED_RECEIVED_EXAMPLE,
     PROPOSAL_CREATE_EXAMPLE,
     PROPOSAL_DETAIL_EXAMPLE,
     PROPOSAL_MATCHED_DETAIL_EXAMPLE,
@@ -222,7 +223,12 @@ def cancel_proposal(
     summary="오더러 완료 처리",
     description="오더러가 완료를 확인하고 요청을 완료 상태로 변경합니다.",
     responses={
-        200: success_response(PROPOSAL_RECEIVED_EXAMPLE),
+        200: success_response_examples(
+            {
+                "order_completed": PROPOSAL_RECEIVED_EXAMPLE,
+                "all_completed": PROPOSAL_ALL_COMPLETED_RECEIVED_EXAMPLE,
+            }
+        ),
         **error_responses(
             AppError.INVALID_TOKEN,
             AppError.PROPOSAL_NOT_FOUND,

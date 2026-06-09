@@ -221,6 +221,25 @@ PROPOSAL_RECEIVED_EXAMPLE = {
     },
     "message": "완료 확인되었습니다.",
 }
+PROPOSAL_ALL_COMPLETED_RECEIVED_EXAMPLE = {
+    "success": True,
+    "data": {
+        **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
+        "status": "ALL_COMPLETED",
+        "deliveryReportedAt": EXAMPLE_UPDATED_AT,
+        "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
+        "offers": [
+            {
+                "id": 10,
+                "proposalId": 1,
+                "runnerId": EXAMPLE_RUNNER_ID,
+                "status": "ALL_COMPLETED",
+                "createdAt": EXAMPLE_CREATED_AT,
+            }
+        ],
+    },
+    "message": "완료 확인되었습니다.",
+}
 PROPOSAL_DISPUTE_EXAMPLE = {
     "success": True,
     "data": {**PROPOSAL_MATCHED_DETAIL_EXAMPLE, "status": "DISPUTED", "disputedAt": EXAMPLE_UPDATED_AT},
