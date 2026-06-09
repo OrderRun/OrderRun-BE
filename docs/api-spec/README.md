@@ -533,5 +533,5 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 ## 문서 정본 규칙
 
 - 이 파일은 전체 API 요청/응답 스펙의 통합 명세로 유지한다.
-- 상세 동작, 예시, 도메인별 추가 설명은 `docs/api-spec/` 하위 문서를 참고한다.
+- 구현과 정본 사이의 차이는 [`implementation-gaps.md`](./implementation-gaps.md)에서 추적한다.
 - 상태 전이와 정책 해석은 [`../domain.md`](../domain.md)를 우선하고, 도메인별 해설과 테스트 보장 범위는 [`../domains/README.md`](../domains/README.md)를 참고한다.
