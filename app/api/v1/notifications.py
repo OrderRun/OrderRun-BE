@@ -63,7 +63,7 @@ def list_notifications(
     notifications = query.order_by(desc(Notification.created_at)).offset((page - 1) * page_size).limit(page_size).all()
 
     data = NotificationListResponse(total=total, notifications=notifications, page=page, page_size=page_size)
-    return ApiResponse(success=True, data=data)
+    return ApiResponse(success=True, data=data, message="Success")
 
 
 @router.get(
@@ -89,7 +89,7 @@ def get_notification_stats(
         failed_count=failed,
         read_count=total - unread,
     )
-    return ApiResponse(success=True, data=data)
+    return ApiResponse(success=True, data=data, message="Success")
 
 
 @router.get(
@@ -114,7 +114,7 @@ def get_notification(
     if not notification:
         raise api_error(AppError.NOTIFICATION_NOT_FOUND)
 
-    return ApiResponse(success=True, data=notification)
+    return ApiResponse(success=True, data=notification, message="Success")
 
 
 @router.post(
@@ -180,4 +180,4 @@ def send_notification(
         Notification.user_id == current_user.id
     ).order_by(desc(Notification.created_at)).first()
 
-    return ApiResponse(success=True, data=notification)
+    return ApiResponse(success=True, data=notification, message="Success")

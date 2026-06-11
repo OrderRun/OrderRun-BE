@@ -71,15 +71,19 @@ def test_notification_list_stats_detail_and_mark_read(client, db, factory, auth_
 
     assert listed.status_code == 200
     assert listed.json()["success"] is True
+    assert listed.json()["message"] == "Success"
     assert listed.json()["data"]["total"] == 3
     assert stats.status_code == 200
     assert stats.json()["success"] is True
+    assert stats.json()["message"] == "Success"
     assert stats.json()["data"]["total_notifications"] == 3
     assert detail.status_code == 200
     assert detail.json()["success"] is True
+    assert detail.json()["message"] == "Success"
     assert detail.json()["data"]["id"] == unread.id
     assert marked.status_code == 200
     assert marked.json()["success"] is True
+    assert marked.json()["message"] == "1 notification(s) marked as read"
     assert marked.json()["data"]["marked_count"] == 1
 
 
@@ -110,6 +114,7 @@ def test_notification_send_and_failure_cases(client, db, auth_headers, sample_us
 
     assert sent.status_code == 201
     assert sent.json()["success"] is True
+    assert sent.json()["message"] == "Success"
     assert sent.json()["data"]["title"] == "테스트 알림"
     assert missing.status_code == 404
     assert missing.json()["error"]["code"] == "ERROR"

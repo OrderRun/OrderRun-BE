@@ -188,8 +188,9 @@ def test_representative_success_examples_match_contracts():
     notification = schema["paths"]["/api/v1/notifications/{notification_id}"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["example"]
-    assert notification["notification_type"] == "custom"
-    assert notification["status"] == "sent"
+    assert notification["message"] == "Success"
+    assert notification["data"]["notification_type"] == "custom"
+    assert notification["data"]["status"] == "sent"
 
 
 def test_auth_login_confirm_request_exposes_explicit_fields():

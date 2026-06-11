@@ -419,7 +419,7 @@ NOTIFICATION_LIST_EXAMPLE = {
         "page": 1,
         "page_size": 20,
     },
-    "message": None,
+    "message": "Success",
 }
 NOTIFICATION_STATS_EXAMPLE = {
     "success": True,
@@ -429,14 +429,14 @@ NOTIFICATION_STATS_EXAMPLE = {
         "failed_count": 1,
         "read_count": 2,
     },
-    "message": None,
+    "message": "Success",
 }
 NOTIFICATION_MARK_READ_EXAMPLE = {
     "success": True,
     "data": {"marked_count": 1},
     "message": "1 notification(s) marked as read",
 }
-NOTIFICATION_RESPONSE_EXAMPLE = {"success": True, "data": NOTIFICATION_EXAMPLE, "message": None}
+NOTIFICATION_RESPONSE_EXAMPLE = {"success": True, "data": NOTIFICATION_EXAMPLE, "message": "Success"}
 
 ROOT_EXAMPLE = {"message": "Welcome to OrderRun API", "version": "0.1.0", "docs": "/docs"}
 HEALTH_EXAMPLE = {"success": True, "data": {"status": "UP"}, "message": "Success"}
