@@ -102,6 +102,7 @@ class ProposalService:
             content=proposal.content,
             deadline=proposal.deadline,
             errand_fee=proposal.errand_fee,
+            orderer_id=proposal.orderer_id,
             status=proposal.status,
             matched_at=proposal.matched_at,
             delivery_reported_at=proposal.delivery_reported_at,

@@ -138,6 +138,7 @@ def test_representative_success_examples_match_contracts():
             "content",
             "deadline",
             "errandFee",
+            "ordererId",
             "status",
             "offers",
         }.issubset(data)

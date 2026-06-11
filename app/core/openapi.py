@@ -139,6 +139,7 @@ PROPOSAL_EXAMPLE = {
     "status": "POSTED",
 }
 PROPOSAL_STATE_TIMESTAMPS = {
+    "ordererId": EXAMPLE_USER_ID,
     "matchedAt": None,
     "deliveryReportedAt": None,
     "receivedConfirmedAt": None,

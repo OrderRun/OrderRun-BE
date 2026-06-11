@@ -57,6 +57,7 @@ class ProposalDetailResponse(BaseModel):
     content: str
     deadline: datetime
     errand_fee: int = Field(..., serialization_alias="errandFee")
+    orderer_id: str = Field(..., serialization_alias="ordererId")
     status: ProposalStatus
     matched_at: datetime | None = Field(None, serialization_alias="matchedAt")
     delivery_reported_at: datetime | None = Field(None, serialization_alias="deliveryReportedAt")

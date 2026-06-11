@@ -89,6 +89,7 @@ def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_
     assert holding_response.status_code == 200
     holding_data = holding_response.json()["data"]
     assert holding_data["status"] == "HOLDING"
+    assert holding_data["ordererId"] == sample_user.id
     assert holding_data["offers"] == []
 
     cancelled_response = client.get(f"/v1/proposal/{cancelled.id}", headers=auth_headers)
@@ -113,6 +114,7 @@ def test_detail_returns_state_timestamps_when_matched(client, db, factory, auth_
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["matchedAt"] is not None
+    assert data["ordererId"] == sample_user.id
     assert "missionId" not in data
     assert len(data["offers"]) == 1
     assert data["offers"][0]["id"] == offer.id
@@ -317,6 +319,7 @@ def test_confirm_received_marks_proposal_completed_without_finishing_offer(clien
     assert response.status_code == 200
     assert response.json()["message"] == "완료 확인되었습니다."
     assert response.json()["data"]["status"] == "ORDER_COMPLETED"
+    assert response.json()["data"]["ordererId"] == sample_user.id
     assert response.json()["data"]["receivedConfirmedAt"] is not None
     db.refresh(proposal)
     db.refresh(offer)

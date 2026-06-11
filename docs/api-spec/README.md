@@ -179,6 +179,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
+| ordererId | string | 작성자/오더러 사용자 ID |
 | matchedAt | string, null | Offer 수락으로 매칭된 시각 |
 | deliveryReportedAt | string, null | 러너 완료가 Proposal에 반영된 시각 |
 | receivedConfirmedAt | string, null | 오더러 완료 확인 시각 |
