@@ -9,13 +9,13 @@
 ## 2. 전제 조건
 
 - macOS 또는 Linux 셸 환경
-- `python3` 설치 완료
+- `python3.12` 설치 완료
 - 프로젝트 루트 경로 확인 완료
 
 프로젝트 루트:
 
 ```bash
-/Users/hwangdaeseon/Documents/GitHub/OrderRun-BE
+/Users/dustin.hwang/Documents/GitHub/OrderRun-BE
 ```
 
 ## 3. 1단계: 프로젝트 폴더로 이동
@@ -23,7 +23,7 @@
 터미널에서 프로젝트 루트로 이동한다.
 
 ```bash
-cd /Users/hwangdaeseon/Documents/GitHub/OrderRun-BE
+cd /Users/dustin.hwang/Documents/GitHub/OrderRun-BE
 ```
 
 현재 위치 확인:
@@ -35,7 +35,7 @@ pwd
 예상 결과:
 
 ```bash
-/Users/hwangdaeseon/Documents/GitHub/OrderRun-BE
+/Users/dustin.hwang/Documents/GitHub/OrderRun-BE
 ```
 
 ## 4. 2단계: Python 설치 확인
@@ -43,7 +43,7 @@ pwd
 가상환경 생성 전에 `python3`가 동작하는지 확인한다.
 
 ```bash
-python3 --version
+python3.12 --version
 ```
 
 예상 결과 예시:
@@ -57,7 +57,7 @@ Python 3.12.x
 프로젝트 전용 Python 가상환경을 만든다.
 
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 ```
 
 설명:
@@ -80,7 +80,7 @@ source .venv/bin/activate
 예시:
 
 ```bash
-(.venv) hwangdaeseon@macbook OrderRun-BE %
+(.venv) dustin.hwang@macbook OrderRun-BE %
 ```
 
 ## 7. 5단계: pip 업그레이드
@@ -96,12 +96,13 @@ pip install --upgrade pip
 프로젝트에 필요한 Python 패키지를 설치한다.
 
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
 설명:
 
 - 이 명령은 반드시 가상환경 활성화 이후에 실행한다.
+- 설치 대상은 `pyproject.toml`의 기본 의존성과 `dev` extra다.
 - 설치 대상은 전역 환경이 아니라 `.venv` 내부다.
 
 ## 9. 7단계: 가상환경 적용 확인
@@ -117,8 +118,8 @@ python --version
 정상 예시:
 
 ```bash
-/Users/hwangdaeseon/Documents/GitHub/OrderRun-BE/.venv/bin/python
-/Users/hwangdaeseon/Documents/GitHub/OrderRun-BE/.venv/bin/pip
+/Users/dustin.hwang/Documents/GitHub/OrderRun-BE/.venv/bin/python
+/Users/dustin.hwang/Documents/GitHub/OrderRun-BE/.venv/bin/pip
 Python 3.12.x
 ```
 
@@ -129,7 +130,7 @@ Python 3.12.x
 작업을 다시 시작할 때마다 아래 순서로 진입한다.
 
 ```bash
-cd /Users/hwangdaeseon/Documents/GitHub/OrderRun-BE
+cd /Users/dustin.hwang/Documents/GitHub/OrderRun-BE
 source .venv/bin/activate
 ```
 
@@ -144,7 +145,7 @@ deactivate
 ## 12. 자주 헷갈리는 점
 
 - `source .venv/bin/activate`는 `.venv` 폴더가 이미 있을 때 사용하는 명령이다.
-- `.venv` 폴더가 없으면 먼저 `python3 -m venv .venv`를 실행해야 한다.
+- `.venv` 폴더가 없으면 먼저 `python3.12 -m venv .venv`를 실행해야 한다.
 - 새 터미널 세션에서는 다시 활성화해야 한다.
 - `.venv/` 폴더는 보통 Git에 커밋하지 않는다.
 - macOS/Linux 기준 명령은 `source .venv/bin/activate`다.
@@ -154,16 +155,16 @@ deactivate
 처음 1회:
 
 ```bash
-cd /Users/hwangdaeseon/Documents/GitHub/OrderRun-BE
-python3 -m venv .venv
+cd /Users/dustin.hwang/Documents/GitHub/OrderRun-BE
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
 그다음부터:
 
 ```bash
-cd /Users/hwangdaeseon/Documents/GitHub/OrderRun-BE
+cd /Users/dustin.hwang/Documents/GitHub/OrderRun-BE
 source .venv/bin/activate
 ```
