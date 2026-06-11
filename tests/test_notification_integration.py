@@ -62,11 +62,11 @@ def test_notification_list_stats_detail_and_mark_read(client, db, factory, auth_
         error_message="No FCM token",
     )
 
-    listed = client.get("/api/v1/notifications", headers=auth_headers)
-    stats = client.get("/api/v1/notifications/stats/me", headers=auth_headers)
-    detail = client.get(f"/api/v1/notifications/{unread.id}", headers=auth_headers)
+    listed = client.get("/v1/notifications", headers=auth_headers)
+    stats = client.get("/v1/notifications/stats/me", headers=auth_headers)
+    detail = client.get(f"/v1/notifications/{unread.id}", headers=auth_headers)
     marked = client.post(
-        "/api/v1/notifications/mark-read",
+        "/v1/notifications/mark-read",
         headers=auth_headers,
         json={"notification_ids": [unread.id]},
     )
@@ -101,8 +101,8 @@ def test_notification_list_filters_pages_and_isolates_users(client, factory, aut
     unread = factory.notification(sample_user.id, created_at=now + timedelta(seconds=1))
     factory.notification(other_user.id, created_at=now + timedelta(seconds=2))
 
-    listed = client.get("/api/v1/notifications?page=1&page_size=1", headers=auth_headers)
-    unread_only = client.get("/api/v1/notifications?unread_only=true", headers=auth_headers)
+    listed = client.get("/v1/notifications?page=1&page_size=1", headers=auth_headers)
+    unread_only = client.get("/v1/notifications?unread_only=true", headers=auth_headers)
 
     assert listed.status_code == 200
     assert listed.json()["data"]["total"] == 2
@@ -126,9 +126,9 @@ def test_notification_detail_and_mark_read_are_user_scoped(client, db, factory, 
     )
     own_unread = factory.notification(sample_user.id)
 
-    missing = client.get(f"/api/v1/notifications/{other_notification.id}", headers=auth_headers)
+    missing = client.get(f"/v1/notifications/{other_notification.id}", headers=auth_headers)
     marked = client.post(
-        "/api/v1/notifications/mark-read",
+        "/v1/notifications/mark-read",
         headers=auth_headers,
         json={"notification_ids": [other_notification.id, own_read.id, own_unread.id]},
     )
@@ -150,7 +150,7 @@ def test_notification_send_and_failure_cases(client, db, auth_headers, sample_us
     app.dependency_overrides[get_notification_dispatcher] = lambda: RecordingNotificationDispatcher()
 
     sent = client.post(
-        "/api/v1/notifications/send",
+        "/v1/notifications/send",
         headers=auth_headers,
         json={
             "notification_type": "custom",
@@ -161,13 +161,13 @@ def test_notification_send_and_failure_cases(client, db, auth_headers, sample_us
             "related_entity_id": 1,
         },
     )
-    missing = client.get("/api/v1/notifications/999999", headers=auth_headers)
+    missing = client.get("/v1/notifications/999999", headers=auth_headers)
     invalid_mark_read = client.post(
-        "/api/v1/notifications/mark-read",
+        "/v1/notifications/mark-read",
         headers=auth_headers,
         json={"notification_ids": []},
     )
-    unauthenticated = client.get("/api/v1/notifications")
+    unauthenticated = client.get("/v1/notifications")
 
     app.dependency_overrides.pop(get_notification_dispatcher, None)
 

@@ -195,7 +195,7 @@ def test_representative_success_examples_match_contracts():
     assert settlement["message"] == "정산 계좌가 저장되었습니다."
     assert settlement["data"]["maskedAccountNumber"] == "********9012"
 
-    notification = schema["paths"]["/api/v1/notifications/{notification_id}"]["get"]["responses"]["200"]["content"][
+    notification = schema["paths"]["/v1/notifications/{notification_id}"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["example"]
     assert notification["message"] == "Success"
@@ -210,7 +210,7 @@ def test_auth_login_confirm_request_exposes_explicit_fields():
 
 
 def test_admin_confirm_payment_has_no_request_body():
-    operation = app.openapi()["paths"]["/api/v1/admin/proposal/{proposal_id}/confirm-payment"]["post"]
+    operation = app.openapi()["paths"]["/v1/admin/proposal/{proposal_id}/confirm-payment"]["post"]
 
     assert "requestBody" not in operation
 

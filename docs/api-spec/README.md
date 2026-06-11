@@ -318,7 +318,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 
 | 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
 |------|--------|------|------|-----------|-----------|
-| Offer 환불 완료 | `POST` | `/api/v1/admin/offer/{offerId}/refund` | 관리자 필요 | `200 OK` | `OfferResponse` |
+| Offer 환불 완료 | `POST` | `/v1/admin/offer/{offerId}/refund` | 관리자 필요 | `200 OK` | `OfferResponse` |
 
 ### Settlement API
 

@@ -76,8 +76,8 @@ app.include_router(terms.router)
 app.include_router(proposal.router)
 app.include_router(offer.router)
 app.include_router(settlement.router)
-app.include_router(notifications.router, prefix="/api/v1")
-app.include_router(admin.router, prefix="/api/v1")
+app.include_router(notifications.router, prefix="/v1")
+app.include_router(admin.router, prefix="/v1")
 
 
 @app.get("/", responses={200: success_response(ROOT_EXAMPLE)})

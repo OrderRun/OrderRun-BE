@@ -12,7 +12,7 @@
 ## 점검 명령
 
 ```bash
-rg -n "/api/v1|page=1|PENDING_PAYMENT|contractAmount|\\bitems\\b|\\btotal\\b" docs app tests
+rg -n "page=1|PENDING_PAYMENT|contractAmount|\\bitems\\b|\\btotal\\b" docs app tests
 ```
 
 ## 원칙
