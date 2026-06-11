@@ -115,8 +115,55 @@ def test_representative_success_examples_match_contracts():
     proposal_detail_examples = schema["paths"]["/v1/proposal/{proposal_id}"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["examples"]
-    assert "missionId" not in proposal_detail_examples["posted"]["value"]["data"]
+    expected_proposal_statuses = {
+        "holding": "HOLDING",
+        "posted": "POSTED",
+        "offered": "OFFERED",
+        "matched": "MATCHED",
+        "order_completed": "ORDER_COMPLETED",
+        "all_completed": "ALL_COMPLETED",
+        "disputed": "DISPUTED",
+        "refunded": "REFUNDED",
+        "cancelled": "CANCELLED",
+    }
+    assert set(proposal_detail_examples) == set(expected_proposal_statuses)
+
+    for example_name, expected_status in expected_proposal_statuses.items():
+        data = proposal_detail_examples[example_name]["value"]["data"]
+        assert data["status"] == expected_status
+        assert "missionId" not in data
+        assert {
+            "id",
+            "title",
+            "content",
+            "deadline",
+            "errandFee",
+            "status",
+            "offers",
+        }.issubset(data)
+
+    assert proposal_detail_examples["holding"]["value"]["data"]["offers"] == []
+    assert proposal_detail_examples["posted"]["value"]["data"]["offers"] == []
     assert proposal_detail_examples["matched"]["value"]["data"]["matchedAt"] is not None
+    assert proposal_detail_examples["order_completed"]["value"]["data"]["receivedConfirmedAt"] is not None
+    assert proposal_detail_examples["all_completed"]["value"]["data"]["deliveryReportedAt"] is not None
+    assert proposal_detail_examples["disputed"]["value"]["data"]["disputedAt"] is not None
+    assert proposal_detail_examples["refunded"]["value"]["data"]["refundedAt"] is not None
+
+    offer_status_by_example = {
+        "offered": "WAITING",
+        "matched": "ACCEPTED",
+        "order_completed": "ACCEPTED",
+        "all_completed": "ALL_COMPLETED",
+        "disputed": "DISPUTED",
+        "refunded": "REFUNDED",
+        "cancelled": "CANCELLED",
+    }
+    for example_name, expected_offer_status in offer_status_by_example.items():
+        offers = proposal_detail_examples[example_name]["value"]["data"]["offers"]
+        assert len(offers) == 1
+        assert set(offers[0]) == {"id", "proposalId", "runnerId", "status", "createdAt"}
+        assert offers[0]["status"] == expected_offer_status
 
     offer_detail_examples = schema["paths"]["/v1/offer/{offer_id}"]["get"]["responses"]["200"]["content"][
         "application/json"

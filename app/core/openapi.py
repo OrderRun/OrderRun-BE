@@ -146,12 +146,93 @@ PROPOSAL_STATE_TIMESTAMPS = {
     "refundedAt": None,
     "offers": [],
 }
-PROPOSAL_DETAIL_EXAMPLE = {**PROPOSAL_EXAMPLE, **PROPOSAL_STATE_TIMESTAMPS}
+PROPOSAL_WAITING_OFFER_EXAMPLE = {
+    "id": 10,
+    "proposalId": 1,
+    "runnerId": EXAMPLE_RUNNER_ID,
+    "status": "WAITING",
+    "createdAt": EXAMPLE_CREATED_AT,
+}
+PROPOSAL_ACCEPTED_OFFER_EXAMPLE = {
+    **PROPOSAL_WAITING_OFFER_EXAMPLE,
+    "status": "ACCEPTED",
+}
+PROPOSAL_ALL_COMPLETED_OFFER_EXAMPLE = {
+    **PROPOSAL_WAITING_OFFER_EXAMPLE,
+    "status": "ALL_COMPLETED",
+}
+PROPOSAL_DISPUTED_OFFER_EXAMPLE = {
+    **PROPOSAL_WAITING_OFFER_EXAMPLE,
+    "status": "DISPUTED",
+}
+PROPOSAL_REFUNDED_OFFER_EXAMPLE = {
+    **PROPOSAL_WAITING_OFFER_EXAMPLE,
+    "status": "REFUNDED",
+}
+PROPOSAL_CANCELLED_OFFER_EXAMPLE = {
+    **PROPOSAL_WAITING_OFFER_EXAMPLE,
+    "status": "CANCELLED",
+}
+PROPOSAL_HOLDING_DETAIL_EXAMPLE = {
+    **PROPOSAL_EXAMPLE,
+    **PROPOSAL_STATE_TIMESTAMPS,
+    "status": "HOLDING",
+}
+PROPOSAL_POSTED_DETAIL_EXAMPLE = {**PROPOSAL_EXAMPLE, **PROPOSAL_STATE_TIMESTAMPS}
+PROPOSAL_DETAIL_EXAMPLE = PROPOSAL_POSTED_DETAIL_EXAMPLE
+PROPOSAL_OFFERED_DETAIL_EXAMPLE = {
+    **PROPOSAL_EXAMPLE,
+    **PROPOSAL_STATE_TIMESTAMPS,
+    "status": "OFFERED",
+    "offers": [PROPOSAL_WAITING_OFFER_EXAMPLE],
+}
 PROPOSAL_MATCHED_DETAIL_EXAMPLE = {
     **PROPOSAL_EXAMPLE,
     **PROPOSAL_STATE_TIMESTAMPS,
     "status": "MATCHED",
     "matchedAt": EXAMPLE_UPDATED_AT,
+    "offers": [PROPOSAL_ACCEPTED_OFFER_EXAMPLE],
+}
+PROPOSAL_ORDER_COMPLETED_DETAIL_EXAMPLE = {
+    **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
+    "status": "ORDER_COMPLETED",
+    "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
+}
+PROPOSAL_ALL_COMPLETED_DETAIL_EXAMPLE = {
+    **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
+    "status": "ALL_COMPLETED",
+    "deliveryReportedAt": EXAMPLE_UPDATED_AT,
+    "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
+    "offers": [PROPOSAL_ALL_COMPLETED_OFFER_EXAMPLE],
+}
+PROPOSAL_DISPUTED_DETAIL_EXAMPLE = {
+    **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
+    "status": "DISPUTED",
+    "disputedAt": EXAMPLE_UPDATED_AT,
+    "offers": [PROPOSAL_DISPUTED_OFFER_EXAMPLE],
+}
+PROPOSAL_REFUNDED_DETAIL_EXAMPLE = {
+    **PROPOSAL_DISPUTED_DETAIL_EXAMPLE,
+    "status": "REFUNDED",
+    "refundedAt": EXAMPLE_UPDATED_AT,
+    "offers": [PROPOSAL_REFUNDED_OFFER_EXAMPLE],
+}
+PROPOSAL_CANCELLED_DETAIL_EXAMPLE = {
+    **PROPOSAL_EXAMPLE,
+    **PROPOSAL_STATE_TIMESTAMPS,
+    "status": "CANCELLED",
+    "offers": [PROPOSAL_CANCELLED_OFFER_EXAMPLE],
+}
+PROPOSAL_DETAIL_EXAMPLES = {
+    "holding": {"success": True, "data": PROPOSAL_HOLDING_DETAIL_EXAMPLE, "message": None},
+    "posted": {"success": True, "data": PROPOSAL_POSTED_DETAIL_EXAMPLE, "message": None},
+    "offered": {"success": True, "data": PROPOSAL_OFFERED_DETAIL_EXAMPLE, "message": None},
+    "matched": {"success": True, "data": PROPOSAL_MATCHED_DETAIL_EXAMPLE, "message": None},
+    "order_completed": {"success": True, "data": PROPOSAL_ORDER_COMPLETED_DETAIL_EXAMPLE, "message": None},
+    "all_completed": {"success": True, "data": PROPOSAL_ALL_COMPLETED_DETAIL_EXAMPLE, "message": None},
+    "disputed": {"success": True, "data": PROPOSAL_DISPUTED_DETAIL_EXAMPLE, "message": None},
+    "refunded": {"success": True, "data": PROPOSAL_REFUNDED_DETAIL_EXAMPLE, "message": None},
+    "cancelled": {"success": True, "data": PROPOSAL_CANCELLED_DETAIL_EXAMPLE, "message": None},
 }
 PROPOSAL_HOLDING_EXAMPLE = {**PROPOSAL_EXAMPLE, "status": "HOLDING"}
 PROPOSAL_CANCELLED_EXAMPLE = {**PROPOSAL_EXAMPLE, "status": "CANCELLED"}
@@ -214,35 +295,17 @@ PROPOSAL_CANCEL_EXAMPLE = {
 }
 PROPOSAL_RECEIVED_EXAMPLE = {
     "success": True,
-    "data": {
-        **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
-        "status": "ORDER_COMPLETED",
-        "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
-    },
+    "data": PROPOSAL_ORDER_COMPLETED_DETAIL_EXAMPLE,
     "message": "완료 확인되었습니다.",
 }
 PROPOSAL_ALL_COMPLETED_RECEIVED_EXAMPLE = {
     "success": True,
-    "data": {
-        **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
-        "status": "ALL_COMPLETED",
-        "deliveryReportedAt": EXAMPLE_UPDATED_AT,
-        "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
-        "offers": [
-            {
-                "id": 10,
-                "proposalId": 1,
-                "runnerId": EXAMPLE_RUNNER_ID,
-                "status": "ALL_COMPLETED",
-                "createdAt": EXAMPLE_CREATED_AT,
-            }
-        ],
-    },
+    "data": PROPOSAL_ALL_COMPLETED_DETAIL_EXAMPLE,
     "message": "완료 확인되었습니다.",
 }
 PROPOSAL_DISPUTE_EXAMPLE = {
     "success": True,
-    "data": {**PROPOSAL_MATCHED_DETAIL_EXAMPLE, "status": "DISPUTED", "disputedAt": EXAMPLE_UPDATED_AT},
+    "data": PROPOSAL_DISPUTED_DETAIL_EXAMPLE,
     "message": "분쟁이 접수되었습니다.",
 }
 

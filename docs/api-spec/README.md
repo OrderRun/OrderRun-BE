@@ -184,6 +184,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | receivedConfirmedAt | string, null | 오더러 완료 확인 시각 |
 | disputedAt | string, null | 분쟁 접수 시각 |
 | refundedAt | string, null | 환불 완료 시각 |
+| offers | array | `ProposalOwnOfferResponse[]` |
 
 ### OfferResponse
 

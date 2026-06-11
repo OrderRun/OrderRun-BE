@@ -11,8 +11,7 @@ from app.core.openapi import (
     PROPOSAL_CANCEL_EXAMPLE,
     PROPOSAL_ALL_COMPLETED_RECEIVED_EXAMPLE,
     PROPOSAL_CREATE_EXAMPLE,
-    PROPOSAL_DETAIL_EXAMPLE,
-    PROPOSAL_MATCHED_DETAIL_EXAMPLE,
+    PROPOSAL_DETAIL_EXAMPLES,
     PROPOSAL_DISPUTE_EXAMPLE,
     PROPOSAL_OWN_PAGE_EXAMPLE,
     PROPOSAL_PAGE_EXAMPLE,
@@ -112,16 +111,7 @@ def list_own_proposals(
     summary="요청 상세 조회",
     description="요청 ID로 심부름 요청 상세 정보를 조회합니다.",
     responses={
-        200: success_response_examples(
-            {
-                "posted": {"success": True, "data": PROPOSAL_DETAIL_EXAMPLE, "message": None},
-                "matched": {
-                    "success": True,
-                    "data": PROPOSAL_MATCHED_DETAIL_EXAMPLE,
-                    "message": None,
-                },
-            }
-        ),
+        200: success_response_examples(PROPOSAL_DETAIL_EXAMPLES),
         **error_responses(AppError.INVALID_TOKEN, AppError.PROPOSAL_NOT_FOUND),
     },
 )
