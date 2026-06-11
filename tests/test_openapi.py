@@ -76,6 +76,8 @@ def test_openapi_operations_have_success_examples_and_standard_error_examples():
                 assert "example" in content or "examples" in content, (
                     f"{method.upper()} {path} {code} has no success example"
                 )
+                if "examples" in content:
+                    assert content["examples"], f"{method.upper()} {path} {code} has empty success examples"
 
             for code, response in responses.items():
                 if not code.startswith(("4", "5")):
@@ -83,6 +85,8 @@ def test_openapi_operations_have_success_examples_and_standard_error_examples():
                 content = response.get("content", {}).get("application/json")
                 assert content is not None, f"{method.upper()} {path} {code} has no JSON content"
                 assert "examples" in content, f"{method.upper()} {path} {code} has no error examples"
+                assert content["examples"], f"{method.upper()} {path} {code} has empty error examples"
+                seen_error_cases = set()
                 for example in content["examples"].values():
                     value = example["value"]
                     assert value["success"] is False
@@ -90,6 +94,11 @@ def test_openapi_operations_have_success_examples_and_standard_error_examples():
                     assert value["error"]["code"]
                     assert value["error"]["message"]
                     assert value["timestamp"] == "2026-06-01T12:00:00+09:00"
+                    error_case = (value["error"]["code"], value["error"]["message"])
+                    assert error_case not in seen_error_cases, (
+                        f"{method.upper()} {path} {code} has duplicate error example for {error_case}"
+                    )
+                    seen_error_cases.add(error_case)
 
 
 def test_representative_success_examples_match_contracts():

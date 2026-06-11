@@ -72,8 +72,12 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 - API별 요약과 설명은 `app/api/v1/*` 라우터 데코레이터의 `summary`, `description`을 사용한다.
 - 요청/응답 필드 설명은 `app/schemas/*`의 Pydantic `Field(description=...)`을 사용한다.
 - 각 API 요청/응답은 endpoint별 독립 DTO를 기준으로 문서화하며, API DTO가 다른 API DTO를 상속해 계약을 공유하지 않는다.
-- 성공 응답 예시는 실제 통합 테스트의 응답 구조를 기준으로 `app/core/openapi.py`의 `success_response()`와 고정 예시 상수를 사용한다.
+- 모든 2xx JSON 성공 응답은 예시가 필수다.
+- 성공 응답이 상태, 분기, 메시지, `data` shape별로 여러 케이스를 가지면 `app/core/openapi.py`의 `success_response_examples()`로 케이스별 예시를 모두 문서화한다.
+- 단일 성공 응답 예시는 실제 통합 테스트의 응답 구조를 기준으로 `app/core/openapi.py`의 `success_response()`와 고정 예시 상수를 사용한다.
+- 모든 4xx/5xx 실패 응답은 해당 endpoint에서 발생 가능하다고 선언한 실패 케이스별 예시가 필수다.
 - 실패 응답 예시는 `app/core/openapi.py`의 `error_responses()`로 생성하며, 에러 코드와 메시지는 `app/core/errors.py`의 `AppError` 카탈로그를 기준으로 한다.
+- 같은 HTTP status 안에 여러 실패 원인이 있으면 `examples` key를 에러 케이스 단위로 분리한다.
 - Swagger 실패 응답 예시는 실제 예외 핸들러 응답과 같은 `success/error/timestamp` 형태를 유지한다.
 - 요청 검증 실패는 실제 예외 핸들러와 동일하게 400 실패 응답으로 문서화하며, FastAPI 기본 422 문서는 노출하지 않는다.
 
