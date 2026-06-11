@@ -58,8 +58,23 @@ class NotificationListResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class NotificationStatsResponse(BaseModel):
+    total_notifications: int
+    unread_count: int
+    failed_count: int
+    read_count: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class NotificationMarkReadRequest(BaseModel):
     notification_ids: list[int] = Field(..., min_length=1)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotificationMarkReadResponse(BaseModel):
+    marked_count: int
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -349,22 +349,31 @@ NOTIFICATION_EXAMPLE = {
     "read_at": EXAMPLE_UPDATED_AT,
 }
 NOTIFICATION_LIST_EXAMPLE = {
-    "total": 1,
-    "notifications": [NOTIFICATION_EXAMPLE],
-    "page": 1,
-    "page_size": 20,
+    "success": True,
+    "data": {
+        "total": 1,
+        "notifications": [NOTIFICATION_EXAMPLE],
+        "page": 1,
+        "page_size": 20,
+    },
+    "message": None,
 }
 NOTIFICATION_STATS_EXAMPLE = {
-    "total_notifications": 3,
-    "unread_count": 1,
-    "failed_count": 1,
-    "read_count": 2,
+    "success": True,
+    "data": {
+        "total_notifications": 3,
+        "unread_count": 1,
+        "failed_count": 1,
+        "read_count": 2,
+    },
+    "message": None,
 }
 NOTIFICATION_MARK_READ_EXAMPLE = {
     "success": True,
-    "marked_count": 1,
+    "data": {"marked_count": 1},
     "message": "1 notification(s) marked as read",
 }
+NOTIFICATION_RESPONSE_EXAMPLE = {"success": True, "data": NOTIFICATION_EXAMPLE, "message": None}
 
 ROOT_EXAMPLE = {"message": "Welcome to OrderRun API", "version": "0.1.0", "docs": "/docs"}
 HEALTH_EXAMPLE = {"success": True, "data": {"status": "UP"}, "message": "Success"}

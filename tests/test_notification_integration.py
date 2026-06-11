@@ -70,13 +70,17 @@ def test_notification_list_stats_detail_and_mark_read(client, db, factory, auth_
     )
 
     assert listed.status_code == 200
-    assert listed.json()["total"] == 3
+    assert listed.json()["success"] is True
+    assert listed.json()["data"]["total"] == 3
     assert stats.status_code == 200
-    assert stats.json()["total_notifications"] == 3
+    assert stats.json()["success"] is True
+    assert stats.json()["data"]["total_notifications"] == 3
     assert detail.status_code == 200
-    assert detail.json()["id"] == unread.id
+    assert detail.json()["success"] is True
+    assert detail.json()["data"]["id"] == unread.id
     assert marked.status_code == 200
-    assert marked.json()["marked_count"] == 1
+    assert marked.json()["success"] is True
+    assert marked.json()["data"]["marked_count"] == 1
 
 
 def test_notification_send_and_failure_cases(client, db, auth_headers, sample_user):
@@ -105,7 +109,8 @@ def test_notification_send_and_failure_cases(client, db, auth_headers, sample_us
     app.dependency_overrides.pop(get_notification_dispatcher, None)
 
     assert sent.status_code == 201
-    assert sent.json()["title"] == "테스트 알림"
+    assert sent.json()["success"] is True
+    assert sent.json()["data"]["title"] == "테스트 알림"
     assert missing.status_code == 404
     assert missing.json()["error"]["code"] == "ERROR"
     assert invalid_mark_read.status_code == 400
