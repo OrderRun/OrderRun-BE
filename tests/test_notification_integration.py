@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.api.v1.notifications import get_notification_dispatcher
 from app.main import app
@@ -22,7 +22,7 @@ class RecordingNotificationDispatcher:
         related_entity_type=None,
         related_entity_id=None,
         image=None,
-    ) -> None:
+    ) -> Notification:
         _ = image
         notification = Notification(
             user_id=user_id,
@@ -38,6 +38,8 @@ class RecordingNotificationDispatcher:
         )
         db.add(notification)
         db.commit()
+        db.refresh(notification)
+        return notification
 
 
 def test_root_response_matches_openapi_example(client):
@@ -85,6 +87,63 @@ def test_notification_list_stats_detail_and_mark_read(client, db, factory, auth_
     assert marked.json()["success"] is True
     assert marked.json()["message"] == "1 notification(s) marked as read"
     assert marked.json()["data"]["marked_count"] == 1
+
+
+def test_notification_list_filters_pages_and_isolates_users(client, factory, auth_headers, sample_user):
+    other_user = factory.user(phone="01088880000", name="Other User")
+    now = utcnow_naive()
+    read = factory.notification(
+        sample_user.id,
+        status=NotificationStatus.READ,
+        read_at=utcnow_naive(),
+        created_at=now,
+    )
+    unread = factory.notification(sample_user.id, created_at=now + timedelta(seconds=1))
+    factory.notification(other_user.id, created_at=now + timedelta(seconds=2))
+
+    listed = client.get("/api/v1/notifications?page=1&page_size=1", headers=auth_headers)
+    unread_only = client.get("/api/v1/notifications?unread_only=true", headers=auth_headers)
+
+    assert listed.status_code == 200
+    assert listed.json()["data"]["total"] == 2
+    assert listed.json()["data"]["page"] == 1
+    assert listed.json()["data"]["page_size"] == 1
+    assert len(listed.json()["data"]["notifications"]) == 1
+    assert listed.json()["data"]["notifications"][0]["id"] == unread.id
+    assert unread_only.status_code == 200
+    assert unread_only.json()["data"]["total"] == 1
+    assert unread_only.json()["data"]["notifications"][0]["id"] == unread.id
+    assert read.id not in [item["id"] for item in unread_only.json()["data"]["notifications"]]
+
+
+def test_notification_detail_and_mark_read_are_user_scoped(client, db, factory, auth_headers, sample_user):
+    other_user = factory.user(phone="01077770000", name="Other User")
+    other_notification = factory.notification(other_user.id)
+    own_read = factory.notification(
+        sample_user.id,
+        status=NotificationStatus.READ,
+        read_at=utcnow_naive(),
+    )
+    own_unread = factory.notification(sample_user.id)
+
+    missing = client.get(f"/api/v1/notifications/{other_notification.id}", headers=auth_headers)
+    marked = client.post(
+        "/api/v1/notifications/mark-read",
+        headers=auth_headers,
+        json={"notification_ids": [other_notification.id, own_read.id, own_unread.id]},
+    )
+
+    db.refresh(other_notification)
+    db.refresh(own_read)
+    db.refresh(own_unread)
+
+    assert missing.status_code == 404
+    assert missing.json()["error"]["code"] == "ERROR"
+    assert marked.status_code == 200
+    assert marked.json()["data"]["marked_count"] == 1
+    assert other_notification.read_at is None
+    assert own_read.status == NotificationStatus.READ
+    assert own_unread.status == NotificationStatus.READ
 
 
 def test_notification_send_and_failure_cases(client, db, auth_headers, sample_user):

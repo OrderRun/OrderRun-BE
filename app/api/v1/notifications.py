@@ -1,11 +1,9 @@
 """Push notification API endpoints."""
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
-from datetime import datetime
 
 from app.core.database import get_db
-from app.core.errors import AppError, api_error
+from app.core.errors import AppError
 from app.core.openapi import (
     NOTIFICATION_LIST_EXAMPLE,
     NOTIFICATION_MARK_READ_EXAMPLE,
@@ -17,7 +15,6 @@ from app.core.openapi import (
 from app.core.security import get_current_user
 from app.core.firebase import get_fcm_service
 from app.models.user import User
-from app.models.notification import Notification, NotificationStatus
 from app.schemas.common import ApiResponse
 from app.schemas.notification import (
     NotificationResponse,
@@ -28,6 +25,7 @@ from app.schemas.notification import (
     NotificationStatsResponse,
 )
 from app.services.notification_dispatcher import NotificationDispatcher
+from app.services.notification_service import NotificationService
 
 
 router = APIRouter(prefix="/notifications", tags=["알림"])
@@ -54,15 +52,13 @@ def list_notifications(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ApiResponse[NotificationListResponse]:
-    query = db.query(Notification).filter(Notification.user_id == current_user.id)
-
-    if unread_only:
-        query = query.filter(Notification.read_at.is_(None))
-
-    total = query.count()
-    notifications = query.order_by(desc(Notification.created_at)).offset((page - 1) * page_size).limit(page_size).all()
-
-    data = NotificationListResponse(total=total, notifications=notifications, page=page, page_size=page_size)
+    data = NotificationService.list_notifications(
+        db=db,
+        user_id=current_user.id,
+        page=page,
+        page_size=page_size,
+        unread_only=unread_only,
+    )
     return ApiResponse(success=True, data=data, message="Success")
 
 
@@ -79,16 +75,7 @@ def get_notification_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ApiResponse[NotificationStatsResponse]:
-    total = db.query(Notification).filter(Notification.user_id == current_user.id).count()
-    unread = db.query(Notification).filter(Notification.user_id == current_user.id, Notification.read_at.is_(None)).count()
-    failed = db.query(Notification).filter(Notification.user_id == current_user.id, Notification.status == NotificationStatus.FAILED).count()
-
-    data = NotificationStatsResponse(
-        total_notifications=total,
-        unread_count=unread,
-        failed_count=failed,
-        read_count=total - unread,
-    )
+    data = NotificationService.get_notification_stats(db=db, user_id=current_user.id)
     return ApiResponse(success=True, data=data, message="Success")
 
 
@@ -106,15 +93,12 @@ def get_notification(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ApiResponse[NotificationResponse]:
-    notification = db.query(Notification).filter(
-        Notification.id == notification_id,
-        Notification.user_id == current_user.id,
-    ).first()
-
-    if not notification:
-        raise api_error(AppError.NOTIFICATION_NOT_FOUND)
-
-    return ApiResponse(success=True, data=notification, message="Success")
+    data = NotificationService.get_notification(
+        db=db,
+        user_id=current_user.id,
+        notification_id=notification_id,
+    )
+    return ApiResponse(success=True, data=data, message="Success")
 
 
 @router.post(
@@ -132,20 +116,15 @@ def mark_notifications_read(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ApiResponse[NotificationMarkReadResponse]:
-    result = db.query(Notification).filter(
-        Notification.id.in_(request.notification_ids),
-        Notification.user_id == current_user.id,
-        Notification.read_at.is_(None),
-    ).update(
-        {Notification.read_at: datetime.utcnow(), Notification.status: NotificationStatus.READ},
-        synchronize_session=False,
+    data = NotificationService.mark_notifications_read(
+        db=db,
+        user_id=current_user.id,
+        notification_ids=request.notification_ids,
     )
-    db.commit()
-
     return ApiResponse(
         success=True,
-        data=NotificationMarkReadResponse(marked_count=result),
-        message=f"{result} notification(s) marked as read",
+        data=data,
+        message=f"{data.marked_count} notification(s) marked as read",
     )
 
 
@@ -166,18 +145,10 @@ def send_notification(
     current_user: User = Depends(get_current_user),
     dispatcher: NotificationDispatcher = Depends(get_notification_dispatcher),
 ) -> ApiResponse[NotificationResponse]:
-    dispatcher.send_custom_notification(
+    data = NotificationService.send_custom_notification(
         db=db,
         user_id=current_user.id,
-        title=notification_request.title,
-        body=notification_request.body,
-        data=notification_request.data,
-        related_entity_type=notification_request.related_entity_type,
-        related_entity_id=notification_request.related_entity_id,
+        request=notification_request,
+        dispatcher=dispatcher,
     )
-
-    notification = db.query(Notification).filter(
-        Notification.user_id == current_user.id
-    ).order_by(desc(Notification.created_at)).first()
-
-    return ApiResponse(success=True, data=notification, message="Success")
+    return ApiResponse(success=True, data=data, message="Success")

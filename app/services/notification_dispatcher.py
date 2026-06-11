@@ -3,7 +3,7 @@ import logging
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 
-from app.models.notification import NotificationType
+from app.models.notification import Notification, NotificationType
 from app.models.user import User
 from app.services.fcm_service import FCMService
 
@@ -164,9 +164,10 @@ class NotificationDispatcher:
         self, db: Session, user_id: str, title: str, body: str,
         data: Optional[Dict[str, Any]] = None, related_entity_type: Optional[str] = None,
         related_entity_id: Optional[int] = None, image: Optional[str] = None,
-    ) -> None:
-        self.fcm_service.send_to_user(
+    ) -> Notification:
+        notification, _ = self.fcm_service.send_to_user(
             db=db, user_id=user_id, notification_type=NotificationType.CUSTOM,
             title=title, body=body, data=data,
             related_entity_type=related_entity_type, related_entity_id=related_entity_id, image=image,
         )
+        return notification
