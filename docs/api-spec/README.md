@@ -139,6 +139,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | createdAt | string | 가입 시각 |
 | lastLoginAt | string, null | 마지막 로그인 시각 |
 | alarmEnabled | boolean | 알람 수신 동의 여부 |
+| level | number | 성공 완료한 러너 Offer 수 기반 레벨 |
 
 ### ProposalResponse
 
@@ -158,6 +159,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | id | number | Proposal ID |
 | ordererId | string | 작성자 사용자 ID |
 | ordererName | string, null | 작성자/오더러 사용자 이름 |
+| ordererLevel | number | 작성자/오더러 사용자 레벨 |
 | title | string | 공고 제목 |
 | content | string | 요청 상세 내용 |
 | deadline | string | 수행 마감 시각 |
@@ -176,6 +178,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | proposalId | number | 대상 Proposal ID |
 | runnerId | string | Offer 제출 러너 ID |
 | runnerName | string, null | Offer 제출 러너 이름 |
+| runnerLevel | number | Offer 제출 러너 레벨 |
 | status | string | Offer 상태 |
 | createdAt | string | Offer 생성 시각 |
 
@@ -187,6 +190,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 |------|------|------|
 | ordererId | string | 작성자/오더러 사용자 ID |
 | ordererName | string, null | 작성자/오더러 사용자 이름 |
+| ordererLevel | number | 작성자/오더러 사용자 레벨 |
 | matchedAt | string, null | Offer 수락으로 매칭된 시각 |
 | deliveryReportedAt | string, null | 러너 완료가 Proposal에 반영된 시각 |
 | receivedConfirmedAt | string, null | 오더러 완료 확인 시각 |
@@ -202,8 +206,10 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | proposalId | number | 대상 Proposal ID |
 | ordererId | string | 대상 Proposal 작성자/오더러 ID |
 | ordererName | string, null | 대상 Proposal 작성자/오더러 이름 |
+| ordererLevel | number | 대상 Proposal 작성자/오더러 레벨 |
 | runnerId | string | Offer 제출 러너 ID |
 | runnerName | string, null | Offer 제출 러너 이름 |
+| runnerLevel | number | Offer 제출 러너 레벨 |
 | status | string | Offer 상태. `OfferStatus` 참조 |
 | acceptedAt | string, null | 오더가 Offer를 수락한 시각 |
 | deliveryCompletedAt | string, null | 러너 완료 시각 |
@@ -223,8 +229,10 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | rejectedOfferCount | number | 자동 거절된 다른 Offer 개수 |
 | ordererId | string | 오더 사용자 ID 스냅샷 |
 | ordererName | string, null | 오더 사용자 이름 |
+| ordererLevel | number | 오더 사용자 레벨 |
 | runnerId | string | 러너 사용자 ID 스냅샷 |
 | runnerName | string, null | 러너 사용자 이름 |
+| runnerLevel | number | 러너 사용자 레벨 |
 | acceptedAt | string | Offer 수락 시각 |
 
 ### ProofResponse

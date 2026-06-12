@@ -36,6 +36,7 @@ class User(Base):
     phone_verified_at = Column(DateTime(timezone=True), nullable=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     alarm_enabled = Column(Boolean, nullable=False, default=False, server_default="0")
+    level = Column(Integer, nullable=False, default=0, server_default="0")
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 

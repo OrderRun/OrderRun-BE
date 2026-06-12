@@ -48,20 +48,26 @@ class OfferService:
         return offer
 
     @staticmethod
-    def _user_name(db: Session, user_id: str) -> str:
+    def _user_profile(db: Session, user_id: str) -> tuple[str, int]:
         user = db.query(User).filter(User.id == user_id).first()
-        return user.name if user is not None else ""
+        if user is None:
+            return "", 0
+        return user.name, user.level
 
     @staticmethod
     def _to_response(db: Session, offer: Offer) -> OfferResponse:
         proposal = OfferService._get_proposal(db, offer.proposal_id)
+        orderer_name, orderer_level = OfferService._user_profile(db, proposal.orderer_id)
+        runner_name, runner_level = OfferService._user_profile(db, offer.runner_id)
         return OfferResponse(
             id=offer.id,
             proposal_id=offer.proposal_id,
             orderer_id=proposal.orderer_id,
-            orderer_name=OfferService._user_name(db, proposal.orderer_id),
+            orderer_name=orderer_name,
+            orderer_level=orderer_level,
             runner_id=offer.runner_id,
-            runner_name=OfferService._user_name(db, offer.runner_id),
+            runner_name=runner_name,
+            runner_level=runner_level,
             status=offer.status,
             accepted_at=offer.accepted_at,
             delivery_completed_at=offer.delivery_completed_at,
@@ -72,10 +78,14 @@ class OfferService:
         )
 
     @staticmethod
-    def _sync_all_completed(offer: Offer, proposal: Proposal) -> None:
+    def _sync_all_completed(db: Session, offer: Offer, proposal: Proposal) -> None:
         if offer.status == OfferStatus.RUNNER_COMPLETED and proposal.status == ProposalStatus.ORDER_COMPLETED:
             offer.mark_all_completed()
             proposal.mark_all_completed()
+            db.query(User).filter(User.id == offer.runner_id).update(
+                {User.level: User.level + 1},
+                synchronize_session=False,
+            )
 
     @staticmethod
     def create(db: Session, request: OfferCreate, runner_id: str) -> OfferResponse:
@@ -232,6 +242,8 @@ class OfferService:
         db.commit()
         db.refresh(offer)
         db.refresh(proposal)
+        orderer_name, orderer_level = OfferService._user_profile(db, proposal.orderer_id)
+        runner_name, runner_level = OfferService._user_profile(db, offer.runner_id)
 
         return OfferAcceptResponse(
             proposal_id=proposal.id,
@@ -240,9 +252,11 @@ class OfferService:
             accepted_offer_status=offer.status,
             rejected_offer_count=rejected_count,
             orderer_id=proposal.orderer_id,
-            orderer_name=OfferService._user_name(db, proposal.orderer_id),
+            orderer_name=orderer_name,
+            orderer_level=orderer_level,
             runner_id=offer.runner_id,
-            runner_name=OfferService._user_name(db, offer.runner_id),
+            runner_name=runner_name,
+            runner_level=runner_level,
             accepted_at=offer.accepted_at,
         )
 
@@ -267,7 +281,7 @@ class OfferService:
         offer.complete_delivery()
         if proposal.status in {ProposalStatus.MATCHED, ProposalStatus.ORDER_COMPLETED}:
             proposal.report_delivery()
-        OfferService._sync_all_completed(offer, proposal)
+        OfferService._sync_all_completed(db, offer, proposal)
         db.add(Proof(
             proposal_id=proposal.id,
             offer_id=offer.id,

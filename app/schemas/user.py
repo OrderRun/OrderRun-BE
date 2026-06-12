@@ -204,6 +204,7 @@ class UserDetailResponse(BaseModel):
     created_at: datetime = Field(..., alias="createdAt", description="가입 시각")
     last_login_at: Optional[datetime] = Field(None, alias="lastLoginAt", description="마지막 로그인 시각")
     alarm_enabled: bool = Field(..., alias="alarmEnabled", description="알림 수신 여부")
+    level: int = Field(..., description="성공 완료한 러너 Offer 수 기반 레벨")
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 

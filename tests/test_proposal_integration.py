@@ -82,6 +82,8 @@ def test_list_public_orders_by_deadline_then_creation_time(client, db, factory, 
 
 
 def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_headers, sample_user):
+    sample_user.level = 2
+    db.commit()
     holding = factory.proposal(sample_user.id, ProposalStatus.HOLDING)
     cancelled = factory.proposal(sample_user.id, ProposalStatus.CANCELLED)
 
@@ -91,6 +93,7 @@ def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_
     assert holding_data["status"] == "HOLDING"
     assert holding_data["ordererId"] == sample_user.id
     assert holding_data["ordererName"] == sample_user.name
+    assert holding_data["ordererLevel"] == 2
     assert holding_data["offers"] == []
 
     cancelled_response = client.get(f"/v1/proposal/{cancelled.id}", headers=auth_headers)
@@ -103,6 +106,8 @@ def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_
 
 def test_detail_returns_state_timestamps_when_matched(client, db, factory, auth_headers, sample_user):
     runner = factory.user("01099990003", name="Matched Runner")
+    runner.level = 5
+    db.commit()
     proposal = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
     proposal.matched_at = datetime.now(timezone.utc)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
@@ -120,6 +125,7 @@ def test_detail_returns_state_timestamps_when_matched(client, db, factory, auth_
     assert len(data["offers"]) == 1
     assert data["offers"][0]["id"] == offer.id
     assert data["offers"][0]["runnerName"] == "Matched Runner"
+    assert data["offers"][0]["runnerLevel"] == 5
 
 
 def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(client, db, factory, auth_headers, sample_user):
@@ -149,6 +155,7 @@ def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(
     posted_item = next(item for item in items if item["id"] == own_posted.id)
     assert posted_item["ordererId"] == sample_user.id
     assert posted_item["ordererName"] == sample_user.name
+    assert posted_item["ordererLevel"] == sample_user.level
     assert posted_item["offerCount"] == 2
     assert [offer["id"] for offer in posted_item["offers"]] == [new_offer.id, old_offer.id]
     assert [offer["runnerName"] for offer in posted_item["offers"]] == ["New Offer Runner", "Old Offer Runner"]
@@ -343,6 +350,7 @@ def test_confirm_received_marks_proposal_completed_without_finishing_offer(clien
 
 def test_confirm_received_after_runner_completion_marks_both_all_completed(client, db, factory, auth_headers, sample_user):
     runner = factory.user("01055550002")
+    sample_user.level = 6
     proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.RUNNER_COMPLETED)
     proposal.delivery_reported_at = datetime.now(timezone.utc)
     offer.delivery_completed_at = proposal.delivery_reported_at
@@ -352,10 +360,16 @@ def test_confirm_received_after_runner_completion_marks_both_all_completed(clien
 
     assert response.status_code == 200
     assert response.json()["data"]["status"] == "ALL_COMPLETED"
+    assert response.json()["data"]["ordererLevel"] == 6
+    assert response.json()["data"]["offers"][0]["runnerLevel"] == 1
     db.refresh(proposal)
     db.refresh(offer)
+    db.refresh(runner)
+    db.refresh(sample_user)
     assert proposal.status == ProposalStatus.ALL_COMPLETED
     assert offer.status == OfferStatus.ALL_COMPLETED
+    assert runner.level == 1
+    assert sample_user.level == 6
     assert proposal.delivery_reported_at is not None
     assert offer.delivery_completed_at is not None
     assert proposal.received_confirmed_at is not None

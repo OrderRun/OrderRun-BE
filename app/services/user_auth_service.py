@@ -299,6 +299,7 @@ class UserAuthService:
             created_at=fresh_user.created_at,
             last_login_at=fresh_user.last_login_at,
             alarm_enabled=fresh_user.alarm_enabled,
+            level=fresh_user.level,
         )
 
     def update_alarm(self, user: User, alarm_enabled: bool) -> None:

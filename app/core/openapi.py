@@ -101,6 +101,8 @@ EXAMPLE_USER_ID = "550e8400-e29b-41d4-a716-446655440000"
 EXAMPLE_RUNNER_ID = "550e8400-e29b-41d4-a716-446655440001"
 EXAMPLE_ORDERER_NAME = "홍길동"
 EXAMPLE_RUNNER_NAME = "Runner One"
+EXAMPLE_ORDERER_LEVEL = 0
+EXAMPLE_RUNNER_LEVEL = 3
 EXAMPLE_CREATED_AT = "2026-06-01T12:00:00+09:00"
 EXAMPLE_UPDATED_AT = "2026-06-01T12:10:00+09:00"
 EXAMPLE_DEADLINE = "2026-06-02T12:00:00+09:00"
@@ -115,6 +117,7 @@ USER_DETAIL_EXAMPLE = {
         "createdAt": EXAMPLE_CREATED_AT,
         "lastLoginAt": EXAMPLE_UPDATED_AT,
         "alarmEnabled": False,
+        "level": EXAMPLE_ORDERER_LEVEL,
     },
 }
 USER_ALARM_EXAMPLE = {"success": True, "data": None, "message": "알람 설정이 업데이트되었습니다."}
@@ -143,6 +146,7 @@ PROPOSAL_EXAMPLE = {
 PROPOSAL_STATE_TIMESTAMPS = {
     "ordererId": EXAMPLE_USER_ID,
     "ordererName": EXAMPLE_ORDERER_NAME,
+    "ordererLevel": EXAMPLE_ORDERER_LEVEL,
     "matchedAt": None,
     "deliveryReportedAt": None,
     "receivedConfirmedAt": None,
@@ -155,6 +159,7 @@ PROPOSAL_WAITING_OFFER_EXAMPLE = {
     "proposalId": 1,
     "runnerId": EXAMPLE_RUNNER_ID,
     "runnerName": EXAMPLE_RUNNER_NAME,
+    "runnerLevel": EXAMPLE_RUNNER_LEVEL,
     "status": "WAITING",
     "createdAt": EXAMPLE_CREATED_AT,
 }
@@ -258,6 +263,7 @@ PROPOSAL_OWN_EXAMPLE = {
     **PROPOSAL_EXAMPLE,
     "ordererId": EXAMPLE_USER_ID,
     "ordererName": EXAMPLE_ORDERER_NAME,
+    "ordererLevel": EXAMPLE_ORDERER_LEVEL,
     "offerCount": 1,
     "offers": [
         {
@@ -265,6 +271,7 @@ PROPOSAL_OWN_EXAMPLE = {
             "proposalId": 1,
             "runnerId": EXAMPLE_RUNNER_ID,
             "runnerName": EXAMPLE_RUNNER_NAME,
+            "runnerLevel": EXAMPLE_RUNNER_LEVEL,
             "status": "WAITING",
             "createdAt": EXAMPLE_CREATED_AT,
         }
@@ -321,8 +328,10 @@ OFFER_EXAMPLE = {
     "proposalId": 1,
     "ordererId": EXAMPLE_USER_ID,
     "ordererName": EXAMPLE_ORDERER_NAME,
+    "ordererLevel": EXAMPLE_ORDERER_LEVEL,
     "runnerId": EXAMPLE_RUNNER_ID,
     "runnerName": EXAMPLE_RUNNER_NAME,
+    "runnerLevel": EXAMPLE_RUNNER_LEVEL,
     "status": "WAITING",
     "acceptedAt": None,
     "deliveryCompletedAt": None,
@@ -428,8 +437,10 @@ OFFER_ACCEPT_EXAMPLE = {
         "rejectedOfferCount": 1,
         "ordererId": EXAMPLE_USER_ID,
         "ordererName": EXAMPLE_ORDERER_NAME,
+        "ordererLevel": EXAMPLE_ORDERER_LEVEL,
         "runnerId": EXAMPLE_RUNNER_ID,
         "runnerName": EXAMPLE_RUNNER_NAME,
+        "runnerLevel": EXAMPLE_RUNNER_LEVEL,
         "acceptedAt": EXAMPLE_CREATED_AT,
     },
     "message": "제안이 수락되었습니다.",

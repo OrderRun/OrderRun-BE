@@ -30,8 +30,10 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
         "proposalId": proposal.id,
         "ordererId": sample_user.id,
         "ordererName": sample_user.name,
+        "ordererLevel": sample_user.level,
         "runnerId": runner.id,
         "runnerName": "Runner One",
+        "runnerLevel": runner.level,
         "status": "WAITING",
         "acceptedAt": None,
         "deliveryCompletedAt": None,
@@ -109,6 +111,9 @@ def test_get_offers_returns_latest_first_and_supports_multi_status_filter(client
 
 def test_get_offer_detail_allows_any_logged_in_user(client, db, factory, sample_user):
     runner = factory.user("01077770007", name="Detail Runner")
+    runner.level = 4
+    sample_user.level = 2
+    db.commit()
     stranger = factory.user("01077770008")
     proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id)
@@ -126,7 +131,9 @@ def test_get_offer_detail_allows_any_logged_in_user(client, db, factory, sample_
     assert runner_response.json()["data"]["acceptedAt"] is None
     assert runner_response.json()["data"]["ordererId"] == sample_user.id
     assert runner_response.json()["data"]["ordererName"] == sample_user.name
+    assert runner_response.json()["data"]["ordererLevel"] == 2
     assert runner_response.json()["data"]["runnerName"] == "Detail Runner"
+    assert runner_response.json()["data"]["runnerLevel"] == 4
 
 
 def test_get_offer_detail_returns_state_timestamps_when_accepted(client, db, factory, sample_user):
@@ -337,6 +344,8 @@ def test_complete_delivery_marks_offer_completed_without_finishing_proposal(clie
 
 def test_complete_delivery_after_orderer_completion_marks_both_all_completed(client, db, factory, sample_user):
     runner = factory.user("01077770025")
+    sample_user.level = 7
+    db.commit()
     proposal = factory.proposal(sample_user.id, ProposalStatus.ORDER_COMPLETED)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
     offer.accepted_at = datetime.now(timezone.utc)
@@ -351,10 +360,16 @@ def test_complete_delivery_after_orderer_completion_marks_both_all_completed(cli
 
     assert response.status_code == 200
     assert response.json()["data"]["status"] == "ALL_COMPLETED"
+    assert response.json()["data"]["ordererLevel"] == 7
+    assert response.json()["data"]["runnerLevel"] == 1
     db.refresh(offer)
     db.refresh(proposal)
+    db.refresh(runner)
+    db.refresh(sample_user)
     assert offer.status == OfferStatus.ALL_COMPLETED
     assert proposal.status == ProposalStatus.ALL_COMPLETED
+    assert runner.level == 1
+    assert sample_user.level == 7
     assert offer.delivery_completed_at is not None
     assert proposal.delivery_reported_at is not None
     assert offer.receipt_confirmed_at is None
@@ -365,6 +380,37 @@ def test_complete_delivery_after_orderer_completion_marks_both_all_completed(cli
     assert proposal.refunded_at is None
     assert offer.settled_at is None
     assert proposal.settled_at is None
+
+
+def test_runner_level_counts_each_completed_offer(client, db, factory, sample_user):
+    runner = factory.user("01077770028")
+
+    first_proposal = factory.proposal(sample_user.id, ProposalStatus.ORDER_COMPLETED)
+    second_proposal = factory.proposal(sample_user.id, ProposalStatus.ORDER_COMPLETED)
+    first_offer = Offer(proposal_id=first_proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    second_offer = Offer(proposal_id=second_proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    first_offer.accepted_at = datetime.now(timezone.utc)
+    second_offer.accepted_at = datetime.now(timezone.utc)
+    db.add_all([first_offer, second_offer])
+    db.commit()
+
+    first = client.post(
+        f"/v1/offer/{first_offer.id}/complete-delivery",
+        json={"proofImageUrl": None},
+        headers=factory.headers_for(runner),
+    )
+    second = client.post(
+        f"/v1/offer/{second_offer.id}/complete-delivery",
+        json={"proofImageUrl": None},
+        headers=factory.headers_for(runner),
+    )
+
+    assert first.status_code == 200
+    assert first.json()["data"]["runnerLevel"] == 1
+    assert second.status_code == 200
+    assert second.json()["data"]["runnerLevel"] == 2
+    db.refresh(runner)
+    assert runner.level == 2
 
 
 def test_raise_offer_dispute_updates_both_statuses_and_timestamps(client, db, factory, sample_user):

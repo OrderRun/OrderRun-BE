@@ -63,17 +63,21 @@ class ProposalService:
         return offer
 
     @staticmethod
-    def _user_names(db: Session, user_ids: list[str]) -> dict[str, str]:
+    def _user_profiles(db: Session, user_ids: list[str]) -> dict[str, tuple[str, int]]:
         if not user_ids:
             return {}
-        rows = db.query(User.id, User.name).filter(User.id.in_(set(user_ids))).all()
-        return {user_id: name for user_id, name in rows}
+        rows = db.query(User.id, User.name, User.level).filter(User.id.in_(set(user_ids))).all()
+        return {user_id: (name, level) for user_id, name, level in rows}
 
     @staticmethod
-    def _sync_all_completed(proposal: Proposal, offer: Offer) -> None:
+    def _sync_all_completed(db: Session, proposal: Proposal, offer: Offer) -> None:
         if proposal.status == ProposalStatus.ORDER_COMPLETED and offer.status == OfferStatus.RUNNER_COMPLETED:
             proposal.mark_all_completed()
             offer.mark_all_completed()
+            db.query(User).filter(User.id == offer.runner_id).update(
+                {User.level: User.level + 1},
+                synchronize_session=False,
+            )
 
     @staticmethod
     def search_proposals(
@@ -103,7 +107,8 @@ class ProposalService:
             .order_by(Offer.created_at.desc(), Offer.id.desc())
             .all()
         )
-        user_names = ProposalService._user_names(db, [proposal.orderer_id, *(offer.runner_id for offer in offers)])
+        user_profiles = ProposalService._user_profiles(db, [proposal.orderer_id, *(offer.runner_id for offer in offers)])
+        orderer_name, orderer_level = user_profiles.get(proposal.orderer_id, ("", 0))
         return ProposalDetailResponse(
             id=proposal.id,
             title=proposal.title,
@@ -111,7 +116,8 @@ class ProposalService:
             deadline=proposal.deadline,
             errand_fee=proposal.errand_fee,
             orderer_id=proposal.orderer_id,
-            orderer_name=user_names.get(proposal.orderer_id, ""),
+            orderer_name=orderer_name,
+            orderer_level=orderer_level,
             status=proposal.status,
             matched_at=proposal.matched_at,
             delivery_reported_at=proposal.delivery_reported_at,
@@ -123,7 +129,8 @@ class ProposalService:
                     id=offer.id,
                     proposal_id=offer.proposal_id,
                     runner_id=offer.runner_id,
-                    runner_name=user_names.get(offer.runner_id, ""),
+                    runner_name=user_profiles.get(offer.runner_id, ("", 0))[0],
+                    runner_level=user_profiles.get(offer.runner_id, ("", 0))[1],
                     status=offer.status,
                     created_at=offer.created_at,
                 )
@@ -165,13 +172,14 @@ class ProposalService:
                 offers_by_proposal.setdefault(offer.proposal_id, []).append(offer)
                 user_ids.append(offer.runner_id)
 
-        user_names = ProposalService._user_names(db, user_ids)
+        user_profiles = ProposalService._user_profiles(db, user_ids)
 
         items = [
             ProposalOwnResponse(
                 id=proposal.id,
                 orderer_id=proposal.orderer_id,
-                orderer_name=user_names.get(proposal.orderer_id, ""),
+                orderer_name=user_profiles.get(proposal.orderer_id, ("", 0))[0],
+                orderer_level=user_profiles.get(proposal.orderer_id, ("", 0))[1],
                 title=proposal.title,
                 content=proposal.content,
                 deadline=proposal.deadline,
@@ -183,7 +191,8 @@ class ProposalService:
                         id=offer.id,
                         proposal_id=offer.proposal_id,
                         runner_id=offer.runner_id,
-                        runner_name=user_names.get(offer.runner_id, ""),
+                        runner_name=user_profiles.get(offer.runner_id, ("", 0))[0],
+                        runner_level=user_profiles.get(offer.runner_id, ("", 0))[1],
                         status=offer.status,
                         created_at=offer.created_at,
                     )
@@ -269,7 +278,7 @@ class ProposalService:
 
         proposal.confirm_receipt()
         offer.confirm_receipt()
-        ProposalService._sync_all_completed(proposal, offer)
+        ProposalService._sync_all_completed(db, proposal, offer)
         db.flush()
         EventBus.publish(MeetingConfirmedByOrdererEvent(
             offer_id=offer.id,

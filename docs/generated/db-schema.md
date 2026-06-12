@@ -60,6 +60,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `phone_verified_at` | `datetime(6)` | YES |  | 전화번호 인증 완료 시각 |
 | `last_login_at` | `datetime(6)` | YES |  | 마지막 로그인 시각 |
 | `alarm_enabled` | `boolean` | NO |  | 알림 수신 동의 여부 |
+| `level` | `integer` | NO |  | 성공 완료한 러너 Offer 수 기반 레벨 |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 | `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 

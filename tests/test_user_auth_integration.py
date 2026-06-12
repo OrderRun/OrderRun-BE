@@ -207,6 +207,7 @@ def test_user_detail_alarm_and_fcm_token_flow(client, db, sms_sender):
     assert data["name"] == "홍길동"
     assert data["phone"] == "01012345678"
     assert data["alarmEnabled"] is False
+    assert data["level"] == 0
     assert data["phoneVerifiedAt"] is not None
 
     alarm = client.post(
