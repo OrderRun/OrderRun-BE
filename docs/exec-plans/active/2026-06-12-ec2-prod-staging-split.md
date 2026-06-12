@@ -40,10 +40,11 @@
 1. `docker-compose.ec2.yml`에 `app-staging`, `app-prod`, `nginx`를 정의한다.
 2. FastAPI 컨테이너는 host port를 열지 않고 Docker network 내부 `8000`만 노출한다.
 3. `nginx/templates/ec2-http.conf.template`에서 HTTP 라우팅과 ACME challenge 경로를 정의한다.
-4. `nginx/templates/ec2-https.conf.template`에서 HTTPS 라우팅과 HTTP redirect를 정의한다.
-5. `nginx`는 app 컨테이너에 `depends_on`하지 않고 독립적으로 실행한다.
-6. `scripts/deploy.sh`는 target app만 재배포하고 Nginx를 함께 recreate하지 않는다.
-7. staging workflow는 GitHub Secrets로 `.env.ec2`를 생성하고 `DEPLOY_TARGET=staging`으로 배포한다.
+4. `nginx/templates/ec2-staging-http.conf.template`에서 prod upstream 없이 staging-only HTTP 라우팅을 정의한다.
+5. `nginx/templates/ec2-https.conf.template`에서 HTTPS 라우팅과 HTTP redirect를 정의한다.
+6. `nginx`는 app 컨테이너에 `depends_on`하지 않고 독립적으로 실행한다.
+7. `scripts/deploy.sh`는 target app만 재배포하고 Nginx를 함께 recreate하지 않는다.
+8. staging workflow는 GitHub Secrets로 `.env.ec2`를 생성하고 `DEPLOY_TARGET=staging`으로 배포한다.
 
 ## 검증 전략
 
@@ -72,7 +73,7 @@
 2. staging workflow가 EC2에 `.env.ec2`를 생성한다.
 3. staging workflow는 기존 staging compose 컨테이너가 남아 있으면 첫 전환 시에만 `orderrun-app-staging`, `orderrun-nginx-staging`, `orderrun-redis-staging`를 정리한다.
 4. `COMPOSE_FILE=docker-compose.ec2.yml COMPOSE_ENV_FILE=.env.ec2 DEPLOY_TARGET=staging ./deploy.sh`로 staging app만 배포한다.
-5. `docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --build --no-recreate nginx`로 Nginx가 없을 때만 생성한다.
+5. `docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --build nginx`로 staging-only Nginx 템플릿을 적용한다.
 6. `COMPOSE_FILE=docker-compose.ec2.yml COMPOSE_ENV_FILE=/home/ubuntu/orderrun/.env.ec2 DEPLOY_TARGET=prod ./scripts/deploy.sh`는 production DB/env 준비 후 별도로 실행한다.
 7. HTTP 도메인 접근이 정상인지 확인한다.
 8. 인증서를 발급한다.

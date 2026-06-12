@@ -95,7 +95,7 @@ jobs:
           EC2_PUBLIC_IP=${{ secrets.STG_EC2_HOST }}
           PROD_DOMAIN=api.kkobung-dan.store
           STAGING_DOMAIN=staging-api.kkobung-dan.store
-          NGINX_TEMPLATE=./nginx/templates/ec2-http.conf.template
+          NGINX_TEMPLATE=./nginx/templates/ec2-staging-http.conf.template
           SERVER_HOST=0.0.0.0
           SERVER_PORT=8000
           STAGING_APP_ENV=staging
@@ -139,7 +139,9 @@ jobs:
             fi
 
             COMPOSE_FILE=docker-compose.ec2.yml COMPOSE_ENV_FILE=.env.ec2 DEPLOY_TARGET=staging ./deploy.sh
-            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --build --no-recreate nginx
+            if [ "$(docker inspect -f '{{.State.Running}}' orderrun-nginx 2>/dev/null || echo false)" != "true" ]; then
+              docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --build nginx
+            fi
           EOF
 
       - name: Verify deployment
