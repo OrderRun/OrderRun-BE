@@ -28,6 +28,8 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
     assert body["data"] == {
         "id": body["data"]["id"],
         "proposalId": proposal.id,
+        "ordererId": sample_user.id,
+        "ordererName": sample_user.name,
         "runnerId": runner.id,
         "runnerName": "Runner One",
         "status": "WAITING",
@@ -106,7 +108,7 @@ def test_get_offers_returns_latest_first_and_supports_multi_status_filter(client
 
 
 def test_get_offer_detail_allows_any_logged_in_user(client, db, factory, sample_user):
-    runner = factory.user("01077770007")
+    runner = factory.user("01077770007", name="Detail Runner")
     stranger = factory.user("01077770008")
     proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id)
@@ -122,6 +124,9 @@ def test_get_offer_detail_allows_any_logged_in_user(client, db, factory, sample_
     assert stranger_response.status_code == 200
     assert "missionId" not in runner_response.json()["data"]
     assert runner_response.json()["data"]["acceptedAt"] is None
+    assert runner_response.json()["data"]["ordererId"] == sample_user.id
+    assert runner_response.json()["data"]["ordererName"] == sample_user.name
+    assert runner_response.json()["data"]["runnerName"] == "Detail Runner"
 
 
 def test_get_offer_detail_returns_state_timestamps_when_accepted(client, db, factory, sample_user):

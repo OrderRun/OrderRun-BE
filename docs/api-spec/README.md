@@ -157,6 +157,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 |------|------|------|
 | id | number | Proposal ID |
 | ordererId | string | 작성자 사용자 ID |
+| ordererName | string, null | 작성자/오더러 사용자 이름 |
 | title | string | 공고 제목 |
 | content | string | 요청 상세 내용 |
 | deadline | string | 수행 마감 시각 |
@@ -174,6 +175,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | id | number | Offer ID |
 | proposalId | number | 대상 Proposal ID |
 | runnerId | string | Offer 제출 러너 ID |
+| runnerName | string, null | Offer 제출 러너 이름 |
 | status | string | Offer 상태 |
 | createdAt | string | Offer 생성 시각 |
 
@@ -184,6 +186,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | ordererId | string | 작성자/오더러 사용자 ID |
+| ordererName | string, null | 작성자/오더러 사용자 이름 |
 | matchedAt | string, null | Offer 수락으로 매칭된 시각 |
 | deliveryReportedAt | string, null | 러너 완료가 Proposal에 반영된 시각 |
 | receivedConfirmedAt | string, null | 오더러 완료 확인 시각 |
@@ -197,6 +200,8 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 |------|------|------|
 | id | number | Offer ID |
 | proposalId | number | 대상 Proposal ID |
+| ordererId | string | 대상 Proposal 작성자/오더러 ID |
+| ordererName | string, null | 대상 Proposal 작성자/오더러 이름 |
 | runnerId | string | Offer 제출 러너 ID |
 | runnerName | string, null | Offer 제출 러너 이름 |
 | status | string | Offer 상태. `OfferStatus` 참조 |
@@ -217,7 +222,9 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | acceptedOfferStatus | string | 수락된 Offer 상태 |
 | rejectedOfferCount | number | 자동 거절된 다른 Offer 개수 |
 | ordererId | string | 오더 사용자 ID 스냅샷 |
+| ordererName | string, null | 오더 사용자 이름 |
 | runnerId | string | 러너 사용자 ID 스냅샷 |
+| runnerName | string, null | 러너 사용자 이름 |
 | acceptedAt | string | Offer 수락 시각 |
 
 ### ProofResponse

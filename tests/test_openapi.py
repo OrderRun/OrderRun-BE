@@ -148,6 +148,7 @@ def test_representative_success_examples_match_contracts():
             "deadline",
             "errandFee",
             "ordererId",
+            "ordererName",
             "status",
             "offers",
         }.issubset(data)
@@ -172,7 +173,7 @@ def test_representative_success_examples_match_contracts():
     for example_name, expected_offer_status in offer_status_by_example.items():
         offers = proposal_detail_examples[example_name]["value"]["data"]["offers"]
         assert len(offers) == 1
-        assert set(offers[0]) == {"id", "proposalId", "runnerId", "status", "createdAt"}
+        assert set(offers[0]) == {"id", "proposalId", "runnerId", "runnerName", "status", "createdAt"}
         assert offers[0]["status"] == expected_offer_status
 
     offer_detail_examples = schema["paths"]["/v1/offer/{offer_id}"]["get"]["responses"]["200"]["content"][

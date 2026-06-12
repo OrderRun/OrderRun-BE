@@ -48,17 +48,20 @@ class OfferService:
         return offer
 
     @staticmethod
-    def _runner_name(db: Session, runner_id: str) -> str:
-        runner = db.query(User).filter(User.id == runner_id).first()
-        return runner.name if runner is not None else ""
+    def _user_name(db: Session, user_id: str) -> str:
+        user = db.query(User).filter(User.id == user_id).first()
+        return user.name if user is not None else ""
 
     @staticmethod
     def _to_response(db: Session, offer: Offer) -> OfferResponse:
+        proposal = OfferService._get_proposal(db, offer.proposal_id)
         return OfferResponse(
             id=offer.id,
             proposal_id=offer.proposal_id,
+            orderer_id=proposal.orderer_id,
+            orderer_name=OfferService._user_name(db, proposal.orderer_id),
             runner_id=offer.runner_id,
-            runner_name=OfferService._runner_name(db, offer.runner_id),
+            runner_name=OfferService._user_name(db, offer.runner_id),
             status=offer.status,
             accepted_at=offer.accepted_at,
             delivery_completed_at=offer.delivery_completed_at,
@@ -237,7 +240,9 @@ class OfferService:
             accepted_offer_status=offer.status,
             rejected_offer_count=rejected_count,
             orderer_id=proposal.orderer_id,
+            orderer_name=OfferService._user_name(db, proposal.orderer_id),
             runner_id=offer.runner_id,
+            runner_name=OfferService._user_name(db, offer.runner_id),
             accepted_at=offer.accepted_at,
         )
 

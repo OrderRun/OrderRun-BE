@@ -58,6 +58,7 @@ class ProposalDetailResponse(BaseModel):
     deadline: datetime
     errand_fee: int = Field(..., serialization_alias="errandFee")
     orderer_id: str = Field(..., serialization_alias="ordererId")
+    orderer_name: str = Field(..., serialization_alias="ordererName")
     status: ProposalStatus
     matched_at: datetime | None = Field(None, serialization_alias="matchedAt")
     delivery_reported_at: datetime | None = Field(None, serialization_alias="deliveryReportedAt")
@@ -75,6 +76,7 @@ class ProposalOwnOfferResponse(BaseModel):
     id: int
     proposal_id: int = Field(..., serialization_alias="proposalId")
     runner_id: str = Field(..., serialization_alias="runnerId")
+    runner_name: str = Field(..., serialization_alias="runnerName")
     status: OfferStatus
     created_at: datetime = Field(..., serialization_alias="createdAt")
 
@@ -86,6 +88,7 @@ class ProposalOwnResponse(BaseModel):
 
     id: int
     orderer_id: str = Field(..., serialization_alias="ordererId")
+    orderer_name: str = Field(..., serialization_alias="ordererName")
     title: str
     content: str
     deadline: datetime

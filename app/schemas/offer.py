@@ -23,6 +23,8 @@ class OfferResponse(BaseModel):
 
     id: int
     proposal_id: int = Field(..., serialization_alias="proposalId")
+    orderer_id: str = Field(..., serialization_alias="ordererId")
+    orderer_name: str = Field(..., serialization_alias="ordererName")
     runner_id: str = Field(..., serialization_alias="runnerId")
     runner_name: str = Field(..., serialization_alias="runnerName")
     status: OfferStatus
@@ -45,7 +47,9 @@ class OfferAcceptResponse(BaseModel):
     accepted_offer_status: OfferStatus = Field(..., serialization_alias="acceptedOfferStatus")
     rejected_offer_count: int = Field(..., serialization_alias="rejectedOfferCount")
     orderer_id: str = Field(..., serialization_alias="ordererId")
+    orderer_name: str = Field(..., serialization_alias="ordererName")
     runner_id: str = Field(..., serialization_alias="runnerId")
+    runner_name: str = Field(..., serialization_alias="runnerName")
     accepted_at: datetime = Field(..., serialization_alias="acceptedAt")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)

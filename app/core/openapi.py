@@ -99,6 +99,8 @@ AUTH_ERROR_RESPONSES = error_responses(AppError.INVALID_TOKEN)
 
 EXAMPLE_USER_ID = "550e8400-e29b-41d4-a716-446655440000"
 EXAMPLE_RUNNER_ID = "550e8400-e29b-41d4-a716-446655440001"
+EXAMPLE_ORDERER_NAME = "홍길동"
+EXAMPLE_RUNNER_NAME = "Runner One"
 EXAMPLE_CREATED_AT = "2026-06-01T12:00:00+09:00"
 EXAMPLE_UPDATED_AT = "2026-06-01T12:10:00+09:00"
 EXAMPLE_DEADLINE = "2026-06-02T12:00:00+09:00"
@@ -107,7 +109,7 @@ USER_DETAIL_EXAMPLE = {
     "success": True,
     "data": {
         "id": EXAMPLE_USER_ID,
-        "name": "홍길동",
+        "name": EXAMPLE_ORDERER_NAME,
         "phone": "01012345678",
         "phoneVerifiedAt": EXAMPLE_CREATED_AT,
         "createdAt": EXAMPLE_CREATED_AT,
@@ -140,6 +142,7 @@ PROPOSAL_EXAMPLE = {
 }
 PROPOSAL_STATE_TIMESTAMPS = {
     "ordererId": EXAMPLE_USER_ID,
+    "ordererName": EXAMPLE_ORDERER_NAME,
     "matchedAt": None,
     "deliveryReportedAt": None,
     "receivedConfirmedAt": None,
@@ -151,6 +154,7 @@ PROPOSAL_WAITING_OFFER_EXAMPLE = {
     "id": 10,
     "proposalId": 1,
     "runnerId": EXAMPLE_RUNNER_ID,
+    "runnerName": EXAMPLE_RUNNER_NAME,
     "status": "WAITING",
     "createdAt": EXAMPLE_CREATED_AT,
 }
@@ -253,12 +257,14 @@ PROPOSAL_PAGE_EXAMPLE = {
 PROPOSAL_OWN_EXAMPLE = {
     **PROPOSAL_EXAMPLE,
     "ordererId": EXAMPLE_USER_ID,
+    "ordererName": EXAMPLE_ORDERER_NAME,
     "offerCount": 1,
     "offers": [
         {
             "id": 10,
             "proposalId": 1,
             "runnerId": EXAMPLE_RUNNER_ID,
+            "runnerName": EXAMPLE_RUNNER_NAME,
             "status": "WAITING",
             "createdAt": EXAMPLE_CREATED_AT,
         }
@@ -313,8 +319,10 @@ PROPOSAL_DISPUTE_EXAMPLE = {
 OFFER_EXAMPLE = {
     "id": 10,
     "proposalId": 1,
+    "ordererId": EXAMPLE_USER_ID,
+    "ordererName": EXAMPLE_ORDERER_NAME,
     "runnerId": EXAMPLE_RUNNER_ID,
-    "runnerName": "Runner One",
+    "runnerName": EXAMPLE_RUNNER_NAME,
     "status": "WAITING",
     "acceptedAt": None,
     "deliveryCompletedAt": None,
@@ -368,7 +376,9 @@ OFFER_ACCEPT_EXAMPLE = {
         "acceptedOfferStatus": "ACCEPTED",
         "rejectedOfferCount": 1,
         "ordererId": EXAMPLE_USER_ID,
+        "ordererName": EXAMPLE_ORDERER_NAME,
         "runnerId": EXAMPLE_RUNNER_ID,
+        "runnerName": EXAMPLE_RUNNER_NAME,
         "acceptedAt": EXAMPLE_CREATED_AT,
     },
     "message": "제안이 수락되었습니다.",

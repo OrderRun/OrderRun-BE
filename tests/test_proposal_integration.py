@@ -90,6 +90,7 @@ def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_
     holding_data = holding_response.json()["data"]
     assert holding_data["status"] == "HOLDING"
     assert holding_data["ordererId"] == sample_user.id
+    assert holding_data["ordererName"] == sample_user.name
     assert holding_data["offers"] == []
 
     cancelled_response = client.get(f"/v1/proposal/{cancelled.id}", headers=auth_headers)
@@ -101,7 +102,7 @@ def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_
 
 
 def test_detail_returns_state_timestamps_when_matched(client, db, factory, auth_headers, sample_user):
-    runner = factory.user("01099990003")
+    runner = factory.user("01099990003", name="Matched Runner")
     proposal = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
     proposal.matched_at = datetime.now(timezone.utc)
     offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
@@ -118,10 +119,11 @@ def test_detail_returns_state_timestamps_when_matched(client, db, factory, auth_
     assert "missionId" not in data
     assert len(data["offers"]) == 1
     assert data["offers"][0]["id"] == offer.id
+    assert data["offers"][0]["runnerName"] == "Matched Runner"
 
 
 def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(client, db, factory, auth_headers, sample_user):
-    other_user = factory.user()
+    other_user = factory.user(name="Old Offer Runner")
     own_posted = factory.proposal(sample_user.id, ProposalStatus.POSTED)
     own_holding = factory.proposal(sample_user.id, ProposalStatus.HOLDING)
     own_cancelled = factory.proposal(sample_user.id, ProposalStatus.CANCELLED)
@@ -134,7 +136,7 @@ def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(
     )
     new_offer = Offer(
         proposal_id=own_posted.id,
-        runner_id=factory.user("01099990001").id,
+        runner_id=factory.user("01099990001", name="New Offer Runner").id,
         status=OfferStatus.REJECTED,
     )
     db.add_all([old_offer, new_offer])
@@ -146,8 +148,10 @@ def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(
     assert {item["id"] for item in items} == {own_posted.id, own_cancelled.id}
     posted_item = next(item for item in items if item["id"] == own_posted.id)
     assert posted_item["ordererId"] == sample_user.id
+    assert posted_item["ordererName"] == sample_user.name
     assert posted_item["offerCount"] == 2
     assert [offer["id"] for offer in posted_item["offers"]] == [new_offer.id, old_offer.id]
+    assert [offer["runnerName"] for offer in posted_item["offers"]] == ["New Offer Runner", "Old Offer Runner"]
 
     all_own_response = client.get("/v1/proposal/own", headers=auth_headers)
     assert {item["id"] for item in all_own_response.json()["data"]["content"]} == {

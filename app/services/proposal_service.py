@@ -63,6 +63,13 @@ class ProposalService:
         return offer
 
     @staticmethod
+    def _user_names(db: Session, user_ids: list[str]) -> dict[str, str]:
+        if not user_ids:
+            return {}
+        rows = db.query(User.id, User.name).filter(User.id.in_(set(user_ids))).all()
+        return {user_id: name for user_id, name in rows}
+
+    @staticmethod
     def _sync_all_completed(proposal: Proposal, offer: Offer) -> None:
         if proposal.status == ProposalStatus.ORDER_COMPLETED and offer.status == OfferStatus.RUNNER_COMPLETED:
             proposal.mark_all_completed()
@@ -96,6 +103,7 @@ class ProposalService:
             .order_by(Offer.created_at.desc(), Offer.id.desc())
             .all()
         )
+        user_names = ProposalService._user_names(db, [proposal.orderer_id, *(offer.runner_id for offer in offers)])
         return ProposalDetailResponse(
             id=proposal.id,
             title=proposal.title,
@@ -103,6 +111,7 @@ class ProposalService:
             deadline=proposal.deadline,
             errand_fee=proposal.errand_fee,
             orderer_id=proposal.orderer_id,
+            orderer_name=user_names.get(proposal.orderer_id, ""),
             status=proposal.status,
             matched_at=proposal.matched_at,
             delivery_reported_at=proposal.delivery_reported_at,
@@ -114,6 +123,7 @@ class ProposalService:
                     id=offer.id,
                     proposal_id=offer.proposal_id,
                     runner_id=offer.runner_id,
+                    runner_name=user_names.get(offer.runner_id, ""),
                     status=offer.status,
                     created_at=offer.created_at,
                 )
@@ -142,6 +152,7 @@ class ProposalService:
         )
         proposal_ids = [proposal.id for proposal in proposals]
         offers_by_proposal: dict[int, list[Offer]] = {proposal_id: [] for proposal_id in proposal_ids}
+        user_ids = [proposal.orderer_id for proposal in proposals]
 
         if proposal_ids:
             offers = (
@@ -152,11 +163,15 @@ class ProposalService:
             )
             for offer in offers:
                 offers_by_proposal.setdefault(offer.proposal_id, []).append(offer)
+                user_ids.append(offer.runner_id)
+
+        user_names = ProposalService._user_names(db, user_ids)
 
         items = [
             ProposalOwnResponse(
                 id=proposal.id,
                 orderer_id=proposal.orderer_id,
+                orderer_name=user_names.get(proposal.orderer_id, ""),
                 title=proposal.title,
                 content=proposal.content,
                 deadline=proposal.deadline,
@@ -168,6 +183,7 @@ class ProposalService:
                         id=offer.id,
                         proposal_id=offer.proposal_id,
                         runner_id=offer.runner_id,
+                        runner_name=user_names.get(offer.runner_id, ""),
                         status=offer.status,
                         created_at=offer.created_at,
                     )
