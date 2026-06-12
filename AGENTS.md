@@ -38,6 +38,13 @@
 - 코드나 설계로부터 파생된 산출물은 `docs/generated/`에 둔다.
 - 외부 도구, 플랫폼, 참고 자료 메모는 `docs/references/`에 둔다.
 
+## 테스트 실행 규칙
+
+- 통합 테스트를 실행할 때는 `docker-compose.test.yml`의 `mysql-test` 서비스를 사용한다.
+- 테스트 DB는 `docker compose -f docker-compose.test.yml up -d mysql-test`로 띄우고, `orderrun-mysql-test`가 `healthy`인지 확인한 뒤 `pytest`를 실행한다.
+- 테스트 실행 env는 compose 설정과 맞춘다: `DB_HOST=127.0.0.1`, `DB_PORT=3307`, `DB_USERNAME=orderrun_user`, `DB_PASSWORD=orderrun_pass`, `DB_NAME=orderrun`.
+- 통합 테스트 실패를 로컬 MySQL 인증/스키마 문제로 판단하기 전에 위 테스트 compose 환경으로 재실행한다.
+
 ## 완료 전 확인
 
 1. 관련 문서 엔트리가 존재하거나 갱신되었는지 확인한다.
