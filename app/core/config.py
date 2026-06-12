@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     app_debug: bool = True
     secret_key: str
 
+    # Logging
+    log_level: str = "INFO"
+    log_dir: str = "/app/logs"
+    log_file_enabled: bool = False
+    log_retention_days: int = 14
+
     # Database
     db_host: str = "localhost"
     db_port: int = 3306

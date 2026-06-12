@@ -8,6 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 
 from app.core.config import settings
+from app.core.logging import setup_logging
 from app.core.database import SessionLocal
 from app.core.firebase import get_notification_worker, init_fcm
 from app.api.v1 import auth, proposal, offer, notifications, admin, settlement, terms, users
@@ -15,6 +16,8 @@ from app.core.exceptions import http_exception_handler, validation_exception_han
 from app.listeners import notification_listener
 from app.schemas.common import ApiResponse
 from app.core.openapi import HEALTH_EXAMPLE, ROOT_EXAMPLE, success_response
+
+setup_logging()
 
 logger = logging.getLogger(__name__)
 
