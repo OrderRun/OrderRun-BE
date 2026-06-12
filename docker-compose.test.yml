@@ -1,0 +1,32 @@
+services:
+  mysql-test:
+    image: mysql:8.0
+    container_name: orderrun-mysql-test
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: orderrun_test
+      MYSQL_USER: orderrun_user
+      MYSQL_PASSWORD: orderrun_pass
+      TZ: UTC
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "orderrun_user", "-porderrun_pass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - orderrun-test-network
+
+volumes:
+  mysql_test_data:
+    driver: local
+
+networks:
+  orderrun-test-network:
+    driver: bridge
