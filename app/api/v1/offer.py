@@ -12,13 +12,11 @@ from app.core.openapi import (
     OFFER_ACCEPT_EXAMPLE,
     OFFER_CREATE_EXAMPLE,
     OFFER_DELIVERY_EXAMPLE,
-    OFFER_DETAIL_EXAMPLE,
+    OFFER_DETAIL_EXAMPLES,
     OFFER_DISPUTE_EXAMPLE,
-    OFFER_LIST_EXAMPLE,
-    OFFER_PAGE_EXAMPLE,
-    OFFER_ACCEPTED_DETAIL_EXAMPLE,
+    OFFER_LIST_EXAMPLES,
+    OFFER_PAGE_EXAMPLES,
     error_responses,
-    no_content_response,
     success_response,
     success_response_examples,
 )
@@ -96,7 +94,7 @@ def create_offer(
     summary="내 제안 목록 조회",
     description="현재 러너가 등록한 제안 목록을 상태와 페이지 조건으로 조회합니다.",
     responses={
-        200: success_response(OFFER_PAGE_EXAMPLE),
+        200: success_response_examples(OFFER_PAGE_EXAMPLES),
         **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR),
     },
 )
@@ -122,7 +120,7 @@ def get_own_offers(
     summary="요청별 제안 목록 조회",
     description="특정 요청에 등록된 제안 목록을 조회합니다.",
     responses={
-        200: success_response(OFFER_LIST_EXAMPLE),
+        200: success_response_examples(OFFER_LIST_EXAMPLES),
         **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR, AppError.OFFER_PROPOSAL_NOT_FOUND),
     },
 )
@@ -147,12 +145,7 @@ def get_offers(
     summary="제안 상세 조회",
     description="제안 ID로 제안 상세 정보를 조회합니다.",
     responses={
-        200: success_response_examples(
-            {
-                "waiting": OFFER_DETAIL_EXAMPLE,
-                "accepted": OFFER_ACCEPTED_DETAIL_EXAMPLE,
-            }
-        ),
+        200: success_response_examples(OFFER_DETAIL_EXAMPLES),
         **error_responses(AppError.INVALID_TOKEN, AppError.OFFER_NOT_FOUND),
     },
 )

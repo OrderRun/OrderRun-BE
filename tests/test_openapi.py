@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 
 from app.main import app
+from app.models.offer import OfferStatus
 
 
 ALLOWED_SCHEMA_BASES = {"BaseModel", "Generic", "str", "Enum"}
@@ -179,8 +180,45 @@ def test_representative_success_examples_match_contracts():
     offer_detail_examples = schema["paths"]["/v1/offer/{offer_id}"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["examples"]
+    expected_offer_statuses = {
+        "waiting": "WAITING",
+        "accepted": "ACCEPTED",
+        "runner_completed": "RUNNER_COMPLETED",
+        "all_completed": "ALL_COMPLETED",
+        "disputed": "DISPUTED",
+        "refunded": "REFUNDED",
+        "rejected": "REJECTED",
+        "cancelled": "CANCELLED",
+    }
+    assert set(offer_detail_examples) == set(expected_offer_statuses)
+    assert set(expected_offer_statuses.values()) == {status.value for status in OfferStatus}
+
+    for example_name, expected_status in expected_offer_statuses.items():
+        data = offer_detail_examples[example_name]["value"]["data"]
+        assert data["status"] == expected_status
+        assert {
+            "id",
+            "proposalId",
+            "ordererId",
+            "ordererName",
+            "runnerId",
+            "runnerName",
+            "status",
+            "createdAt",
+        }.issubset(data)
+
     assert "missionId" not in offer_detail_examples["waiting"]["value"]["data"]
     assert offer_detail_examples["accepted"]["value"]["data"]["acceptedAt"] is not None
+    assert offer_detail_examples["runner_completed"]["value"]["data"]["deliveryCompletedAt"] is not None
+    assert offer_detail_examples["all_completed"]["value"]["data"]["receiptConfirmedAt"] is not None
+    assert offer_detail_examples["disputed"]["value"]["data"]["disputedAt"] is not None
+    assert offer_detail_examples["refunded"]["value"]["data"]["refundedAt"] is not None
+
+    for path in ("/v1/offer", "/v1/offer/own"):
+        operation_examples = schema["paths"][path]["get"]["responses"]["200"]["content"]["application/json"][
+            "examples"
+        ]
+        assert set(operation_examples) == set(expected_offer_statuses)
 
     offer_delivery = schema["paths"]["/v1/offer/{offer_id}/complete-delivery"]["post"]["responses"]["200"][
         "content"

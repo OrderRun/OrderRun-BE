@@ -331,6 +331,66 @@ OFFER_EXAMPLE = {
     "refundedAt": None,
     "createdAt": EXAMPLE_CREATED_AT,
 }
+OFFER_WAITING_EXAMPLE = OFFER_EXAMPLE
+OFFER_ACCEPTED_EXAMPLE = {**OFFER_EXAMPLE, "status": "ACCEPTED", "acceptedAt": EXAMPLE_UPDATED_AT}
+OFFER_RUNNER_COMPLETED_EXAMPLE = {
+    **OFFER_EXAMPLE,
+    "status": "RUNNER_COMPLETED",
+    "acceptedAt": EXAMPLE_CREATED_AT,
+    "deliveryCompletedAt": EXAMPLE_UPDATED_AT,
+}
+OFFER_ALL_COMPLETED_EXAMPLE = {
+    **OFFER_RUNNER_COMPLETED_EXAMPLE,
+    "status": "ALL_COMPLETED",
+    "receiptConfirmedAt": EXAMPLE_UPDATED_AT,
+}
+OFFER_DISPUTED_STATUS_EXAMPLE = {
+    **OFFER_EXAMPLE,
+    "status": "DISPUTED",
+    "acceptedAt": EXAMPLE_CREATED_AT,
+    "disputedAt": EXAMPLE_UPDATED_AT,
+}
+OFFER_REFUNDED_STATUS_EXAMPLE = {
+    **OFFER_DISPUTED_STATUS_EXAMPLE,
+    "status": "REFUNDED",
+    "refundedAt": EXAMPLE_UPDATED_AT,
+}
+OFFER_REJECTED_EXAMPLE = {**OFFER_EXAMPLE, "status": "REJECTED"}
+OFFER_CANCELLED_EXAMPLE = {**OFFER_EXAMPLE, "status": "CANCELLED"}
+OFFER_STATUS_DATA_EXAMPLES = {
+    "waiting": OFFER_WAITING_EXAMPLE,
+    "accepted": OFFER_ACCEPTED_EXAMPLE,
+    "runner_completed": OFFER_RUNNER_COMPLETED_EXAMPLE,
+    "all_completed": OFFER_ALL_COMPLETED_EXAMPLE,
+    "disputed": OFFER_DISPUTED_STATUS_EXAMPLE,
+    "refunded": OFFER_REFUNDED_STATUS_EXAMPLE,
+    "rejected": OFFER_REJECTED_EXAMPLE,
+    "cancelled": OFFER_CANCELLED_EXAMPLE,
+}
+OFFER_DETAIL_EXAMPLES = {
+    name: {"success": True, "data": data, "message": "Success"}
+    for name, data in OFFER_STATUS_DATA_EXAMPLES.items()
+}
+OFFER_LIST_EXAMPLES = {
+    name: {"success": True, "data": [data], "message": "Success"}
+    for name, data in OFFER_STATUS_DATA_EXAMPLES.items()
+}
+OFFER_PAGE_EXAMPLES = {
+    name: {
+        "success": True,
+        "data": {
+            "content": [data],
+            "totalElements": 1,
+            "totalPages": 1,
+            "pageNumber": 0,
+            "pageSize": 20,
+            "first": True,
+            "last": True,
+        },
+        "message": "Success",
+    }
+    for name, data in OFFER_STATUS_DATA_EXAMPLES.items()
+}
 OFFER_PAGE_EXAMPLE = {
     "success": True,
     "data": {
@@ -347,24 +407,15 @@ OFFER_PAGE_EXAMPLE = {
 OFFER_LIST_EXAMPLE = {"success": True, "data": [OFFER_EXAMPLE], "message": "Success"}
 OFFER_CREATE_EXAMPLE = {"success": True, "data": OFFER_EXAMPLE, "message": "제안이 제출되었습니다."}
 OFFER_DETAIL_EXAMPLE = {"success": True, "data": OFFER_EXAMPLE, "message": "Success"}
-OFFER_ACCEPTED_DETAIL_EXAMPLE = {
-    "success": True,
-    "data": {**OFFER_EXAMPLE, "status": "ACCEPTED", "acceptedAt": EXAMPLE_UPDATED_AT},
-    "message": "Success",
-}
+OFFER_ACCEPTED_DETAIL_EXAMPLE = OFFER_DETAIL_EXAMPLES["accepted"]
 OFFER_DELIVERY_EXAMPLE = {
     "success": True,
-    "data": {
-        **OFFER_EXAMPLE,
-        "status": "RUNNER_COMPLETED",
-        "acceptedAt": EXAMPLE_CREATED_AT,
-        "deliveryCompletedAt": EXAMPLE_UPDATED_AT,
-    },
+    "data": OFFER_RUNNER_COMPLETED_EXAMPLE,
     "message": "완료 처리되었습니다.",
 }
 OFFER_DISPUTE_EXAMPLE = {
     "success": True,
-    "data": {**OFFER_EXAMPLE, "status": "DISPUTED", "acceptedAt": EXAMPLE_CREATED_AT, "disputedAt": EXAMPLE_UPDATED_AT},
+    "data": OFFER_DISPUTED_STATUS_EXAMPLE,
     "message": "분쟁이 접수되었습니다.",
 }
 OFFER_ACCEPT_EXAMPLE = {
@@ -386,7 +437,7 @@ OFFER_ACCEPT_EXAMPLE = {
 
 OFFER_REFUNDED_EXAMPLE = {
     "success": True,
-    "data": {**OFFER_EXAMPLE, "status": "REFUNDED", "acceptedAt": EXAMPLE_CREATED_AT, "disputedAt": EXAMPLE_UPDATED_AT, "refundedAt": EXAMPLE_UPDATED_AT},
+    "data": OFFER_REFUNDED_STATUS_EXAMPLE,
     "message": "제안 환불이 완료되었습니다.",
 }
 
