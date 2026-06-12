@@ -29,6 +29,7 @@
 - [API Spec](./docs/api-spec/README.md)
 - [Domain Policy](./docs/domain.md)
 - [Tech Debt Tracker](./docs/exec-plans/tech-debt-tracker.md)
+- [EC2 Staging/Production Deployment Plan](./docs/exec-plans/active/2026-06-12-ec2-prod-staging-split.md)
 - [Generated DB Schema](./docs/generated/db-schema.md)
 - [로컬 개발 환경 세팅](./docs/setup/local-development.md)
 
@@ -39,3 +40,7 @@
 - Database: MySQL
 - ORM: SQLAlchemy 2.x
 - Schema Validation: Pydantic 2.x
+- Runtime: Docker Compose on EC2
+- Edge Proxy: Nginx
+- Staging URL: `http://43.200.56.9`, `http://staging-api.kkobung-dan.store`
+- Production URL: `api.kkobung-dan.store` (준비 중)
