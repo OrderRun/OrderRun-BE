@@ -19,6 +19,7 @@
   - IP 직접 접근은 staging HTTP 유지
 - 배포 스크립트에 `DEPLOY_TARGET=prod|staging` 지원 추가
 - EC2 전용 env 예시는 `.env.ec2.example`에 둔다.
+- 파일 로그 저장을 위해 앱/Nginx 로그를 `/home/ubuntu/orderrun/logs`에 마운트한다.
 
 ## 비범위
 
@@ -66,20 +67,29 @@
   - `curl https://api.kkobung-dan.store/v1/health`
 - Redis 제거 확인:
   - `docker ps`에 Redis 컨테이너가 없어야 한다.
+- 파일 로그 확인:
+  - `tail -f /home/ubuntu/orderrun/logs/staging/app/app.log`
+  - `tail -f /home/ubuntu/orderrun/logs/prod/app/app.log`
+  - `tail -f /home/ubuntu/orderrun/logs/nginx/staging-access.log`
+  - `tail -f /home/ubuntu/orderrun/logs/nginx/prod-access.log`
 
 ## 롤아웃 메모
 
 1. RDS에 `prod_orderun` DB와 production DB user를 먼저 준비한다.
 2. staging workflow가 EC2에 `.env.ec2`를 생성한다.
-3. staging workflow는 기존 staging compose 컨테이너가 남아 있으면 첫 전환 시에만 `orderrun-app-staging`, `orderrun-nginx-staging`, `orderrun-redis-staging`를 정리한다.
-4. `COMPOSE_FILE=docker-compose.ec2.yml COMPOSE_ENV_FILE=.env.ec2 DEPLOY_TARGET=staging ./deploy.sh`로 staging app만 배포한다.
-5. `docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --build nginx`로 staging-only Nginx 템플릿을 적용한다.
-6. `COMPOSE_FILE=docker-compose.ec2.yml COMPOSE_ENV_FILE=/home/ubuntu/orderrun/.env.ec2 DEPLOY_TARGET=prod ./scripts/deploy.sh`는 production DB/env 준비 후 별도로 실행한다.
-7. HTTP 도메인 접근이 정상인지 확인한다.
-8. 인증서를 발급한다.
+3. 첫 배포 전 로그 디렉토리와 Nginx 로그 순환 설정을 준비한다.
+   - `mkdir -p /home/ubuntu/orderrun/logs/{staging/app,prod/app,nginx}`
+   - `sudo ./scripts/install-logrotate.sh`
+   - `sudo logrotate -d /etc/logrotate.d/orderrun`
+4. staging workflow는 기존 staging compose 컨테이너가 남아 있으면 첫 전환 시에만 `orderrun-app-staging`, `orderrun-nginx-staging`, `orderrun-redis-staging`를 정리한다.
+5. `COMPOSE_FILE=docker-compose.ec2.yml COMPOSE_ENV_FILE=.env.ec2 DEPLOY_TARGET=staging ./deploy.sh`로 staging app만 배포한다.
+6. `docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --build nginx`로 staging-only Nginx 템플릿을 적용한다.
+7. `COMPOSE_FILE=docker-compose.ec2.yml COMPOSE_ENV_FILE=/home/ubuntu/orderrun/.env.ec2 DEPLOY_TARGET=prod ./scripts/deploy.sh`는 production DB/env 준비 후 별도로 실행한다.
+8. HTTP 도메인 접근이 정상인지 확인한다.
+9. 인증서를 발급한다.
    - `docker compose --env-file /home/ubuntu/orderrun/.env.ec2 -f docker-compose.ec2.yml --profile ssl run --rm certbot`
-9. EC2 `.env.ec2`의 `NGINX_TEMPLATE`를 `./nginx/templates/ec2-https.conf.template`로 변경한다.
-10. `docker compose --env-file /home/ubuntu/orderrun/.env.ec2 -f docker-compose.ec2.yml up -d --build nginx`로 Nginx를 재생성한다.
+10. EC2 `.env.ec2`의 `NGINX_TEMPLATE`를 `./nginx/templates/ec2-https.conf.template`로 변경한다.
+11. `docker compose --env-file /home/ubuntu/orderrun/.env.ec2 -f docker-compose.ec2.yml up -d --build nginx`로 Nginx를 재생성한다.
 
 ## 남은 리스크
 
