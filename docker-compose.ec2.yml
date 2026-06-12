@@ -1,0 +1,140 @@
+services:
+  app-staging:
+    image: ${DOCKER_IMAGE:-orderrun:latest}
+    container_name: orderrun-app-staging
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${STAGING_APP_ENV:-staging}
+      APP_DEBUG: ${STAGING_APP_DEBUG:-false}
+      SECRET_KEY: ${STAGING_SECRET_KEY:?STAGING_SECRET_KEY is required}
+      DB_HOST: ${STAGING_MYSQL_HOST:?STAGING_MYSQL_HOST is required}
+      DB_PORT: ${STAGING_MYSQL_PORT:-3306}
+      DB_USERNAME: ${STAGING_MYSQL_USER:?STAGING_MYSQL_USER is required}
+      DB_PASSWORD: ${STAGING_MYSQL_PASSWORD:?STAGING_MYSQL_PASSWORD is required}
+      DB_NAME: ${STAGING_MYSQL_DATABASE:?STAGING_MYSQL_DATABASE is required}
+      JWT_SECRET: ${STAGING_JWT_SECRET:?STAGING_JWT_SECRET is required}
+      SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
+      SERVER_PORT: ${SERVER_PORT:-8000}
+      AWS_SNS_REGION: ${STAGING_AWS_SNS_REGION:-ap-northeast-1}
+      AWS_SNS_ACCESS_KEY_ID: ${STAGING_AWS_SNS_ACCESS_KEY_ID:-}
+      AWS_SNS_SECRET_ACCESS_KEY: ${STAGING_AWS_SNS_SECRET_ACCESS_KEY:-}
+      AWS_SNS_SMS_SENDER_ID: ${STAGING_AWS_SNS_SMS_SENDER_ID:-Kkobongdan}
+      AWS_SNS_SMS_TYPE: ${STAGING_AWS_SNS_SMS_TYPE:-Transactional}
+      FCM_CREDENTIALS_PATH: ${STAGING_FCM_CREDENTIALS_PATH:-}
+      FCM_CREDENTIALS_JSON: ${STAGING_FCM_CREDENTIALS_JSON:-}
+    volumes:
+      - /home/ubuntu/orderrun/keys:/app/keys:ro
+    expose:
+      - "8000"
+    networks:
+      - orderrun-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import json, urllib.request; data=json.load(urllib.request.urlopen(\"http://127.0.0.1:8000/v1/health\", timeout=5)); assert data[\"success\"] is True and data[\"data\"][\"status\"] == \"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app-prod:
+    image: ${DOCKER_IMAGE:-orderrun:latest}
+    container_name: orderrun-app-prod
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${PROD_APP_ENV:-production}
+      APP_DEBUG: ${PROD_APP_DEBUG:-false}
+      SECRET_KEY: ${PROD_SECRET_KEY:-prod-not-configured}
+      DB_HOST: ${PROD_MYSQL_HOST:-prod-not-configured}
+      DB_PORT: ${PROD_MYSQL_PORT:-3306}
+      DB_USERNAME: ${PROD_MYSQL_USER:-prod-not-configured}
+      DB_PASSWORD: ${PROD_MYSQL_PASSWORD:-prod-not-configured}
+      DB_NAME: ${PROD_MYSQL_DATABASE:-prod_orderun}
+      JWT_SECRET: ${PROD_JWT_SECRET:-prod-not-configured}
+      SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
+      SERVER_PORT: ${SERVER_PORT:-8000}
+      AWS_SNS_REGION: ${PROD_AWS_SNS_REGION:-ap-northeast-1}
+      AWS_SNS_ACCESS_KEY_ID: ${PROD_AWS_SNS_ACCESS_KEY_ID:-}
+      AWS_SNS_SECRET_ACCESS_KEY: ${PROD_AWS_SNS_SECRET_ACCESS_KEY:-}
+      AWS_SNS_SMS_SENDER_ID: ${PROD_AWS_SNS_SMS_SENDER_ID:-Kkobongdan}
+      AWS_SNS_SMS_TYPE: ${PROD_AWS_SNS_SMS_TYPE:-Transactional}
+      FCM_CREDENTIALS_PATH: ${PROD_FCM_CREDENTIALS_PATH:-}
+      FCM_CREDENTIALS_JSON: ${PROD_FCM_CREDENTIALS_JSON:-}
+    volumes:
+      - /home/ubuntu/orderrun/keys:/app/keys:ro
+    expose:
+      - "8000"
+    networks:
+      - orderrun-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import json, urllib.request; data=json.load(urllib.request.urlopen(\"http://127.0.0.1:8000/v1/health\", timeout=5)); assert data[\"success\"] is True and data[\"data\"][\"status\"] == \"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx:
+    build:
+      context: ./nginx
+    container_name: orderrun-nginx
+    restart: unless-stopped
+    environment:
+      EC2_PUBLIC_IP: ${EC2_PUBLIC_IP:-43.200.56.9}
+      PROD_DOMAIN: ${PROD_DOMAIN:-api.kkobung-dan.store}
+      STAGING_DOMAIN: ${STAGING_DOMAIN:-staging-api.kkobung-dan.store}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ${NGINX_TEMPLATE:-./nginx/templates/ec2-http.conf.template}:/etc/nginx/templates/default.conf.template:ro
+      - certbot_www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt:ro
+    networks:
+      - orderrun-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: orderrun-certbot
+    profiles:
+      - ssl
+    volumes:
+      - certbot_www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    entrypoint: certbot
+    command:
+      - certonly
+      - --webroot
+      - -w
+      - /var/www/certbot
+      - -d
+      - ${PROD_DOMAIN:-api.kkobung-dan.store}
+      - -d
+      - ${STAGING_DOMAIN:-staging-api.kkobung-dan.store}
+      - --email
+      - ${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL is required}
+      - --agree-tos
+      - --no-eff-email
+
+networks:
+  orderrun-network:
+    name: orderrun-ec2-network
+    driver: bridge
+
+volumes:
+  certbot_www:
+    driver: local
+  letsencrypt:
+    driver: local

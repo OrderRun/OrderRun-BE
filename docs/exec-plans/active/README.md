@@ -5,6 +5,7 @@
 ## 현재 active 계획
 
 - [`2026-06-02-firebase-config-integration.md`](./2026-06-02-firebase-config-integration.md): Firebase 설정 연동과 키 파일 보안 정리
+- [`2026-06-12-ec2-prod-staging-split.md`](./2026-06-12-ec2-prod-staging-split.md): EC2 단일 호스트에서 Redis 없이 prod/staging FastAPI와 Nginx 라우팅 분리
 
 ## 운영 규칙
 

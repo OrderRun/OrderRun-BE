@@ -71,7 +71,7 @@ jobs:
       - name: Copy deployment files to EC2
         run: |
           scp -i ~/.ssh/staging.pem \
-            docker-compose.staging.yml \
+            docker-compose.ec2.yml \
             "${{ secrets.STG_EC2_USERNAME }}@${{ secrets.STG_EC2_HOST }}:~/orderrun/"
 
           scp -i ~/.ssh/staging.pem \
@@ -90,41 +90,63 @@ jobs:
 
             cd ~/orderrun
 
-            cat > .env << 'ENVEOF'
+            cat > .env.ec2 << 'ENVEOF'
           DOCKER_IMAGE=${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
-          APP_ENV=staging
-          APP_DEBUG=false
-          SECRET_KEY=${{ secrets.STG_JWT_SECRET }}
-          DB_HOST=${{ secrets.STG_MYSQL_HOST }}
-          DB_PORT=${{ secrets.STG_MYSQL_PORT }}
-          DB_USERNAME=${{ secrets.STG_MYSQL_USER }}
-          DB_PASSWORD=${{ secrets.STG_MYSQL_PASSWORD }}
-          DB_NAME=${{ secrets.STG_MYSQL_DATABASE }}
-          MYSQL_HOST=${{ secrets.STG_MYSQL_HOST }}
-          MYSQL_PORT=${{ secrets.STG_MYSQL_PORT }}
-          MYSQL_USER=${{ secrets.STG_MYSQL_USER }}
-          MYSQL_PASSWORD=${{ secrets.STG_MYSQL_PASSWORD }}
-          MYSQL_DATABASE=${{ secrets.STG_MYSQL_DATABASE }}
-          JWT_SECRET=${{ secrets.STG_JWT_SECRET }}
+          EC2_PUBLIC_IP=${{ secrets.STG_EC2_HOST }}
+          PROD_DOMAIN=api.kkobung-dan.store
+          STAGING_DOMAIN=staging-api.kkobung-dan.store
+          NGINX_TEMPLATE=./nginx/templates/ec2-http.conf.template
           SERVER_HOST=0.0.0.0
           SERVER_PORT=8000
-          AWS_SNS_REGION=${{ secrets.AWS_SNS_REGION }}
-          AWS_SNS_ACCESS_KEY_ID=${{ secrets.AWS_SNS_ACCESS_KEY_ID }}
-          AWS_SNS_SECRET_ACCESS_KEY=${{ secrets.AWS_SNS_SECRET_ACCESS_KEY }}
-          AWS_SNS_SMS_TYPE=Transactional
-          FCM_CREDENTIALS_PATH=/app/keys/orderrun-firebase-key.json
-          EC2_PUBLIC_IP=${{ secrets.STG_EC2_HOST }}
-          ENABLE_SSL=false
+          STAGING_APP_ENV=staging
+          STAGING_APP_DEBUG=false
+          STAGING_SECRET_KEY=${{ secrets.STG_JWT_SECRET }}
+          STAGING_JWT_SECRET=${{ secrets.STG_JWT_SECRET }}
+          STAGING_MYSQL_HOST=${{ secrets.STG_MYSQL_HOST }}
+          STAGING_MYSQL_PORT=${{ secrets.STG_MYSQL_PORT }}
+          STAGING_MYSQL_USER=${{ secrets.STG_MYSQL_USER }}
+          STAGING_MYSQL_PASSWORD=${{ secrets.STG_MYSQL_PASSWORD }}
+          STAGING_MYSQL_DATABASE=${{ secrets.STG_MYSQL_DATABASE }}
+          STAGING_AWS_SNS_REGION=${{ secrets.AWS_SNS_REGION }}
+          STAGING_AWS_SNS_ACCESS_KEY_ID=${{ secrets.AWS_SNS_ACCESS_KEY_ID }}
+          STAGING_AWS_SNS_SECRET_ACCESS_KEY=${{ secrets.AWS_SNS_SECRET_ACCESS_KEY }}
+          STAGING_AWS_SNS_SMS_SENDER_ID=Kkobongdan
+          STAGING_AWS_SNS_SMS_TYPE=Transactional
+          STAGING_FCM_CREDENTIALS_PATH=/app/keys/orderrun-firebase-key.json
+          PROD_APP_ENV=production
+          PROD_APP_DEBUG=false
+          PROD_SECRET_KEY=prod-not-configured
+          PROD_JWT_SECRET=prod-not-configured
+          PROD_MYSQL_HOST=prod-not-configured
+          PROD_MYSQL_PORT=3306
+          PROD_MYSQL_USER=prod-not-configured
+          PROD_MYSQL_PASSWORD=prod-not-configured
+          PROD_MYSQL_DATABASE=prod_orderun
+          PROD_AWS_SNS_REGION=${{ secrets.AWS_SNS_REGION }}
+          PROD_AWS_SNS_ACCESS_KEY_ID=${{ secrets.AWS_SNS_ACCESS_KEY_ID }}
+          PROD_AWS_SNS_SECRET_ACCESS_KEY=${{ secrets.AWS_SNS_SECRET_ACCESS_KEY }}
+          PROD_AWS_SNS_SMS_SENDER_ID=Kkobongdan
+          PROD_AWS_SNS_SMS_TYPE=Transactional
+          PROD_FCM_CREDENTIALS_PATH=/app/keys/orderrun-firebase-key.json
+          LETSENCRYPT_EMAIL=admin@example.com
           ENVEOF
 
             chmod +x deploy.sh staging-smoke-test.sh
-            ./deploy.sh
+
+            existing_staging_service="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' orderrun-app-staging 2>/dev/null || true)"
+            if [ "$existing_staging_service" = "app" ]; then
+              docker rm -f orderrun-app-staging orderrun-nginx-staging orderrun-redis-staging || true
+            fi
+
+            COMPOSE_FILE=docker-compose.ec2.yml COMPOSE_ENV_FILE=.env.ec2 DEPLOY_TARGET=staging ./deploy.sh
+            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --build --no-recreate nginx
           EOF
 
       - name: Verify deployment
         run: |
           sleep 30
           curl -f "http://${{ secrets.STG_EC2_HOST }}/v1/health" || exit 1
+          curl -f "http://staging-api.kkobung-dan.store/v1/health" || exit 1
           ssh -i ~/.ssh/staging.pem "${{ secrets.STG_EC2_USERNAME }}@${{ secrets.STG_EC2_HOST }}" << 'EOF'
             cd ~/orderrun
             BASE_URL=http://localhost ./staging-smoke-test.sh

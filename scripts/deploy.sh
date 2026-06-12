@@ -2,13 +2,44 @@
 set -euo pipefail
 
 compose_file="${COMPOSE_FILE:-docker-compose.staging.yml}"
+compose_env_file="${COMPOSE_ENV_FILE:-}"
 compose_profile="${COMPOSE_PROFILE:-staging}"
+deploy_target="${DEPLOY_TARGET:-}"
+app_service="${APP_SERVICE_NAME:-app}"
 app_container="${APP_CONTAINER_NAME:-orderrun-app-staging}"
 wait_timeout="${WAIT_TIMEOUT_SECONDS:-180}"
 
 if [[ ! -f "$compose_file" ]]; then
   echo "Compose file not found: $compose_file" >&2
   exit 1
+fi
+
+case "$deploy_target" in
+  "")
+    ;;
+  staging)
+    app_service="${APP_SERVICE_NAME:-app-staging}"
+    app_container="${APP_CONTAINER_NAME:-orderrun-app-staging}"
+    compose_profile="${COMPOSE_PROFILE:-}"
+    ;;
+  prod|production)
+    app_service="${APP_SERVICE_NAME:-app-prod}"
+    app_container="${APP_CONTAINER_NAME:-orderrun-app-prod}"
+    compose_profile="${COMPOSE_PROFILE:-}"
+    ;;
+  *)
+    echo "Unsupported DEPLOY_TARGET: $deploy_target. Use prod or staging." >&2
+    exit 1
+    ;;
+esac
+
+compose_cmd=(docker compose)
+if [[ -n "$compose_env_file" ]]; then
+  compose_cmd+=(--env-file "$compose_env_file")
+fi
+compose_cmd+=(-f "$compose_file")
+if [[ -n "$compose_profile" ]]; then
+  compose_cmd+=(--profile "$compose_profile")
 fi
 
 wait_for_health() {
@@ -41,15 +72,19 @@ wait_for_health() {
   return 1
 }
 
-docker compose -f "$compose_file" --profile "$compose_profile" pull app
-docker compose -f "$compose_file" --profile "$compose_profile" up -d --build --remove-orphans
+"${compose_cmd[@]}" pull "$app_service"
+if [[ -n "$deploy_target" ]]; then
+  "${compose_cmd[@]}" up -d --build --remove-orphans "$app_service"
+else
+  "${compose_cmd[@]}" up -d --build --remove-orphans
+fi
 
 if ! wait_for_health "$app_container"; then
-  docker compose -f "$compose_file" --profile "$compose_profile" logs --tail=100 app || true
+  "${compose_cmd[@]}" logs --tail=100 "$app_service" || true
   exit 1
 fi
 
 echo "Running database migrations..."
 docker exec "$app_container" alembic upgrade head
 
-docker compose -f "$compose_file" --profile "$compose_profile" ps
+"${compose_cmd[@]}" ps
