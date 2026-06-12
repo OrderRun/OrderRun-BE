@@ -79,7 +79,7 @@
 2. staging workflow가 EC2에 `.env.ec2`를 생성한다.
 3. 첫 배포 전 로그 디렉토리와 Nginx 로그 순환 설정을 준비한다.
    - `mkdir -p /home/ubuntu/orderrun/logs/{staging/app,prod/app,nginx}`
-   - `sudo ./scripts/install-logrotate.sh`
+   - `sudo ./install-logrotate.sh`
    - `sudo logrotate -d /etc/logrotate.d/orderrun`
 4. staging workflow는 기존 staging compose 컨테이너가 남아 있으면 첫 전환 시에만 `orderrun-app-staging`, `orderrun-nginx-staging`, `orderrun-redis-staging`를 정리한다.
 5. `COMPOSE_FILE=docker-compose.ec2.yml COMPOSE_ENV_FILE=.env.ec2 DEPLOY_TARGET=staging ./deploy.sh`로 staging app만 배포한다.

@@ -76,6 +76,7 @@ jobs:
 
           scp -i ~/.ssh/staging.pem \
             scripts/deploy.sh \
+            scripts/install-logrotate.sh \
             scripts/staging-smoke-test.sh \
             "${{ secrets.STG_EC2_USERNAME }}@${{ secrets.STG_EC2_HOST }}:~/orderrun/"
 
@@ -131,7 +132,7 @@ jobs:
           LETSENCRYPT_EMAIL=admin@example.com
           ENVEOF
 
-            chmod +x deploy.sh staging-smoke-test.sh
+            chmod +x deploy.sh install-logrotate.sh staging-smoke-test.sh
 
             existing_staging_service="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' orderrun-app-staging 2>/dev/null || true)"
             if [ "$existing_staging_service" = "app" ]; then
