@@ -12,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
 from sqlalchemy import create_engine
+from sqlalchemy import text
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.routing import Match
 
@@ -229,7 +230,10 @@ def db() -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=TEST_ENGINE)
+        with TEST_ENGINE.begin() as connection:
+            connection.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+            Base.metadata.drop_all(bind=connection)
+            connection.execute(text("SET FOREIGN_KEY_CHECKS=1"))
 
 
 @pytest.fixture(scope="function")
@@ -252,7 +256,9 @@ def client(db: Session, sms_sender: RecordingSmsSender, monkeypatch: pytest.Monk
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_sms_sender] = lambda: sms_sender
+    monkeypatch.setattr("app.main.get_notification_worker", lambda: NoopNotificationWorker())
     monkeypatch.setattr("app.api.v1.offer.get_notification_worker", lambda: NoopNotificationWorker())
+    monkeypatch.setattr("app.api.v1.proposal.get_notification_worker", lambda: NoopNotificationWorker())
 
     with TestClient(app) as test_client:
         yield OpenApiAssertingClient(test_client)

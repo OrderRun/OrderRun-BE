@@ -164,7 +164,7 @@ PROPOSAL_STATE_TIMESTAMPS = {
     "deliveryReportedAt": None,
     "receivedConfirmedAt": None,
     "disputedAt": None,
-    "refundedAt": None,
+    "resolvedAt": None,
     "openChatUrl": None,
     "offers": [],
 }
@@ -189,9 +189,9 @@ PROPOSAL_DISPUTED_OFFER_EXAMPLE = {
     **PROPOSAL_WAITING_OFFER_EXAMPLE,
     "status": "DISPUTED",
 }
-PROPOSAL_REFUNDED_OFFER_EXAMPLE = {
+PROPOSAL_RESOLVED_OFFER_EXAMPLE = {
     **PROPOSAL_WAITING_OFFER_EXAMPLE,
-    "status": "REFUNDED",
+    "status": "RESOLVED",
 }
 PROPOSAL_CANCELLED_OFFER_EXAMPLE = {
     **PROPOSAL_WAITING_OFFER_EXAMPLE,
@@ -236,11 +236,11 @@ PROPOSAL_DISPUTED_DETAIL_EXAMPLE = {
     "disputedAt": EXAMPLE_UPDATED_AT,
     "offers": [PROPOSAL_DISPUTED_OFFER_EXAMPLE],
 }
-PROPOSAL_REFUNDED_DETAIL_EXAMPLE = {
+PROPOSAL_RESOLVED_DETAIL_EXAMPLE = {
     **PROPOSAL_DISPUTED_DETAIL_EXAMPLE,
-    "status": "REFUNDED",
-    "refundedAt": EXAMPLE_UPDATED_AT,
-    "offers": [PROPOSAL_REFUNDED_OFFER_EXAMPLE],
+    "status": "RESOLVED",
+    "resolvedAt": EXAMPLE_UPDATED_AT,
+    "offers": [PROPOSAL_RESOLVED_OFFER_EXAMPLE],
 }
 PROPOSAL_CANCELLED_DETAIL_EXAMPLE = {
     **PROPOSAL_EXAMPLE,
@@ -256,7 +256,7 @@ PROPOSAL_DETAIL_EXAMPLES = {
     "order_completed": {"success": True, "data": PROPOSAL_ORDER_COMPLETED_DETAIL_EXAMPLE, "message": None},
     "all_completed": {"success": True, "data": PROPOSAL_ALL_COMPLETED_DETAIL_EXAMPLE, "message": None},
     "disputed": {"success": True, "data": PROPOSAL_DISPUTED_DETAIL_EXAMPLE, "message": None},
-    "refunded": {"success": True, "data": PROPOSAL_REFUNDED_DETAIL_EXAMPLE, "message": None},
+    "resolved": {"success": True, "data": PROPOSAL_RESOLVED_DETAIL_EXAMPLE, "message": None},
     "cancelled": {"success": True, "data": PROPOSAL_CANCELLED_DETAIL_EXAMPLE, "message": None},
 }
 PROPOSAL_HOLDING_EXAMPLE = {**PROPOSAL_EXAMPLE, "status": "HOLDING"}
@@ -352,7 +352,7 @@ OFFER_EXAMPLE = {
     "deliveryCompletedAt": None,
     "receiptConfirmedAt": None,
     "disputedAt": None,
-    "refundedAt": None,
+    "resolvedAt": None,
     "createdAt": EXAMPLE_CREATED_AT,
 }
 OFFER_WAITING_EXAMPLE = OFFER_EXAMPLE
@@ -374,10 +374,10 @@ OFFER_DISPUTED_STATUS_EXAMPLE = {
     "acceptedAt": EXAMPLE_CREATED_AT,
     "disputedAt": EXAMPLE_UPDATED_AT,
 }
-OFFER_REFUNDED_STATUS_EXAMPLE = {
+OFFER_RESOLVED_STATUS_EXAMPLE = {
     **OFFER_DISPUTED_STATUS_EXAMPLE,
-    "status": "REFUNDED",
-    "refundedAt": EXAMPLE_UPDATED_AT,
+    "status": "RESOLVED",
+    "resolvedAt": EXAMPLE_UPDATED_AT,
 }
 OFFER_REJECTED_EXAMPLE = {**OFFER_EXAMPLE, "status": "REJECTED"}
 OFFER_CANCELLED_EXAMPLE = {**OFFER_EXAMPLE, "status": "CANCELLED"}
@@ -387,7 +387,7 @@ OFFER_STATUS_DATA_EXAMPLES = {
     "runner_completed": OFFER_RUNNER_COMPLETED_EXAMPLE,
     "all_completed": OFFER_ALL_COMPLETED_EXAMPLE,
     "disputed": OFFER_DISPUTED_STATUS_EXAMPLE,
-    "refunded": OFFER_REFUNDED_STATUS_EXAMPLE,
+    "resolved": OFFER_RESOLVED_STATUS_EXAMPLE,
     "rejected": OFFER_REJECTED_EXAMPLE,
     "cancelled": OFFER_CANCELLED_EXAMPLE,
 }
@@ -397,7 +397,7 @@ OFFER_OPEN_CHAT_EXAMPLE_STATUSES = {
     "runner_completed",
     "all_completed",
     "disputed",
-    "refunded",
+    "resolved",
 }
 OFFER_DETAIL_EXAMPLES = {
     name: {
@@ -476,10 +476,10 @@ OFFER_ACCEPT_EXAMPLE = {
     "message": "제안이 수락되었습니다.",
 }
 
-OFFER_REFUNDED_EXAMPLE = {
+OFFER_RESOLVED_EXAMPLE = {
     "success": True,
-    "data": OFFER_REFUNDED_STATUS_EXAMPLE,
-    "message": "제안 환불이 완료되었습니다.",
+    "data": OFFER_RESOLVED_STATUS_EXAMPLE,
+    "message": "제안 분쟁이 해결되었습니다.",
 }
 
 SETTLEMENT_ACCOUNT_EXAMPLE = {

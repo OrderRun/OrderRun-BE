@@ -7,14 +7,16 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError, api_error
 from app.events.base import EventBus
+from app.events.execution_events import DisputeRaisedByRunnerEvent, MeetingConfirmedByRunnerEvent
 from app.events.offer_events import OfferAcceptedEvent, OfferCreatedEvent
-from app.events.execution_events import MeetingConfirmedByRunnerEvent
+from app.models.dispute_survey import DisputeSurveyTargetType
 from app.models.offer import Offer, OfferStatus
 from app.models.proof import Proof, ProofType
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
 from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferDetailResponse, OfferResponse, OfferSummaryResponse
+from app.services.dispute_survey_service import DisputeSurveyService
 
 
 OPEN_PROPOSAL_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)
@@ -29,7 +31,7 @@ OPEN_CHAT_OFFER_STATUSES = (
     OfferStatus.RUNNER_COMPLETED,
     OfferStatus.ALL_COMPLETED,
     OfferStatus.DISPUTED,
-    OfferStatus.REFUNDED,
+    OfferStatus.RESOLVED,
 )
 
 
@@ -80,7 +82,7 @@ class OfferService:
             "delivery_completed_at": offer.delivery_completed_at,
             "receipt_confirmed_at": offer.receipt_confirmed_at,
             "disputed_at": offer.disputed_at,
-            "refunded_at": offer.refunded_at,
+            "resolved_at": offer.resolved_at,
             "created_at": offer.created_at,
         }
 
@@ -332,6 +334,7 @@ class OfferService:
         db: Session,
         offer_id: int,
         runner_id: str,
+        survey_question_id: int,
         dispute_reason: str,
     ) -> OfferResponse:
         offer = OfferService._get_offer(db, offer_id)
@@ -342,6 +345,7 @@ class OfferService:
         if not offer.can_raise_dispute() or not proposal.can_raise_dispute():
             raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
 
+        DisputeSurveyService.ensure_active_question(db, survey_question_id, DisputeSurveyTargetType.RUNNER)
         offer.raise_dispute()
         proposal.raise_dispute()
         db.add(Proof(
@@ -349,21 +353,30 @@ class OfferService:
             offer_id=offer.id,
             actor_id=runner_id,
             proof_type=ProofType.DISPUTE,
+            survey_question_id=survey_question_id,
             reason=dispute_reason,
         ))
+        db.flush()
+        EventBus.publish(DisputeRaisedByRunnerEvent(
+            offer_id=offer.id,
+            proposal_id=proposal.id,
+            runner_id=offer.runner_id,
+            orderer_id=proposal.orderer_id,
+            proposal_title=proposal.title,
+        ), db)
         db.commit()
         db.refresh(offer)
         return OfferService._to_response(db, offer)
 
     @staticmethod
-    def refund(db: Session, offer_id: int) -> OfferResponse:
+    def resolve(db: Session, offer_id: int) -> OfferResponse:
         offer = OfferService._get_offer(db, offer_id)
         proposal = OfferService._get_proposal(db, offer.proposal_id)
-        if not offer.can_refund() or not proposal.can_refund():
+        if not offer.can_resolve() or not proposal.can_resolve():
             raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
 
-        offer.refund()
-        proposal.refund()
+        offer.resolve()
+        proposal.resolve()
         db.commit()
         db.refresh(offer)
         return OfferService._to_response(db, offer)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import enum
 
-from sqlalchemy import BigInteger, Column, DateTime, Enum, String, Text
+from sqlalchemy import BigInteger, Column, DateTime, Enum, Index, String, Text
 
 from app.core.database import Base
 from app.core.time import utcnow_naive
@@ -29,4 +29,9 @@ class Proof(Base):
     proof_type = Column(Enum(ProofType), nullable=False, index=True)
     image_url = Column(String(500), nullable=True)
     reason = Column(Text, nullable=True)
+    survey_question_id = Column(BigInteger, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+
+    __table_args__ = (
+        Index("idx_proofs_survey_question_id", "survey_question_id"),
+    )

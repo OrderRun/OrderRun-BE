@@ -242,6 +242,7 @@ def complete_delivery(
 def raise_offer_dispute(
     offer_id: int,
     request: ProofDisputeRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[OfferResponse]:
@@ -249,8 +250,10 @@ def raise_offer_dispute(
         db,
         offer_id=offer_id,
         runner_id=current_user.id,
+        survey_question_id=request.survey_question_id,
         dispute_reason=request.dispute_reason,
     )
+    background_tasks.add_task(get_notification_worker().flush_pending, SessionLocal)
     return ApiResponse(success=True, data=offer, message="분쟁이 접수되었습니다.")
 
 

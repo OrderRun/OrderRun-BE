@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.models.dispute_survey import DisputeSurveyQuestion, DisputeSurveyTargetType
+from app.models.proof import Proof
 
 
 def _question(
@@ -84,3 +85,12 @@ def test_dispute_survey_question_model_spec_matches_plan():
     index_names = {index.name for index in table.indexes}
     assert "uk_dispute_survey_questions_target_order" in unique_names
     assert "idx_dispute_survey_questions_lookup" in index_names
+
+
+def test_proof_model_records_dispute_survey_question_id():
+    table = Proof.__table__
+
+    assert str(table.c.survey_question_id.type).upper() == "BIGINT"
+    assert table.c.survey_question_id.nullable is True
+    index_names = {index.name for index in table.indexes}
+    assert "idx_proofs_survey_question_id" in index_names

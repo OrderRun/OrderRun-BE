@@ -34,7 +34,7 @@ class OfferResponse(BaseModel):
     delivery_completed_at: datetime | None = Field(None, serialization_alias="deliveryCompletedAt")
     receipt_confirmed_at: datetime | None = Field(None, serialization_alias="receiptConfirmedAt")
     disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
-    refunded_at: datetime | None = Field(None, serialization_alias="refundedAt")
+    resolved_at: datetime | None = Field(None, serialization_alias="resolvedAt")
     created_at: datetime = Field(..., serialization_alias="createdAt")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
@@ -56,7 +56,7 @@ class OfferSummaryResponse(BaseModel):
     delivery_completed_at: datetime | None = Field(None, serialization_alias="deliveryCompletedAt")
     receipt_confirmed_at: datetime | None = Field(None, serialization_alias="receiptConfirmedAt")
     disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
-    refunded_at: datetime | None = Field(None, serialization_alias="refundedAt")
+    resolved_at: datetime | None = Field(None, serialization_alias="resolvedAt")
     created_at: datetime = Field(..., serialization_alias="createdAt")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
@@ -78,7 +78,7 @@ class OfferDetailResponse(BaseModel):
     delivery_completed_at: datetime | None = Field(None, serialization_alias="deliveryCompletedAt")
     receipt_confirmed_at: datetime | None = Field(None, serialization_alias="receiptConfirmedAt")
     disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
-    refunded_at: datetime | None = Field(None, serialization_alias="refundedAt")
+    resolved_at: datetime | None = Field(None, serialization_alias="resolvedAt")
     open_chat_url: str | None = Field(None, serialization_alias="openChatUrl")
     created_at: datetime = Field(..., serialization_alias="createdAt")
 

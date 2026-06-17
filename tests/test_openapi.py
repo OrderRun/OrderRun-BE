@@ -133,7 +133,7 @@ def test_representative_success_examples_match_contracts():
         "order_completed": "ORDER_COMPLETED",
         "all_completed": "ALL_COMPLETED",
         "disputed": "DISPUTED",
-        "refunded": "REFUNDED",
+        "resolved": "RESOLVED",
         "cancelled": "CANCELLED",
     }
     assert set(proposal_detail_examples) == set(expected_proposal_statuses)
@@ -161,7 +161,7 @@ def test_representative_success_examples_match_contracts():
     assert proposal_detail_examples["order_completed"]["value"]["data"]["receivedConfirmedAt"] is not None
     assert proposal_detail_examples["all_completed"]["value"]["data"]["deliveryReportedAt"] is not None
     assert proposal_detail_examples["disputed"]["value"]["data"]["disputedAt"] is not None
-    assert proposal_detail_examples["refunded"]["value"]["data"]["refundedAt"] is not None
+    assert proposal_detail_examples["resolved"]["value"]["data"]["resolvedAt"] is not None
 
     offer_status_by_example = {
         "offered": "WAITING",
@@ -169,7 +169,7 @@ def test_representative_success_examples_match_contracts():
         "order_completed": "ACCEPTED",
         "all_completed": "ALL_COMPLETED",
         "disputed": "DISPUTED",
-        "refunded": "REFUNDED",
+        "resolved": "RESOLVED",
         "cancelled": "CANCELLED",
     }
     for example_name, expected_offer_status in offer_status_by_example.items():
@@ -195,7 +195,7 @@ def test_representative_success_examples_match_contracts():
         "runner_completed": "RUNNER_COMPLETED",
         "all_completed": "ALL_COMPLETED",
         "disputed": "DISPUTED",
-        "refunded": "REFUNDED",
+        "resolved": "RESOLVED",
         "rejected": "REJECTED",
         "cancelled": "CANCELLED",
     }
@@ -225,7 +225,7 @@ def test_representative_success_examples_match_contracts():
     assert offer_detail_examples["runner_completed"]["value"]["data"]["deliveryCompletedAt"] is not None
     assert offer_detail_examples["all_completed"]["value"]["data"]["receiptConfirmedAt"] is not None
     assert offer_detail_examples["disputed"]["value"]["data"]["disputedAt"] is not None
-    assert offer_detail_examples["refunded"]["value"]["data"]["refundedAt"] is not None
+    assert offer_detail_examples["resolved"]["value"]["data"]["resolvedAt"] is not None
 
     for path in ("/v1/offer", "/v1/offer/own"):
         operation_examples = schema["paths"][path]["get"]["responses"]["200"]["content"]["application/json"][
@@ -279,6 +279,24 @@ def test_offer_accept_has_no_request_body_or_amount_response_fields():
     accept_schema = app.openapi()["components"]["schemas"][accept_name]
 
     assert {"runFee", "itemPrice", "totalAmount"}.isdisjoint(accept_schema["properties"])
+
+
+def test_dispute_requests_require_survey_question_id_and_reason():
+    schema = app.openapi()
+    targets = [
+        ("/v1/proposal/{proposal_id}/dispute", "post"),
+        ("/v1/offer/{offer_id}/dispute", "post"),
+    ]
+
+    for path, method in targets:
+        operation = schema["paths"][path][method]
+        request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+        request_ref = request_schema["$ref"]
+        request_name = request_ref.rsplit("/", 1)[-1]
+        body_schema = schema["components"]["schemas"][request_name]
+
+        assert set(body_schema["required"]) == {"surveyQuestionId", "disputeReason"}
+        assert body_schema["properties"]["surveyQuestionId"]["minimum"] == 1
 
 
 def test_mission_collection_get_is_not_documented():

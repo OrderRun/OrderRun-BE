@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.database import SessionLocal, get_db
 from app.core.errors import AppError
+from app.core.firebase import get_notification_worker
 from app.core.openapi import (
     PROPOSAL_CANCEL_EXAMPLE,
     PROPOSAL_ALL_COMPLETED_RECEIVED_EXAMPLE,
@@ -258,6 +259,7 @@ def confirm_received(
 def raise_proposal_dispute(
     proposal_id: int,
     request: ProofDisputeRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[ProposalDetailResponse]:
@@ -265,6 +267,8 @@ def raise_proposal_dispute(
         db,
         proposal_id=proposal_id,
         orderer_id=current_user.id,
+        survey_question_id=request.survey_question_id,
         dispute_reason=request.dispute_reason,
     )
+    background_tasks.add_task(get_notification_worker().flush_pending, SessionLocal)
     return ApiResponse(success=True, data=proposal, message="분쟁이 접수되었습니다.")

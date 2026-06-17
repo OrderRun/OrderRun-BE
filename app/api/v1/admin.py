@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.errors import AppError
 from app.core.openapi import (
-    OFFER_REFUNDED_EXAMPLE,
+    OFFER_RESOLVED_EXAMPLE,
     PROPOSAL_EXAMPLE,
     PROPOSAL_PAGE_EXAMPLE,
     error_responses,
@@ -104,22 +104,22 @@ def list_pending_payment_proposals(
 
 
 @router.post(
-    "/offer/{offer_id}/refund",
+    "/offer/{offer_id}/resolve",
     response_model=ApiResponse[OfferResponse],
     status_code=status.HTTP_200_OK,
-    summary="제안 환불 완료 처리 (관리자 전용)",
-    description="관리자가 분쟁 제안을 환불 완료 상태로 전환합니다.",
+    summary="제안 분쟁 해결 처리 (관리자 전용)",
+    description="관리자가 분쟁 제안을 해결 완료 상태로 전환합니다.",
     responses={
-        200: success_response(OFFER_REFUNDED_EXAMPLE),
+        200: success_response(OFFER_RESOLVED_EXAMPLE),
         **error_responses(
             AppError.OFFER_NOT_FOUND,
             AppError.OFFER_NOT_UPDATABLE,
         ),
     },
 )
-def refund_offer(
+def resolve_offer(
     offer_id: int,
     db: Session = Depends(get_db),
 ) -> ApiResponse[OfferResponse]:
-    offer = OfferService.refund(db, offer_id=offer_id)
-    return ApiResponse(success=True, data=offer, message="제안 환불이 완료되었습니다.")
+    offer = OfferService.resolve(db, offer_id=offer_id)
+    return ApiResponse(success=True, data=offer, message="제안 분쟁이 해결되었습니다.")

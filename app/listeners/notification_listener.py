@@ -6,7 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.events.base import EventBus
 from app.events.offer_events import OfferCreatedEvent, OfferAcceptedEvent
-from app.events.execution_events import MeetingConfirmedByRunnerEvent, MeetingConfirmedByOrdererEvent
+from app.events.execution_events import (
+    DisputeRaisedByOrdererEvent,
+    DisputeRaisedByRunnerEvent,
+    MeetingConfirmedByOrdererEvent,
+    MeetingConfirmedByRunnerEvent,
+)
 from app.models.notification import Notification, NotificationStatus, NotificationType
 from app.models.user import User
 
@@ -127,8 +132,36 @@ def on_meeting_confirmed_by_orderer(event: MeetingConfirmedByOrdererEvent, db: S
             ))
 
 
+def on_dispute_raised_by_orderer(event: DisputeRaisedByOrdererEvent, db: Session) -> None:
+    if _alarm_enabled(db, event.runner_id):
+        db.add(_pending(
+            user_id=event.runner_id,
+            notification_type=NotificationType.DISPUTE_RAISED,
+            title="분쟁이 접수되었어요",
+            body="요청자가 분쟁을 접수했어요. 앱에서 내용을 확인해주세요.",
+            related_entity_type="offer",
+            related_entity_id=event.offer_id,
+            data={"offer_id": event.offer_id, "proposal_id": event.proposal_id},
+        ))
+
+
+def on_dispute_raised_by_runner(event: DisputeRaisedByRunnerEvent, db: Session) -> None:
+    if _alarm_enabled(db, event.orderer_id):
+        db.add(_pending(
+            user_id=event.orderer_id,
+            notification_type=NotificationType.DISPUTE_RAISED,
+            title="분쟁이 접수되었어요",
+            body="지원자가 분쟁을 접수했어요. 앱에서 내용을 확인해주세요.",
+            related_entity_type="offer",
+            related_entity_id=event.offer_id,
+            data={"offer_id": event.offer_id, "proposal_id": event.proposal_id},
+        ))
+
+
 def register_all() -> None:
     EventBus.register(OfferCreatedEvent, on_offer_created)
     EventBus.register(OfferAcceptedEvent, on_offer_accepted)
     EventBus.register(MeetingConfirmedByRunnerEvent, on_meeting_confirmed_by_runner)
     EventBus.register(MeetingConfirmedByOrdererEvent, on_meeting_confirmed_by_orderer)
+    EventBus.register(DisputeRaisedByOrdererEvent, on_dispute_raised_by_orderer)
+    EventBus.register(DisputeRaisedByRunnerEvent, on_dispute_raised_by_runner)

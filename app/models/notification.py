@@ -24,6 +24,7 @@ class NotificationType(str, enum.Enum):
     CUSTOM = "custom"
     OFFER_SUBMITTED = "offer_submitted"
     MEETING_CONFIRMED = "meeting_confirmed"
+    DISPUTE_RAISED = "dispute_raised"
 
 
 class NotificationStatus(str, enum.Enum):

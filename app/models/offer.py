@@ -18,7 +18,7 @@ class OfferStatus(str, enum.Enum):
     RUNNER_COMPLETED = "RUNNER_COMPLETED"
     ALL_COMPLETED = "ALL_COMPLETED"
     DISPUTED = "DISPUTED"
-    REFUNDED = "REFUNDED"
+    RESOLVED = "RESOLVED"
     REJECTED = "REJECTED"
     CANCELLED = "CANCELLED"
 
@@ -40,7 +40,7 @@ class Offer(Base):
     receipt_confirmed_at = Column(DateTime(timezone=True), nullable=True)
     settled_at = Column(DateTime(timezone=True), nullable=True)
     disputed_at = Column(DateTime(timezone=True), nullable=True)
-    refunded_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
     __table_args__ = (
@@ -88,7 +88,6 @@ class Offer(Base):
         return self.status in {
             OfferStatus.ACCEPTED,
             OfferStatus.RUNNER_COMPLETED,
-            OfferStatus.ALL_COMPLETED,
         }
 
     def raise_dispute(self) -> None:
@@ -97,14 +96,14 @@ class Offer(Base):
         self.status = OfferStatus.DISPUTED
         self.disputed_at = utcnow_naive()
 
-    def can_refund(self) -> bool:
+    def can_resolve(self) -> bool:
         return self.status == OfferStatus.DISPUTED
 
-    def refund(self) -> None:
-        if not self.can_refund():
-            raise ValueError("Cannot refund offer not in DISPUTED status")
-        self.status = OfferStatus.REFUNDED
-        self.refunded_at = utcnow_naive()
+    def resolve(self) -> None:
+        if not self.can_resolve():
+            raise ValueError("Cannot resolve offer not in DISPUTED status")
+        self.status = OfferStatus.RESOLVED
+        self.resolved_at = utcnow_naive()
 
     def reject(self) -> None:
         if self.status != OfferStatus.WAITING:

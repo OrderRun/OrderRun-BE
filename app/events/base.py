@@ -21,7 +21,9 @@ class EventBus:
 
     @classmethod
     def register(cls, event_type: type, handler: Callable) -> None:
-        cls._handlers.setdefault(event_type, []).append(handler)
+        handlers = cls._handlers.setdefault(event_type, [])
+        if handler not in handlers:
+            handlers.append(handler)
 
     @classmethod
     def publish(cls, event: DomainEvent, db: Session) -> None:

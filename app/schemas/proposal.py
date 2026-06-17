@@ -65,7 +65,7 @@ class ProposalDetailResponse(BaseModel):
     delivery_reported_at: datetime | None = Field(None, serialization_alias="deliveryReportedAt")
     received_confirmed_at: datetime | None = Field(None, serialization_alias="receivedConfirmedAt")
     disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
-    refunded_at: datetime | None = Field(None, serialization_alias="refundedAt")
+    resolved_at: datetime | None = Field(None, serialization_alias="resolvedAt")
     open_chat_url: str | None = Field(None, serialization_alias="openChatUrl")
     offers: list[ProposalOwnOfferResponse] = Field(default_factory=list)
 

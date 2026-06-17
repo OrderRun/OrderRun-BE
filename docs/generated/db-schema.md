@@ -150,14 +150,14 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `errand_fee` | `integer` | NO |  | 심부름비 |
 | `item_price` | `integer` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
 | `deposit` | `integer` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
-| `status` | `varchar(20)` | NO |  | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `ORDER_COMPLETED`, `ALL_COMPLETED`, `DISPUTED`, `REFUNDED`, `CANCELLED` |
+| `status` | `varchar(20)` | NO |  | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `ORDER_COMPLETED`, `ALL_COMPLETED`, `DISPUTED`, `RESOLVED`, `CANCELLED` |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 | `matched_at` | `datetime(6)` | YES |  | Offer 수락으로 매칭된 시각 |
 | `delivery_reported_at` | `datetime(6)` | YES |  | 러너 완료가 Proposal에 반영된 시각 |
 | `received_confirmed_at` | `datetime(6)` | YES |  | 오더러 완료 확인 시각 |
 | `settled_at` | `datetime(6)` | YES |  | legacy 호환 컬럼. 현재 API 미노출 |
 | `disputed_at` | `datetime(6)` | YES |  | 분쟁 접수 시각 |
-| `refunded_at` | `datetime(6)` | YES |  | 환불 완료 시각 |
+| `resolved_at` | `datetime(6)` | YES |  | 분쟁 해결 시각 |
 | `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
 ## `offers`
@@ -167,7 +167,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `id` | `bigint` | NO | PK, auto increment | Offer ID |
 | `proposal_id` | `bigint` | NO | UNIQUE `uk_proposal_runner` 일부 | 대상 Proposal ID |
 | `runner_id` | `varchar(36)` | NO | UNIQUE `uk_proposal_runner` 일부, INDEX `idx_offers_runner_id` | 지원자 사용자 ID |
-| `status` | `varchar(20)` | NO |  | `WAITING`, `ACCEPTED`, `RUNNER_COMPLETED`, `ALL_COMPLETED`, `DISPUTED`, `REFUNDED`, `REJECTED`, `CANCELLED` |
+| `status` | `varchar(20)` | NO |  | `WAITING`, `ACCEPTED`, `RUNNER_COMPLETED`, `ALL_COMPLETED`, `DISPUTED`, `RESOLVED`, `REJECTED`, `CANCELLED` |
 | `open_chat_url` | `varchar(500)` | YES |  | 매칭 당사자에게 노출할 카카오톡 오픈채팅방 링크 |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 | `accepted_at` | `datetime(6)` | YES |  | 오더가 Offer를 수락한 시각 |
@@ -175,7 +175,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `receipt_confirmed_at` | `datetime(6)` | YES |  | 오더러 완료 확인이 Offer에 반영된 시각 |
 | `settled_at` | `datetime(6)` | YES |  | legacy 호환 컬럼. 현재 API 미노출 |
 | `disputed_at` | `datetime(6)` | YES |  | 분쟁 접수 시각 |
-| `refunded_at` | `datetime(6)` | YES |  | 환불 완료 시각 |
+| `resolved_at` | `datetime(6)` | YES |  | 분쟁 해결 시각 |
 | `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
 ## `proofs`
@@ -189,6 +189,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `proof_type` | `varchar(30)` | NO | INDEX `idx_proofs_proof_type` | `DELIVERY`, `DISPUTE` |
 | `image_url` | `varchar(500)` | YES |  | 배송 사진 URL |
 | `reason` | `text` | YES |  | 분쟁 사유 |
+| `survey_question_id` | `bigint` | YES | INDEX `idx_proofs_survey_question_id` | 선택한 분쟁 설문 질문 ID |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 
 현재 코드 갭:
@@ -209,7 +210,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 
 현재 코드 메모:
 
-- 분쟁 접수 API의 `disputeReason` 저장 방식은 변경하지 않는다.
+- 분쟁 접수 API는 `surveyQuestionId`와 `disputeReason`을 필수로 받는다.
 - `GET /v1/dispute-survey/questions`는 active 질문만 대상별 순서대로 반환한다.
 
 ## `payments`

@@ -6,13 +6,15 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError, api_error
 from app.events.base import EventBus
-from app.events.execution_events import MeetingConfirmedByOrdererEvent
+from app.events.execution_events import DisputeRaisedByOrdererEvent, MeetingConfirmedByOrdererEvent
+from app.models.dispute_survey import DisputeSurveyTargetType
 from app.models.offer import Offer, OfferStatus
 from app.models.proof import Proof, ProofType
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
 from app.schemas.proposal import ProposalDetailResponse, ProposalOwnOfferResponse, ProposalOwnResponse, ProposalRequest
+from app.services.dispute_survey_service import DisputeSurveyService
 
 
 EDITABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED)
@@ -28,14 +30,14 @@ OPEN_CHAT_PROPOSAL_STATUSES = (
     ProposalStatus.ORDER_COMPLETED,
     ProposalStatus.ALL_COMPLETED,
     ProposalStatus.DISPUTED,
-    ProposalStatus.REFUNDED,
+    ProposalStatus.RESOLVED,
 )
 OPEN_CHAT_OFFER_STATUSES = (
     OfferStatus.ACCEPTED,
     OfferStatus.RUNNER_COMPLETED,
     OfferStatus.ALL_COMPLETED,
     OfferStatus.DISPUTED,
-    OfferStatus.REFUNDED,
+    OfferStatus.RESOLVED,
 )
 
 
@@ -145,7 +147,7 @@ class ProposalService:
             delivery_reported_at=proposal.delivery_reported_at,
             received_confirmed_at=proposal.received_confirmed_at,
             disputed_at=proposal.disputed_at,
-            refunded_at=proposal.refunded_at,
+            resolved_at=proposal.resolved_at,
             open_chat_url=open_chat_url,
             offers=[
                 ProposalOwnOfferResponse(
@@ -319,6 +321,7 @@ class ProposalService:
         db: Session,
         proposal_id: int,
         orderer_id: str,
+        survey_question_id: int,
         dispute_reason: str,
     ) -> ProposalDetailResponse:
         proposal = ProposalService._get_proposal(db, proposal_id)
@@ -328,6 +331,7 @@ class ProposalService:
         if not proposal.can_raise_dispute() or not offer.can_raise_dispute():
             raise api_error(AppError.PROPOSAL_NOT_UPDATABLE, f"status: {proposal.status.value}")
 
+        DisputeSurveyService.ensure_active_question(db, survey_question_id, DisputeSurveyTargetType.ORDER)
         proposal.raise_dispute()
         offer.raise_dispute()
         db.add(Proof(
@@ -335,8 +339,17 @@ class ProposalService:
             offer_id=offer.id,
             actor_id=orderer_id,
             proof_type=ProofType.DISPUTE,
+            survey_question_id=survey_question_id,
             reason=dispute_reason,
         ))
+        db.flush()
+        EventBus.publish(DisputeRaisedByOrdererEvent(
+            offer_id=offer.id,
+            proposal_id=proposal.id,
+            orderer_id=proposal.orderer_id,
+            runner_id=offer.runner_id,
+            proposal_title=proposal.title,
+        ), db)
         db.commit()
         db.refresh(proposal)
         return ProposalService.get_proposal_detail(db, proposal.id, orderer_id)

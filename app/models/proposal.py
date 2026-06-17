@@ -22,7 +22,7 @@ class ProposalStatus(str, enum.Enum):
     ORDER_COMPLETED = "ORDER_COMPLETED"
     ALL_COMPLETED = "ALL_COMPLETED"
     DISPUTED = "DISPUTED"
-    REFUNDED = "REFUNDED"
+    RESOLVED = "RESOLVED"
     CANCELLED = "CANCELLED"
 
 
@@ -50,7 +50,7 @@ class Proposal(Base):
     received_confirmed_at = Column(DateTime(timezone=True), nullable=True)
     settled_at = Column(DateTime(timezone=True), nullable=True)
     disputed_at = Column(DateTime(timezone=True), nullable=True)
-    refunded_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
     __table_args__ = (Index("idx_proposals_orderer_id", "orderer_id"),)
@@ -88,7 +88,6 @@ class Proposal(Base):
         return self.status in {
             ProposalStatus.MATCHED,
             ProposalStatus.ORDER_COMPLETED,
-            ProposalStatus.ALL_COMPLETED,
         }
 
     def raise_dispute(self) -> None:
@@ -97,14 +96,14 @@ class Proposal(Base):
         self.status = ProposalStatus.DISPUTED
         self.disputed_at = utcnow_naive()
 
-    def can_refund(self) -> bool:
+    def can_resolve(self) -> bool:
         return self.status == ProposalStatus.DISPUTED
 
-    def refund(self) -> None:
-        if not self.can_refund():
-            raise ValueError("Cannot refund proposal not in DISPUTED status")
-        self.status = ProposalStatus.REFUNDED
-        self.refunded_at = utcnow_naive()
+    def resolve(self) -> None:
+        if not self.can_resolve():
+            raise ValueError("Cannot resolve proposal not in DISPUTED status")
+        self.status = ProposalStatus.RESOLVED
+        self.resolved_at = utcnow_naive()
 
     @classmethod
     def create_proposal(

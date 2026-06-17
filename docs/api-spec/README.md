@@ -195,7 +195,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | deliveryReportedAt | string, null | 러너 완료가 Proposal에 반영된 시각 |
 | receivedConfirmedAt | string, null | 오더러 완료 확인 시각 |
 | disputedAt | string, null | 분쟁 접수 시각 |
-| refundedAt | string, null | 환불 완료 시각 |
+| resolvedAt | string, null | 분쟁 해결 시각 |
 | openChatUrl | string, null | 매칭 당사자에게만 반환되는 카카오톡 오픈채팅방 링크 |
 | offers | array | `ProposalOwnOfferResponse[]` |
 
@@ -216,7 +216,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | deliveryCompletedAt | string, null | 러너 완료 시각 |
 | receiptConfirmedAt | string, null | 오더러 완료 확인이 Offer에 반영된 시각 |
 | disputedAt | string, null | 분쟁 접수 시각 |
-| refundedAt | string, null | 환불 완료 시각 |
+| resolvedAt | string, null | 분쟁 해결 시각 |
 | createdAt | string | Offer 생성 시각 |
 
 ### OfferSummaryResponse
@@ -259,6 +259,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | proofType | string | `DELIVERY` 또는 `DISPUTE` |
 | imageUrl | string, null | 배송 사진 URL |
 | reason | string, null | 분쟁 사유 |
+| surveyQuestionId | number, null | 선택한 분쟁 설문 질문 ID |
 | createdAt | string | Proof 생성 시각 |
 
 ### SettlementAccountResponse
@@ -357,11 +358,11 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 
 ### Admin Execution API
 
-관리자 환불은 수락된 Offer ID 기준으로 처리한다.
+관리자 분쟁 해결은 수락된 Offer ID 기준으로 처리한다.
 
 | 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
 |------|--------|------|------|-----------|-----------|
-| Offer 환불 완료 | `POST` | `/v1/admin/offer/{offerId}/refund` | 관리자 필요 | `200 OK` | `OfferResponse` |
+| Offer 분쟁 해결 | `POST` | `/v1/admin/offer/{offerId}/resolve` | 관리자 필요 | `200 OK` | `OfferResponse` |
 
 ### Settlement API
 
@@ -478,6 +479,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 
 | 필드 | 타입 | 필수 | 제약 |
 |------|------|------|------|
+| surveyQuestionId | number | O | active `RUNNER` 분쟁 설문 질문 ID |
 | disputeReason | string | O | 분쟁 사유 |
 
 #### `GET /v1/offer`
@@ -503,6 +505,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 
 | 필드 | 타입 | 필수 | 제약 |
 |------|------|------|------|
+| surveyQuestionId | number | O | active `ORDER` 분쟁 설문 질문 ID |
 | disputeReason | string | O | 분쟁 사유 |
 
 ### Settlement
@@ -529,7 +532,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | ORDER_COMPLETED | 오더러 완료 확인 |
 | ALL_COMPLETED | 러너와 오더러 모두 완료 |
 | DISPUTED | 분쟁 접수 |
-| REFUNDED | 환불 완료 |
+| RESOLVED | 분쟁 해결 완료 |
 | CANCELLED | 취소됨 |
 
 ### OfferStatus
@@ -541,7 +544,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | RUNNER_COMPLETED | 러너 완료 |
 | ALL_COMPLETED | 러너와 오더러 모두 완료 |
 | DISPUTED | 분쟁 접수 |
-| REFUNDED | 환불 완료 |
+| RESOLVED | 분쟁 해결 완료 |
 | REJECTED | 거절됨 |
 | CANCELLED | 취소됨 |
 

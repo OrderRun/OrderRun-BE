@@ -59,7 +59,7 @@
 | `ORDER_COMPLETED` | 오더러 완료 확인 이후 |
 | `ALL_COMPLETED` | 러너와 오더러 모두 완료 |
 | `DISPUTED` | 분쟁 접수 |
-| `REFUNDED` | 환불 완료 |
+| `RESOLVED` | 분쟁 해결 완료 |
 | `CANCELLED` | 매칭 전 취소 |
 
 ## 상태 규칙

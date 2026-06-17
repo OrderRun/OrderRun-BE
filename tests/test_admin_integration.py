@@ -36,7 +36,7 @@ def test_list_pending_payment_proposals_without_auth(client, factory, sample_use
     assert [item["id"] for item in response.json()["data"]] == [holding.id]
 
 
-def test_refund_offer_sets_refunded_from_disputed(client, db, factory, sample_user):
+def test_resolve_offer_sets_resolved_from_disputed(client, db, factory, sample_user):
     runner = factory.user("01066660003")
     proposal, offer = factory.execution(sample_user, runner, ProposalStatus.DISPUTED, OfferStatus.DISPUTED)
     disputed_at = datetime.now(timezone.utc)
@@ -44,17 +44,17 @@ def test_refund_offer_sets_refunded_from_disputed(client, db, factory, sample_us
     offer.disputed_at = disputed_at
     db.commit()
 
-    response = client.post(f"/v1/admin/offer/{offer.id}/refund")
+    response = client.post(f"/v1/admin/offer/{offer.id}/resolve")
 
     assert response.status_code == 200
-    assert response.json()["data"]["status"] == "REFUNDED"
-    assert response.json()["data"]["refundedAt"] is not None
+    assert response.json()["data"]["status"] == "RESOLVED"
+    assert response.json()["data"]["resolvedAt"] is not None
     db.refresh(proposal)
     db.refresh(offer)
-    assert proposal.status == ProposalStatus.REFUNDED
-    assert offer.status == OfferStatus.REFUNDED
-    assert proposal.refunded_at is not None
-    assert offer.refunded_at is not None
+    assert proposal.status == ProposalStatus.RESOLVED
+    assert offer.status == OfferStatus.RESOLVED
+    assert proposal.resolved_at is not None
+    assert offer.resolved_at is not None
     assert proposal.disputed_at is not None
     assert offer.disputed_at is not None
     assert proposal.settled_at is None

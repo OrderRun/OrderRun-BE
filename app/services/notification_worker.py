@@ -43,9 +43,10 @@ class NotificationWorker:
         logger.info("Sending %d %s notifications", len(notifications), status.value)
 
         for notif in notifications:
+            notification_type = getattr(notif.notification_type, "value", notif.notification_type)
             data: dict[str, str] = {
                 "notification_id": str(notif.id),
-                "notification_type": notif.notification_type.value,
+                "notification_type": str(notification_type),
             }
             if notif.related_entity_type:
                 data["related_entity_type"] = notif.related_entity_type
