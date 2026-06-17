@@ -19,6 +19,7 @@
 | `proposals` | bidding/proposal | O | `docs/exec-plans/completed/proposal/model.md` | 심부름 모집 공고 |
 | `offers` | bidding/offer | O | `docs/domains/offer/README.md` | 러너 지원서 |
 | `proofs` | execution/proof | O | `docs/domain.md` | 배송 사진/분쟁 사유 증빙 |
+| `dispute_survey_questions` | dispute-survey | O | `docs/api-spec/README.md` | 분쟁 접수 전 설문 질문 마스터 |
 | `payments` | settlement | 목표 O / 현재 미구현 | 이 문서 | 결제/정산 처리 |
 | `settlement_accounts` | settlement | O | 이 문서 | 러너 정산 계좌 |
 
@@ -193,6 +194,23 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 현재 코드 갭:
 
 - 없음.
+
+## `dispute_survey_questions`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 질문 ID |
+| `target_type` | `varchar(6)` | NO | UNIQUE `uk_dispute_survey_questions_target_order` 일부, INDEX `idx_dispute_survey_questions_lookup` | `ORDER`, `RUNNER` |
+| `question_text` | `varchar(500)` | NO |  | 질문 내용 |
+| `display_order` | `integer` | NO | UNIQUE `uk_dispute_survey_questions_target_order` 일부, INDEX `idx_dispute_survey_questions_lookup` | 클라이언트 표시 순서 |
+| `is_active` | `boolean` | NO | INDEX `idx_dispute_survey_questions_lookup` | 조회 노출 여부 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+현재 코드 메모:
+
+- 분쟁 접수 API의 `disputeReason` 저장 방식은 변경하지 않는다.
+- `GET /v1/dispute-survey/questions`는 active 질문만 대상별 순서대로 반환한다.
 
 ## `payments`
 

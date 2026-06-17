@@ -135,6 +135,19 @@ TERMS_AGREEMENT_EXAMPLE = {
     "message": "약관 동의가 완료되었습니다.",
 }
 
+DISPUTE_SURVEY_QUESTIONS_EXAMPLE = {
+    "success": True,
+    "data": [
+        {
+            "id": 1,
+            "targetType": "ORDER",
+            "questionText": "러너의 수행 결과에 어떤 문제가 있었나요?",
+            "displayOrder": 1,
+        }
+    ],
+    "message": "Success",
+}
+
 PROPOSAL_EXAMPLE = {
     "id": 1,
     "title": "강남역 커피 배달",

@@ -281,6 +281,15 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | paymentRefundPolicy | boolean | 결제/환불지급정책 동의 여부 |
 | agreedAt | string | 약관 동의 시각 |
 
+### DisputeSurveyQuestionResponse
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| id | number | 질문 ID |
+| targetType | string | 질문 대상. `ORDER` 또는 `RUNNER` |
+| questionText | string | 질문 내용 |
+| displayOrder | number | 클라이언트 표시 순서 |
+
 ## API 목록
 
 ### Health API
@@ -313,6 +322,12 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
 |------|--------|------|------|-----------|-----------|
 | 약관 동의 | `POST` | `/v1/terms` | 필요 | `201 Created` | `TermsAgreementResponse` |
+
+### Dispute Survey API
+
+| 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
+|------|--------|------|------|-----------|-----------|
+| 분쟁 설문 질문 조회 | `GET` | `/v1/dispute-survey/questions?targetType={targetType}` | 필요 | `200 OK` | `DisputeSurveyQuestionResponse[]` |
 
 ### Proposal API
 
@@ -403,6 +418,14 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | termsOfService | boolean | O | 반드시 `true` |
 | privacyPolicy | boolean | O | 반드시 `true` |
 | paymentRefundPolicy | boolean | O | 반드시 `true` |
+
+### Dispute Survey
+
+#### `GET /v1/dispute-survey/questions`
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| targetType | string | O | 질문 대상. 오더 분쟁 접수 전에는 `ORDER`, 러너 분쟁 접수 전에는 `RUNNER` |
 
 ### Proposal
 
