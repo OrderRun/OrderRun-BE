@@ -14,7 +14,7 @@ from app.models.proof import Proof, ProofType
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
-from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferResponse
+from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferDetailResponse, OfferResponse, OfferSummaryResponse
 
 
 OPEN_PROPOSAL_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)
@@ -23,6 +23,13 @@ ACTIVE_OFFER_STATUSES = (
     OfferStatus.RUNNER_COMPLETED,
     OfferStatus.ALL_COMPLETED,
     OfferStatus.DISPUTED,
+)
+OPEN_CHAT_OFFER_STATUSES = (
+    OfferStatus.ACCEPTED,
+    OfferStatus.RUNNER_COMPLETED,
+    OfferStatus.ALL_COMPLETED,
+    OfferStatus.DISPUTED,
+    OfferStatus.REFUNDED,
 )
 
 
@@ -55,27 +62,46 @@ class OfferService:
         return user.name, user.level
 
     @staticmethod
-    def _to_response(db: Session, offer: Offer) -> OfferResponse:
+    def _response_fields(db: Session, offer: Offer) -> dict:
         proposal = OfferService._get_proposal(db, offer.proposal_id)
         orderer_name, orderer_level = OfferService._user_profile(db, proposal.orderer_id)
         runner_name, runner_level = OfferService._user_profile(db, offer.runner_id)
-        return OfferResponse(
-            id=offer.id,
-            proposal_id=offer.proposal_id,
-            orderer_id=proposal.orderer_id,
-            orderer_name=orderer_name,
-            orderer_level=orderer_level,
-            runner_id=offer.runner_id,
-            runner_name=runner_name,
-            runner_level=runner_level,
-            status=offer.status,
-            accepted_at=offer.accepted_at,
-            delivery_completed_at=offer.delivery_completed_at,
-            receipt_confirmed_at=offer.receipt_confirmed_at,
-            disputed_at=offer.disputed_at,
-            refunded_at=offer.refunded_at,
-            created_at=offer.created_at,
-        )
+        return {
+            "id": offer.id,
+            "proposal_id": offer.proposal_id,
+            "orderer_id": proposal.orderer_id,
+            "orderer_name": orderer_name,
+            "orderer_level": orderer_level,
+            "runner_id": offer.runner_id,
+            "runner_name": runner_name,
+            "runner_level": runner_level,
+            "status": offer.status,
+            "accepted_at": offer.accepted_at,
+            "delivery_completed_at": offer.delivery_completed_at,
+            "receipt_confirmed_at": offer.receipt_confirmed_at,
+            "disputed_at": offer.disputed_at,
+            "refunded_at": offer.refunded_at,
+            "created_at": offer.created_at,
+        }
+
+    @staticmethod
+    def _to_response(db: Session, offer: Offer) -> OfferResponse:
+        return OfferResponse(**OfferService._response_fields(db, offer))
+
+    @staticmethod
+    def _to_summary_response(db: Session, offer: Offer) -> OfferSummaryResponse:
+        return OfferSummaryResponse(**OfferService._response_fields(db, offer))
+
+    @staticmethod
+    def _to_detail_response(db: Session, offer: Offer, viewer_id: str) -> OfferDetailResponse:
+        fields = OfferService._response_fields(db, offer)
+        open_chat_url = None
+        if (
+            offer.status in OPEN_CHAT_OFFER_STATUSES
+            and viewer_id in {fields["orderer_id"], offer.runner_id}
+        ):
+            open_chat_url = offer.open_chat_url
+        return OfferDetailResponse(**fields, open_chat_url=open_chat_url)
 
     @staticmethod
     def _sync_all_completed(db: Session, offer: Offer, proposal: Proposal) -> None:
@@ -133,19 +159,19 @@ class OfferService:
         db: Session,
         proposal_id: int,
         offer_statuses: list[OfferStatus] | None,
-    ) -> list[OfferResponse]:
+    ) -> list[OfferSummaryResponse]:
         OfferService._ensure_proposal_exists(db, proposal_id)
         query = db.query(Offer).filter(Offer.proposal_id == proposal_id)
         if offer_statuses:
             query = query.filter(Offer.status.in_(offer_statuses))
 
         offers = query.order_by(Offer.created_at.desc(), Offer.id.desc()).all()
-        return [OfferService._to_response(db, offer) for offer in offers]
+        return [OfferService._to_summary_response(db, offer) for offer in offers]
 
     @staticmethod
-    def get_offer_detail(db: Session, offer_id: int) -> OfferResponse:
+    def get_offer_detail(db: Session, offer_id: int, viewer_id: str) -> OfferDetailResponse:
         offer = OfferService._get_offer(db, offer_id)
-        return OfferService._to_response(db, offer)
+        return OfferService._to_detail_response(db, offer, viewer_id)
 
     @staticmethod
     def search_runner_offers(

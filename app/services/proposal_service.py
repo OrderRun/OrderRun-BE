@@ -23,6 +23,20 @@ EXECUTION_OFFER_STATUSES = (
     OfferStatus.ALL_COMPLETED,
     OfferStatus.DISPUTED,
 )
+OPEN_CHAT_PROPOSAL_STATUSES = (
+    ProposalStatus.MATCHED,
+    ProposalStatus.ORDER_COMPLETED,
+    ProposalStatus.ALL_COMPLETED,
+    ProposalStatus.DISPUTED,
+    ProposalStatus.REFUNDED,
+)
+OPEN_CHAT_OFFER_STATUSES = (
+    OfferStatus.ACCEPTED,
+    OfferStatus.RUNNER_COMPLETED,
+    OfferStatus.ALL_COMPLETED,
+    OfferStatus.DISPUTED,
+    OfferStatus.REFUNDED,
+)
 
 
 class ProposalService:
@@ -99,7 +113,7 @@ class ProposalService:
         return PageResponse.of(content=items, page_number=page, page_size=size, total_elements=total)
 
     @staticmethod
-    def get_proposal_detail(db: Session, proposal_id: int) -> ProposalDetailResponse:
+    def get_proposal_detail(db: Session, proposal_id: int, viewer_id: str) -> ProposalDetailResponse:
         proposal = ProposalService._get_proposal(db, proposal_id)
         offers = (
             db.query(Offer)
@@ -109,6 +123,14 @@ class ProposalService:
         )
         user_profiles = ProposalService._user_profiles(db, [proposal.orderer_id, *(offer.runner_id for offer in offers)])
         orderer_name, orderer_level = user_profiles.get(proposal.orderer_id, ("", 0))
+        open_chat_offer = next((offer for offer in offers if offer.status in OPEN_CHAT_OFFER_STATUSES), None)
+        open_chat_url = None
+        if (
+            open_chat_offer is not None
+            and proposal.status in OPEN_CHAT_PROPOSAL_STATUSES
+            and viewer_id in {proposal.orderer_id, open_chat_offer.runner_id}
+        ):
+            open_chat_url = open_chat_offer.open_chat_url
         return ProposalDetailResponse(
             id=proposal.id,
             title=proposal.title,
@@ -124,6 +146,7 @@ class ProposalService:
             received_confirmed_at=proposal.received_confirmed_at,
             disputed_at=proposal.disputed_at,
             refunded_at=proposal.refunded_at,
+            open_chat_url=open_chat_url,
             offers=[
                 ProposalOwnOfferResponse(
                     id=offer.id,
@@ -289,7 +312,7 @@ class ProposalService:
         ), db)
         db.commit()
         db.refresh(proposal)
-        return ProposalService.get_proposal_detail(db, proposal.id)
+        return ProposalService.get_proposal_detail(db, proposal.id, orderer_id)
 
     @staticmethod
     def raise_dispute(
@@ -316,7 +339,7 @@ class ProposalService:
         ))
         db.commit()
         db.refresh(proposal)
-        return ProposalService.get_proposal_detail(db, proposal.id)
+        return ProposalService.get_proposal_detail(db, proposal.id, orderer_id)
 
     @staticmethod
     def delete_expired_proposals(db: Session) -> int:

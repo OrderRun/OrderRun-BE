@@ -152,6 +152,7 @@ PROPOSAL_STATE_TIMESTAMPS = {
     "receivedConfirmedAt": None,
     "disputedAt": None,
     "refundedAt": None,
+    "openChatUrl": None,
     "offers": [],
 }
 PROPOSAL_WAITING_OFFER_EXAMPLE = {
@@ -201,6 +202,7 @@ PROPOSAL_MATCHED_DETAIL_EXAMPLE = {
     **PROPOSAL_STATE_TIMESTAMPS,
     "status": "MATCHED",
     "matchedAt": EXAMPLE_UPDATED_AT,
+    "openChatUrl": "https://open.kakao.com/o/example",
     "offers": [PROPOSAL_ACCEPTED_OFFER_EXAMPLE],
 }
 PROPOSAL_ORDER_COMPLETED_DETAIL_EXAMPLE = {
@@ -376,8 +378,23 @@ OFFER_STATUS_DATA_EXAMPLES = {
     "rejected": OFFER_REJECTED_EXAMPLE,
     "cancelled": OFFER_CANCELLED_EXAMPLE,
 }
+OFFER_OPEN_CHAT_EXAMPLE = "https://open.kakao.com/o/example"
+OFFER_OPEN_CHAT_EXAMPLE_STATUSES = {
+    "accepted",
+    "runner_completed",
+    "all_completed",
+    "disputed",
+    "refunded",
+}
 OFFER_DETAIL_EXAMPLES = {
-    name: {"success": True, "data": data, "message": "Success"}
+    name: {
+        "success": True,
+        "data": {
+            **data,
+            "openChatUrl": OFFER_OPEN_CHAT_EXAMPLE if name in OFFER_OPEN_CHAT_EXAMPLE_STATUSES else None,
+        },
+        "message": "Success",
+    }
     for name, data in OFFER_STATUS_DATA_EXAMPLES.items()
 }
 OFFER_LIST_EXAMPLES = {

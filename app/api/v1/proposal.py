@@ -120,7 +120,7 @@ def get_proposal(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApiResponse[ProposalDetailResponse]:
-    proposal = ProposalService.get_proposal_detail(db, proposal_id)
+    proposal = ProposalService.get_proposal_detail(db, proposal_id, current_user.id)
     return ApiResponse(success=True, data=proposal)
 
 

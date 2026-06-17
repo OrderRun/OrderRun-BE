@@ -25,7 +25,7 @@ from app.core.security import get_current_user
 from app.models.offer import OfferStatus
 from app.models.user import User
 from app.schemas.common import ApiResponse, PageResponse
-from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferResponse
+from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferDetailResponse, OfferResponse, OfferSummaryResponse
 from app.schemas.proof import ProofDeliveryRequest, ProofDisputeRequest
 from app.services.offer_service import OfferService
 
@@ -116,7 +116,7 @@ def get_own_offers(
 
 @router.get(
     "",
-    response_model=ApiResponse[list[OfferResponse]],
+    response_model=ApiResponse[list[OfferSummaryResponse]],
     status_code=status.HTTP_200_OK,
     summary="요청별 제안 목록 조회",
     description="특정 요청에 등록된 제안 목록을 조회합니다.",
@@ -130,7 +130,7 @@ def get_offers(
     request: OfferSearchRequest = Depends(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> ApiResponse[list[OfferResponse]]:
+) -> ApiResponse[list[OfferSummaryResponse]]:
     offers = OfferService.find_offers_by_proposal(
         db,
         proposal_id=proposal_id,
@@ -140,8 +140,8 @@ def get_offers(
 
 
 @router.get(
-    "/{offer_id}",
-    response_model=ApiResponse[OfferResponse],
+    "/{id}",
+    response_model=ApiResponse[OfferDetailResponse],
     status_code=status.HTTP_200_OK,
     summary="제안 상세 조회",
     description="제안 ID로 제안 상세 정보를 조회합니다.",
@@ -151,11 +151,11 @@ def get_offers(
     },
 )
 def get_offer(
-    offer_id: int,
+    id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> ApiResponse[OfferResponse]:
-    offer = OfferService.get_offer_detail(db, offer_id=offer_id)
+) -> ApiResponse[OfferDetailResponse]:
+    offer = OfferService.get_offer_detail(db, offer_id=id, viewer_id=current_user.id)
     return ApiResponse(success=True, data=offer, message="Success")
 
 

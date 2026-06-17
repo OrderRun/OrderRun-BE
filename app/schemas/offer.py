@@ -40,6 +40,51 @@ class OfferResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
+class OfferSummaryResponse(BaseModel):
+    """Offer response for proposal-scoped lookup."""
+
+    id: int
+    proposal_id: int = Field(..., serialization_alias="proposalId")
+    orderer_id: str = Field(..., serialization_alias="ordererId")
+    orderer_name: str = Field(..., serialization_alias="ordererName")
+    orderer_level: int = Field(..., serialization_alias="ordererLevel")
+    runner_id: str = Field(..., serialization_alias="runnerId")
+    runner_name: str = Field(..., serialization_alias="runnerName")
+    runner_level: int = Field(..., serialization_alias="runnerLevel")
+    status: OfferStatus
+    accepted_at: datetime | None = Field(None, serialization_alias="acceptedAt")
+    delivery_completed_at: datetime | None = Field(None, serialization_alias="deliveryCompletedAt")
+    receipt_confirmed_at: datetime | None = Field(None, serialization_alias="receiptConfirmedAt")
+    disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
+    refunded_at: datetime | None = Field(None, serialization_alias="refundedAt")
+    created_at: datetime = Field(..., serialization_alias="createdAt")
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class OfferDetailResponse(BaseModel):
+    """Offer detail response."""
+
+    id: int
+    proposal_id: int = Field(..., serialization_alias="proposalId")
+    orderer_id: str = Field(..., serialization_alias="ordererId")
+    orderer_name: str = Field(..., serialization_alias="ordererName")
+    orderer_level: int = Field(..., serialization_alias="ordererLevel")
+    runner_id: str = Field(..., serialization_alias="runnerId")
+    runner_name: str = Field(..., serialization_alias="runnerName")
+    runner_level: int = Field(..., serialization_alias="runnerLevel")
+    status: OfferStatus
+    accepted_at: datetime | None = Field(None, serialization_alias="acceptedAt")
+    delivery_completed_at: datetime | None = Field(None, serialization_alias="deliveryCompletedAt")
+    receipt_confirmed_at: datetime | None = Field(None, serialization_alias="receiptConfirmedAt")
+    disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
+    refunded_at: datetime | None = Field(None, serialization_alias="refundedAt")
+    open_chat_url: str | None = Field(None, serialization_alias="openChatUrl")
+    created_at: datetime = Field(..., serialization_alias="createdAt")
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
 class OfferAcceptResponse(BaseModel):
     """Response body for accepted offer orchestration."""
 

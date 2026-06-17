@@ -32,6 +32,7 @@ class Offer(Base):
     proposal_id = Column(BigInteger, nullable=False, index=True)
     runner_id = Column(String(36), nullable=False, index=True)
     status = Column(Enum(OfferStatus), nullable=False, default=OfferStatus.WAITING, index=True)
+    open_chat_url = Column(String(500), nullable=True)
 
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
     accepted_at = Column(DateTime(timezone=True), nullable=True)
