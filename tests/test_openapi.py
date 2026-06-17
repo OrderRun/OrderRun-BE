@@ -186,7 +186,7 @@ def test_representative_success_examples_match_contracts():
         }
         assert offers[0]["status"] == expected_offer_status
 
-    offer_detail_examples = schema["paths"]["/v1/offer/{offer_id}"]["get"]["responses"]["200"]["content"][
+    offer_detail_examples = schema["paths"]["/v1/offer/{id}"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["examples"]
     expected_offer_statuses = {
@@ -219,6 +219,8 @@ def test_representative_success_examples_match_contracts():
         }.issubset(data)
 
     assert "missionId" not in offer_detail_examples["waiting"]["value"]["data"]
+    assert "get" not in schema["paths"].get("/v1/offer/{offer_id}", {})
+    assert offer_detail_examples["accepted"]["value"]["data"]["openChatUrl"] is not None
     assert offer_detail_examples["accepted"]["value"]["data"]["acceptedAt"] is not None
     assert offer_detail_examples["runner_completed"]["value"]["data"]["deliveryCompletedAt"] is not None
     assert offer_detail_examples["all_completed"]["value"]["data"]["receiptConfirmedAt"] is not None

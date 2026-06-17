@@ -94,6 +94,7 @@ def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_
     assert holding_data["ordererId"] == sample_user.id
     assert holding_data["ordererName"] == sample_user.name
     assert holding_data["ordererLevel"] == 2
+    assert holding_data["openChatUrl"] is None
     assert holding_data["offers"] == []
 
     cancelled_response = client.get(f"/v1/proposal/{cancelled.id}", headers=auth_headers)
@@ -101,6 +102,7 @@ def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_
     data = cancelled_response.json()["data"]
     assert data["status"] == "CANCELLED"
     assert data["matchedAt"] is None
+    assert data["openChatUrl"] is None
     assert data["offers"] == []
 
 
@@ -120,12 +122,50 @@ def test_detail_returns_state_timestamps_when_matched(client, db, factory, auth_
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["matchedAt"] is not None
+    assert data["openChatUrl"] is None
     assert data["ordererId"] == sample_user.id
     assert "missionId" not in data
     assert len(data["offers"]) == 1
     assert data["offers"][0]["id"] == offer.id
     assert data["offers"][0]["runnerName"] == "Matched Runner"
     assert data["offers"][0]["runnerLevel"] == 5
+
+
+def test_detail_returns_open_chat_url_only_to_matched_participants(client, db, factory, auth_headers, sample_user):
+    runner = factory.user("01055550004", name="Chat Runner")
+    stranger = factory.user("01055550005", name="Chat Stranger")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
+    offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    offer.accepted_at = datetime.now(timezone.utc)
+    offer.open_chat_url = "https://open.kakao.com/o/example"
+    proposal.matched_at = offer.accepted_at
+    db.add(offer)
+    db.commit()
+
+    orderer_response = client.get(f"/v1/proposal/{proposal.id}", headers=auth_headers)
+    runner_response = client.get(f"/v1/proposal/{proposal.id}", headers=factory.headers_for(runner))
+    stranger_response = client.get(f"/v1/proposal/{proposal.id}", headers=factory.headers_for(stranger))
+
+    assert orderer_response.status_code == 200
+    assert runner_response.status_code == 200
+    assert stranger_response.status_code == 200
+    assert orderer_response.json()["data"]["openChatUrl"] == "https://open.kakao.com/o/example"
+    assert runner_response.json()["data"]["openChatUrl"] == "https://open.kakao.com/o/example"
+    assert stranger_response.json()["data"]["openChatUrl"] is None
+
+
+def test_detail_masks_open_chat_url_before_matched_status(client, db, factory, auth_headers, sample_user):
+    runner = factory.user("01055550006", name="Waiting Chat Runner")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
+    offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.WAITING)
+    offer.open_chat_url = "https://open.kakao.com/o/example"
+    db.add(offer)
+    db.commit()
+
+    response = client.get(f"/v1/proposal/{proposal.id}", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["data"]["openChatUrl"] is None
 
 
 def test_list_own_returns_only_current_user_with_offers_and_multi_status_filter(client, db, factory, auth_headers, sample_user):
