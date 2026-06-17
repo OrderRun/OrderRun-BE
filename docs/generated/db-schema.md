@@ -167,6 +167,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `proposal_id` | `bigint` | NO | UNIQUE `uk_proposal_runner` 일부 | 대상 Proposal ID |
 | `runner_id` | `varchar(36)` | NO | UNIQUE `uk_proposal_runner` 일부, INDEX `idx_offers_runner_id` | 지원자 사용자 ID |
 | `status` | `varchar(20)` | NO |  | `WAITING`, `ACCEPTED`, `RUNNER_COMPLETED`, `ALL_COMPLETED`, `DISPUTED`, `REFUNDED`, `REJECTED`, `CANCELLED` |
+| `open_chat_url` | `varchar(500)` | YES |  | 매칭 당사자에게 노출할 카카오톡 오픈채팅방 링크 |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 | `accepted_at` | `datetime(6)` | YES |  | 오더가 Offer를 수락한 시각 |
 | `delivery_completed_at` | `datetime(6)` | YES |  | 러너 완료 시각 |

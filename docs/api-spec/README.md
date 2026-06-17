@@ -196,6 +196,7 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | receivedConfirmedAt | string, null | 오더러 완료 확인 시각 |
 | disputedAt | string, null | 분쟁 접수 시각 |
 | refundedAt | string, null | 환불 완료 시각 |
+| openChatUrl | string, null | 매칭 당사자에게만 반환되는 카카오톡 오픈채팅방 링크 |
 | offers | array | `ProposalOwnOfferResponse[]` |
 
 ### OfferResponse
@@ -217,6 +218,18 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | disputedAt | string, null | 분쟁 접수 시각 |
 | refundedAt | string, null | 환불 완료 시각 |
 | createdAt | string | Offer 생성 시각 |
+
+### OfferSummaryResponse
+
+Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `OfferResponse`와 동일하며 오픈채팅방 링크는 반환하지 않는다.
+
+### OfferDetailResponse
+
+`OfferResponse`와 동일한 필드에 다음 필드를 추가로 반환한다.
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| openChatUrl | string, null | 매칭 당사자에게만 반환되는 카카오톡 오픈채팅방 링크 |
 
 ### OfferAcceptResponse
 
@@ -320,8 +333,8 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 |------|--------|------|------|-----------|-----------|
 | 오퍼 제출 | `POST` | `/v1/offer` | 필요 | `201 Created` | `OfferResponse` |
 | 오퍼 수락 | `POST` | `/v1/offer/{offerId}/accept` | 필요. 연결된 Proposal 작성자만 가능 | `201 Created` | `OfferAcceptResponse` |
-| 오퍼 상세 조회 | `GET` | `/v1/offer/{offerId}` | 필요 | `200 OK` | `OfferResponse` |
-| Proposal별 오퍼 목록 조회 | `GET` | `/v1/offer?proposalId={id}` | 필요 | `200 OK` | `OfferResponse[]` |
+| 오퍼 상세 조회 | `GET` | `/v1/offer/{id}` | 필요 | `200 OK` | `OfferDetailResponse` |
+| Proposal별 오퍼 목록 조회 | `GET` | `/v1/offer?proposalId={id}` | 필요 | `200 OK` | `OfferSummaryResponse[]` |
 | 내 오퍼 목록 조회 | `GET` | `/v1/offer/own` | 필요 | `200 OK` | `PageResponse<OfferResponse>` |
 | 러너 전달 완료 | `POST` | `/v1/offer/{offerId}/complete-delivery` | 필요. Offer 제출 러너만 가능 | `200 OK` | `OfferResponse` |
 | 러너 분쟁 접수 | `POST` | `/v1/offer/{offerId}/dispute` | 필요. Offer 제출 러너만 가능 | `200 OK` | `OfferResponse` |
