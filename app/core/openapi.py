@@ -484,10 +484,8 @@ OFFER_RESOLVED_EXAMPLE = {
 }
 
 SETTLEMENT_ACCOUNT_EXAMPLE = {
-    "bankCode": "004",
     "bankName": "국민은행",
     "maskedAccountNumber": "********9012",
-    "accountHolder": "홍길동",
     "updatedAt": EXAMPLE_UPDATED_AT,
 }
 SETTLEMENT_ACCOUNT_GET_EXAMPLE = {"success": True, "data": SETTLEMENT_ACCOUNT_EXAMPLE, "message": "Success"}

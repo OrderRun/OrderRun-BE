@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.models.settlement import SettlementAccount
-from app.schemas.settlement import SettlementAccountRequest, SettlementAccountResponse
+from app.schemas.settlement import SUPPORTED_BANK_NAMES, SettlementAccountRequest, SettlementAccountResponse
 
 
 class SettlementService:
@@ -25,9 +25,7 @@ class SettlementService:
             account = SettlementAccount(user_id=user_id)
             db.add(account)
 
-        account.bank_code = request.bank_code
         account.bank_name = request.bank_name
-        account.account_holder = request.account_holder
         account.encrypted_account_number = request.account_number
         account.masked_account_number = SettlementService._mask_account_number(request.account_number)
 
@@ -42,11 +40,13 @@ class SettlementService:
         return f"{'*' * (len(account_number) - 4)}{account_number[-4:]}"
 
     @staticmethod
+    def bank_names() -> list[str]:
+        return list(SUPPORTED_BANK_NAMES)
+
+    @staticmethod
     def _to_response(account: SettlementAccount) -> SettlementAccountResponse:
         return SettlementAccountResponse(
-            bank_code=account.bank_code,
             bank_name=account.bank_name,
             masked_account_number=account.masked_account_number,
-            account_holder=account.account_holder,
             updated_at=account.updated_at,
         )

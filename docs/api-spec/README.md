@@ -266,11 +266,15 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| bankCode | string | 은행 코드 |
 | bankName | string | 은행명 |
 | maskedAccountNumber | string | 마스킹된 계좌번호 |
-| accountHolder | string | 예금주명 |
 | updatedAt | string | 수정 시각 |
+
+### SettlementBankNamesResponse
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| bankNames | string[] | 정산 계좌 등록에 사용할 수 있는 은행명 목록 |
 
 ### TermsAgreementResponse
 
@@ -371,6 +375,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 |------|--------|------|------|-----------|-----------|
 | 정산 계좌 조회 | `GET` | `/v1/settlement/account` | 필요 | `200 OK` | `SettlementAccountResponse` 또는 `null` |
 | 정산 계좌 저장 | `PUT` | `/v1/settlement/account` | 필요 | `200 OK` | `SettlementAccountResponse` |
+| 정산 은행명 목록 조회 | `GET` | `/v1/settlement/banks` | 필요 | `200 OK` | `SettlementBankNamesResponse` |
 
 ## 요청 명세
 
@@ -515,10 +520,12 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 
 | 필드 | 타입 | 필수 | 제약 |
 |------|------|------|------|
-| bankCode | string | O | 숫자 2~10자리 |
-| bankName | string | O | 공백 불가, 최대 50자 |
+| bankName | string | O | 지원 은행명 목록에 포함된 값 |
 | accountNumber | string | O | 숫자 6~30자리 |
-| accountHolder | string | O | 공백 불가, 최대 100자 |
+
+#### `GET /v1/settlement/banks`
+
+요청 본문 없음.
 
 ## 상태 Enum
 

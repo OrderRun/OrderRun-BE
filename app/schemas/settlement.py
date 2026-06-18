@@ -8,21 +8,37 @@ import re
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+SUPPORTED_BANK_NAMES = (
+    "국민은행",
+    "신한은행",
+    "우리은행",
+    "하나은행",
+    "농협은행",
+    "기업은행",
+    "카카오뱅크",
+    "토스뱅크",
+    "케이뱅크",
+    "SC제일은행",
+    "한국씨티은행",
+    "산업은행",
+    "수협은행",
+    "대구은행",
+    "부산은행",
+    "광주은행",
+    "제주은행",
+    "전북은행",
+    "경남은행",
+    "새마을금고",
+    "신협",
+    "우체국",
+)
+
+
 class SettlementAccountRequest(BaseModel):
-    bank_code: str = Field(..., alias="bankCode")
     bank_name: str = Field(..., alias="bankName", max_length=50)
     account_number: str = Field(..., alias="accountNumber")
-    account_holder: str = Field(..., alias="accountHolder", max_length=100)
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
-
-    @field_validator("bank_code")
-    @classmethod
-    def validate_bank_code(cls, value: str) -> str:
-        stripped = value.strip()
-        if not re.fullmatch(r"\d{2,10}", stripped):
-            raise ValueError("bankCode must be 2 to 10 digits")
-        return stripped
 
     @field_validator("account_number")
     @classmethod
@@ -32,20 +48,26 @@ class SettlementAccountRequest(BaseModel):
             raise ValueError("accountNumber must be 6 to 30 digits")
         return stripped
 
-    @field_validator("bank_name", "account_holder")
+    @field_validator("bank_name")
     @classmethod
-    def validate_not_blank(cls, value: str) -> str:
+    def validate_bank_name(cls, value: str) -> str:
         stripped = value.strip()
         if not stripped:
             raise ValueError("must not be blank")
+        if stripped not in SUPPORTED_BANK_NAMES:
+            raise ValueError("unsupported bankName")
         return stripped
 
 
 class SettlementAccountResponse(BaseModel):
-    bank_code: str = Field(..., alias="bankCode")
     bank_name: str = Field(..., alias="bankName")
     masked_account_number: str = Field(..., alias="maskedAccountNumber")
-    account_holder: str = Field(..., alias="accountHolder")
     updated_at: datetime = Field(..., alias="updatedAt")
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+
+class SettlementBankNamesResponse(BaseModel):
+    bank_names: list[str] = Field(..., alias="bankNames")
+
+    model_config = ConfigDict(populate_by_name=True)

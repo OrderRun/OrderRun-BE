@@ -18,7 +18,11 @@ from app.core.openapi import (
 from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.common import ApiResponse
-from app.schemas.settlement import SettlementAccountRequest, SettlementAccountResponse
+from app.schemas.settlement import (
+    SettlementAccountRequest,
+    SettlementAccountResponse,
+    SettlementBankNamesResponse,
+)
 from app.services.settlement_service import SettlementService
 
 
@@ -67,3 +71,31 @@ def save_settlement_account(
 ) -> ApiResponse[SettlementAccountResponse]:
     account = SettlementService.save_account(db, user_id=current_user.id, request=request)
     return ApiResponse(success=True, data=account, message="정산 계좌가 저장되었습니다.")
+
+
+@router.get(
+    "/banks",
+    response_model=ApiResponse[SettlementBankNamesResponse],
+    status_code=status.HTTP_200_OK,
+    summary="정산 은행명 목록 조회",
+    description="정산 계좌 등록에 사용할 수 있는 은행명 목록을 조회합니다.",
+    responses={
+        200: success_response(
+            {
+                "success": True,
+                "data": {"bankNames": SettlementService.bank_names()},
+                "message": "Success",
+            }
+        ),
+        **error_responses(AppError.INVALID_TOKEN),
+    },
+)
+def get_settlement_banks(
+    current_user: User = Depends(get_current_user),
+) -> ApiResponse[SettlementBankNamesResponse]:
+    _ = current_user
+    return ApiResponse(
+        success=True,
+        data=SettlementBankNamesResponse(bank_names=SettlementService.bank_names()),
+        message="Success",
+    )
