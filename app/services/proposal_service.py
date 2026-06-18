@@ -46,7 +46,7 @@ class ProposalService:
 
     @staticmethod
     def _get_existing_user(db: Session, user_id: str) -> User:
-        user = db.query(User).filter(User.id == user_id).first()
+        user = db.query(User).filter(User.id == user_id, User.deleted.is_(False)).first()
         if user is None:
             raise api_error(AppError.USER_NOT_FOUND)
         return user

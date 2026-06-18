@@ -17,6 +17,7 @@ class ApiErrorSpec:
 
 class AppError(str, Enum):
     USER_NOT_FOUND = "USER_NOT_FOUND"
+    USER_WITHDRAWAL_BLOCKED = "USER_WITHDRAWAL_BLOCKED"
     VALIDATION_ERROR = "VALIDATION_ERROR"
     REQUIRED_TERMS_INVALID = "REQUIRED_TERMS_INVALID"
 
@@ -61,6 +62,11 @@ class AppError(str, Enum):
 
 ERRORS: dict[AppError, ApiErrorSpec] = {
     AppError.USER_NOT_FOUND: ApiErrorSpec(status.HTTP_404_NOT_FOUND, "USER_NOT_FOUND", "User not found"),
+    AppError.USER_WITHDRAWAL_BLOCKED: ApiErrorSpec(
+        status.HTTP_409_CONFLICT,
+        "USER_WITHDRAWAL_BLOCKED",
+        "탈퇴할 수 없는 진행 중 활동이 있습니다.",
+    ),
     AppError.VALIDATION_ERROR: ApiErrorSpec(
         status.HTTP_400_BAD_REQUEST,
         "VALIDATION_ERROR",

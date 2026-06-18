@@ -37,6 +37,8 @@ class User(Base):
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     alarm_enabled = Column(Boolean, nullable=False, default=False, server_default="0")
     level = Column(Integer, nullable=False, default=0, server_default="0")
+    deleted = Column(Boolean, nullable=False, default=False, server_default="0")
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
@@ -51,6 +53,41 @@ class User(Base):
     def verify_phone(self, phone: str, verified_at: datetime) -> None:
         self.phone = phone
         self.phone_verified_at = verified_at
+
+    def withdraw(self, withdrawn_at: datetime) -> None:
+        self.deleted = True
+        self.deleted_at = withdrawn_at
+        self.name = "탈퇴한 사용자"
+        self.phone = None
+        self.phone_verified_at = None
+        self.alarm_enabled = False
+
+
+class WithdrawnUserSnapshot(Base):
+    """Temporary snapshot of user PII kept for withdrawal support windows."""
+
+    __tablename__ = "withdrawn_user_snapshots"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    name = Column(String(100), nullable=True)
+    phone = Column(String(20), nullable=True, index=True)
+    phone_verified_at = Column(DateTime(timezone=True), nullable=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    user_created_at = Column(DateTime(timezone=True), nullable=True)
+    withdrawn_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    anonymize_after = Column(DateTime(timezone=True), nullable=False, index=True)
+    anonymized_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
+
+    def anonymize(self, anonymized_at: datetime) -> None:
+        self.name = None
+        self.phone = None
+        self.phone_verified_at = None
+        self.last_login_at = None
+        self.user_created_at = None
+        self.anonymized_at = anonymized_at
 
 
 class AuthPhoneVerification(Base):
@@ -95,4 +132,5 @@ __all__ = [
     "PhoneVerificationStatus",
     "User",
     "UserFCMToken",
+    "WithdrawnUserSnapshot",
 ]

@@ -323,6 +323,8 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | FCM 토큰 갱신 | `PATCH` | `/v1/user/fcm-token` | 필요 | `200 OK` | `null` |
 | 사용자 프로필 조회 | `GET` | `/v1/user/detail` | 필요 | `200 OK` | `UserDetailResponse` |
 
+회원 탈퇴 정책은 [`../domains/user-auth/withdrawal-policy.md`](../domains/user-auth/withdrawal-policy.md)에 정의되어 있으나, API 라우트는 운영 오픈 전까지 비활성화한다.
+
 ### Terms API
 
 | 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
@@ -582,6 +584,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | 401 | `EXPIRED_TOKEN` | 만료된 토큰 |
 | 403 | `FORBIDDEN` | 권한 없음 |
 | 404 | `USER_NOT_FOUND` | 사용자를 찾을 수 없음 |
+| 409 | `USER_WITHDRAWAL_BLOCKED` | 탈퇴할 수 없는 진행 중 활동이 있음 |
 | 404 | `PHONE_VERIFICATION_NOT_FOUND` | 전화번호 인증 요청 없음 |
 | 404 | `PROPOSAL_NOT_FOUND` | Proposal을 찾을 수 없음 |
 | 404 | `OFFER_NOT_FOUND` | Offer를 찾을 수 없음 |

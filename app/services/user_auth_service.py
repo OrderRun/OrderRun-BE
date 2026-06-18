@@ -20,7 +20,10 @@ from app.models.user import (
     PhoneVerificationStatus,
     User,
     UserFCMToken,
+    WithdrawnUserSnapshot,
 )
+from app.models.offer import Offer, OfferStatus
+from app.models.proposal import Proposal, ProposalStatus
 from app.schemas.user import (
     AuthAccessTokenResponse,
     AuthLoginConfirmRequest,
@@ -39,6 +42,23 @@ logger = logging.getLogger(__name__)
 
 LOCAL_TEST_VERIFICATION_CODE = "123456"
 LOGIN_TEST_CODE_ALLOWED_ENVS = {"development", "local", "staging"}
+WITHDRAWAL_BLOCKING_PROPOSAL_STATUSES = {
+    ProposalStatus.MATCHED,
+    ProposalStatus.ORDER_COMPLETED,
+    ProposalStatus.DISPUTED,
+}
+WITHDRAWAL_BLOCKING_OFFER_STATUSES = {
+    OfferStatus.ACCEPTED,
+    OfferStatus.RUNNER_COMPLETED,
+    OfferStatus.DISPUTED,
+}
+WITHDRAWAL_AUTO_CANCEL_PROPOSAL_STATUSES = {
+    ProposalStatus.HOLDING,
+    ProposalStatus.POSTED,
+    ProposalStatus.OFFERED,
+}
+WITHDRAWAL_AUTO_CANCEL_OFFER_STATUSES = {OfferStatus.WAITING}
+WITHDRAWN_SNAPSHOT_RETENTION_DAYS = 30
 
 
 class UserAuthService:
@@ -85,7 +105,7 @@ class UserAuthService:
             logger.exception("SMS sending failed")
 
     def _find_user_by_phone(self, phone: str) -> User | None:
-        return self.db.query(User).filter(User.phone == phone).first()
+        return self.db.query(User).filter(User.phone == phone, User.deleted.is_(False)).first()
 
     def _latest_pending_verification(
         self,
@@ -279,7 +299,7 @@ class UserAuthService:
         if not user_id:
             raise api_error(AppError.INVALID_TOKEN)
 
-        user = self.db.query(User).filter(User.id == str(user_id)).first()
+        user = self.db.query(User).filter(User.id == str(user_id), User.deleted.is_(False)).first()
         if user is None:
             raise api_error(AppError.USER_NOT_FOUND)
 
@@ -287,7 +307,7 @@ class UserAuthService:
         return AuthAccessTokenResponse(access_token=access_token, expires_in=self._access_expires_in_ms())
 
     def get_user_detail(self, user: User) -> UserDetailResponse:
-        fresh_user = self.db.query(User).filter(User.id == str(user.id)).first()
+        fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
         if fresh_user is None:
             raise api_error(AppError.USER_NOT_FOUND)
 
@@ -303,7 +323,7 @@ class UserAuthService:
         )
 
     def update_alarm(self, user: User, alarm_enabled: bool) -> None:
-        fresh_user = self.db.query(User).filter(User.id == str(user.id)).first()
+        fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
         if fresh_user is None:
             raise api_error(AppError.USER_NOT_FOUND)
 
@@ -311,15 +331,121 @@ class UserAuthService:
         self.db.commit()
 
     def update_name(self, user: User, name: str) -> None:
-        fresh_user = self.db.query(User).filter(User.id == str(user.id)).first()
+        fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
         if fresh_user is None:
             raise api_error(AppError.USER_NOT_FOUND)
 
         fresh_user.name = name.strip()
         self.db.commit()
 
+    def withdraw_user(self, user: User) -> None:
+        fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
+        if fresh_user is None:
+            raise api_error(AppError.USER_NOT_FOUND)
+
+        user_id = str(fresh_user.id)
+        if self._has_blocking_activity(user_id):
+            raise api_error(AppError.USER_WITHDRAWAL_BLOCKED)
+
+        now = self._now()
+        original_phone = fresh_user.phone
+        self._auto_cancel_pre_match_activity(user_id)
+        self.db.add(
+            WithdrawnUserSnapshot(
+                user_id=user_id,
+                name=fresh_user.name,
+                phone=original_phone,
+                phone_verified_at=fresh_user.phone_verified_at,
+                last_login_at=fresh_user.last_login_at,
+                user_created_at=fresh_user.created_at,
+                withdrawn_at=now,
+                anonymize_after=now + timedelta(days=WITHDRAWN_SNAPSHOT_RETENTION_DAYS),
+            )
+        )
+        if original_phone is not None:
+            self.db.query(AuthPhoneVerification).filter(AuthPhoneVerification.phone == original_phone).delete(
+                synchronize_session=False
+            )
+        self.db.query(UserFCMToken).filter(UserFCMToken.user_id == user_id).delete(synchronize_session=False)
+        fresh_user.withdraw(now)
+        self.db.commit()
+
+    def _has_blocking_activity(self, user_id: str) -> bool:
+        has_blocking_proposal = (
+            self.db.query(Proposal.id)
+            .filter(
+                Proposal.orderer_id == user_id,
+                Proposal.status.in_(WITHDRAWAL_BLOCKING_PROPOSAL_STATUSES),
+            )
+            .first()
+            is not None
+        )
+        if has_blocking_proposal:
+            return True
+
+        return (
+            self.db.query(Offer.id)
+            .filter(
+                Offer.runner_id == user_id,
+                Offer.status.in_(WITHDRAWAL_BLOCKING_OFFER_STATUSES),
+            )
+            .first()
+            is not None
+        )
+
+    def _auto_cancel_pre_match_activity(self, user_id: str) -> None:
+        proposal_ids = [
+            proposal_id
+            for (proposal_id,) in (
+                self.db.query(Proposal.id)
+                .filter(
+                    Proposal.orderer_id == user_id,
+                    Proposal.status.in_(WITHDRAWAL_AUTO_CANCEL_PROPOSAL_STATUSES),
+                )
+                .all()
+            )
+        ]
+        if proposal_ids:
+            (
+                self.db.query(Offer)
+                .filter(
+                    Offer.proposal_id.in_(proposal_ids),
+                    Offer.status.in_(WITHDRAWAL_AUTO_CANCEL_OFFER_STATUSES),
+                )
+                .update({Offer.status: OfferStatus.CANCELLED}, synchronize_session=False)
+            )
+            (
+                self.db.query(Proposal)
+                .filter(Proposal.id.in_(proposal_ids))
+                .update({Proposal.status: ProposalStatus.CANCELLED}, synchronize_session=False)
+            )
+
+        (
+            self.db.query(Offer)
+            .filter(
+                Offer.runner_id == user_id,
+                Offer.status.in_(WITHDRAWAL_AUTO_CANCEL_OFFER_STATUSES),
+            )
+            .update({Offer.status: OfferStatus.CANCELLED}, synchronize_session=False)
+        )
+
+    def anonymize_due_withdrawn_user_snapshots(self) -> int:
+        now = self._now()
+        snapshots = (
+            self.db.query(WithdrawnUserSnapshot)
+            .filter(
+                WithdrawnUserSnapshot.anonymized_at.is_(None),
+                WithdrawnUserSnapshot.anonymize_after <= now,
+            )
+            .all()
+        )
+        for snapshot in snapshots:
+            snapshot.anonymize(now)
+        self.db.commit()
+        return len(snapshots)
+
     def upsert_fcm_token(self, user: User, fcm_token: str) -> None:
-        fresh_user = self.db.query(User).filter(User.id == str(user.id)).first()
+        fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
         if fresh_user is None:
             raise api_error(AppError.USER_NOT_FOUND)
 

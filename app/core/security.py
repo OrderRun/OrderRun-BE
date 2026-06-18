@@ -65,7 +65,7 @@ async def get_current_user(
     if not user_id:
         raise _token_error(AppError.INVALID_AUTHENTICATION_CREDENTIALS)
 
-    user = db.query(User).filter(User.id == str(user_id)).first()
+    user = db.query(User).filter(User.id == str(user_id), User.deleted.is_(False)).first()
     if user is None:
         raise api_error(AppError.USER_NOT_FOUND)
 
