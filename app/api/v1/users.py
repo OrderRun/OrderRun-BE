@@ -11,6 +11,7 @@ from app.core.openapi import (
     USER_ALARM_EXAMPLE,
     USER_DETAIL_EXAMPLE,
     USER_FCM_TOKEN_EXAMPLE,
+    USER_NAME_EXAMPLE,
     error_responses,
     success_response,
 )
@@ -21,6 +22,7 @@ from app.schemas.user import (
     UserAlarmRequest,
     UserDetailResponse,
     UserFcmTokenRequest,
+    UserNameUpdateRequest,
 )
 from app.services.user_auth_service import UserAuthService
 
@@ -74,6 +76,25 @@ def update_alarm(
     service = UserAuthService(db=db)
     service.update_alarm(current_user, payload.alarm_enabled)
     return {"success": True, "data": None, "message": "알람 설정이 업데이트되었습니다."}
+
+
+@router.patch(
+    "/name",
+    summary="닉네임 변경",
+    description="현재 사용자의 닉네임을 변경합니다.",
+    responses={
+        200: success_response(USER_NAME_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR, AppError.USER_NOT_FOUND),
+    },
+)
+def update_name(
+    payload: UserNameUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    service = UserAuthService(db=db)
+    service.update_name(current_user, payload.name)
+    return {"success": True, "data": None, "message": "닉네임이 업데이트되었습니다."}
 
 
 @router.patch(

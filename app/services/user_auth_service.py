@@ -310,6 +310,14 @@ class UserAuthService:
         fresh_user.update_alarm_setting(alarm_enabled)
         self.db.commit()
 
+    def update_name(self, user: User, name: str) -> None:
+        fresh_user = self.db.query(User).filter(User.id == str(user.id)).first()
+        if fresh_user is None:
+            raise api_error(AppError.USER_NOT_FOUND)
+
+        fresh_user.name = name.strip()
+        self.db.commit()
+
     def upsert_fcm_token(self, user: User, fcm_token: str) -> None:
         fresh_user = self.db.query(User).filter(User.id == str(user.id)).first()
         if fresh_user is None:

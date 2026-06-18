@@ -258,6 +258,53 @@ def test_user_detail_alarm_and_fcm_token_flow(client, db, sms_sender):
     assert blank_fcm.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
+def test_update_user_name_requires_auth_and_updates_only_current_user(client, db, factory):
+    user = factory.user(phone="01012340001", name="기존닉네임")
+    other_user = factory.user(phone="01012340002", name="다른사용자")
+
+    unauthenticated = client.patch("/v1/user/name", json={"name": "인증없음"})
+    assert unauthenticated.status_code == 401
+    assert unauthenticated.json()["error"]["code"] == "INVALID_TOKEN"
+
+    response = client.patch(
+        "/v1/user/name",
+        headers=factory.headers_for(user),
+        json={"name": "  새닉네임  "},
+    )
+    assert response.status_code == 200
+    assert response.json()["message"] == "닉네임이 업데이트되었습니다."
+
+    db.refresh(user)
+    db.refresh(other_user)
+    assert user.name == "새닉네임"
+    assert other_user.name == "다른사용자"
+
+    detail = client.get("/v1/user/detail", headers=factory.headers_for(user))
+    assert detail.status_code == 200
+    assert detail.json()["data"]["name"] == "새닉네임"
+
+
+def test_update_user_name_validation_errors(client, factory):
+    user = factory.user(phone="01012340003", name="기존닉네임")
+    headers = factory.headers_for(user)
+
+    blank = client.patch("/v1/user/name", headers=headers, json={"name": "   "})
+    assert blank.status_code == 400
+    assert blank.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    too_long = client.patch("/v1/user/name", headers=headers, json={"name": "가" * 101})
+    assert too_long.status_code == 400
+    assert too_long.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    extra_field = client.patch(
+        "/v1/user/name",
+        headers=headers,
+        json={"name": "새닉네임", "unexpected": True},
+    )
+    assert extra_field.status_code == 400
+    assert extra_field.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
 def test_verification_state_rules(client, db, sms_sender):
     first = client.post(
         "/v1/auth/signup/send",

@@ -315,6 +315,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
 |------|--------|------|------|-----------|-----------|
 | 알람 수신 동의 업데이트 | `POST` | `/v1/user/alarm` | 필요 | `200 OK` | `null` |
+| 사용자 닉네임 수정 | `PATCH` | `/v1/user/name` | 필요 | `200 OK` | `null` |
 | FCM 토큰 갱신 | `PATCH` | `/v1/user/fcm-token` | 필요 | `200 OK` | `null` |
 | 사용자 프로필 조회 | `GET` | `/v1/user/detail` | 필요 | `200 OK` | `UserDetailResponse` |
 

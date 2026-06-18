@@ -215,6 +215,24 @@ class UserAlarmRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
 
+class UserNameUpdateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100, description="사용자 닉네임")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        extra="forbid",
+        json_schema_extra={"example": {"name": "새닉네임"}},
+    )
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("name must not be blank")
+        return stripped
+
+
 class UserFcmTokenRequest(BaseModel):
     fcm_token: str = Field(..., alias="fcmToken", min_length=1, max_length=4096, description="FCM 토큰")
 
