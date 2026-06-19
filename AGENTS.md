@@ -38,6 +38,14 @@
 - 코드나 설계로부터 파생된 산출물은 `docs/generated/`에 둔다.
 - 외부 도구, 플랫폼, 참고 자료 메모는 `docs/references/`에 둔다.
 
+## 마이그레이션 규칙
+
+- Alembic revision ID는 현재 저장소처럼 설명형 이름을 사용할 수 있다.
+- fresh MySQL DB의 `alembic_version.version_num`은 `varchar(255)`로 생성되도록 `alembic/env.py`에서 보장한다.
+- 로컬 fresh MySQL DB도 `alembic upgrade head`로 초기 세팅 가능해야 한다.
+- 현재 모델 기준 baseline 이후에 컬럼/인덱스를 추가하는 migration은 이미 존재할 때 실패하지 않도록 작성한다.
+- 기존 DB의 `alembic_version` 테이블은 자동 변경하지 않는다.
+
 ## 테스트 실행 규칙
 
 - 통합 테스트를 실행할 때는 `docker-compose.test.yml`의 `mysql-test` 서비스를 사용한다.

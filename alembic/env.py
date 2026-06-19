@@ -3,6 +3,8 @@ from __future__ import annotations
 from logging.config import fileConfig
 
 from alembic import context
+from alembic.ddl.mysql import MySQLImpl
+from sqlalchemy import Column, MetaData, PrimaryKeyConstraint, String, Table
 from sqlalchemy import engine_from_config, pool
 
 from app.core.config import settings
@@ -19,6 +21,33 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
+
+
+def mysql_version_table_impl(
+    self,
+    *,
+    version_table: str,
+    version_table_schema: str | None,
+    version_table_pk: bool,
+    **kw,
+) -> Table:
+    """Use staging-compatible width for descriptive Alembic revision IDs."""
+    _ = self, kw
+    version_table_object = Table(
+        version_table,
+        MetaData(),
+        Column("version_num", String(255), nullable=False),
+        schema=version_table_schema,
+    )
+    if version_table_pk:
+        version_table_object.append_constraint(
+            PrimaryKeyConstraint("version_num", name=f"{version_table}_pkc")
+        )
+
+    return version_table_object
+
+
+MySQLImpl.version_table_impl = mysql_version_table_impl
 
 
 def run_migrations_offline() -> None:
