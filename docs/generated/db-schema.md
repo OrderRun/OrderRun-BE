@@ -276,6 +276,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `id` | `bigint` | NO | PK, auto increment | 정산 계좌 row ID |
 | `user_id` | `varchar(36)` | NO | UNIQUE `uk_settlement_accounts_user_id`, INDEX `idx_settlement_accounts_user_id` | 계좌 소유 사용자 ID |
 | `bank_name` | `varchar(50)` | NO |  | 은행명 |
+| `account_holder` | `varchar(100)` | NO |  | 계좌주명 |
 | `encrypted_account_number` | `varchar(500)` | NO |  | 암호화된 계좌번호 |
 | `masked_account_number` | `varchar(50)` | NO |  | 표시용 마스킹 계좌번호 |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |

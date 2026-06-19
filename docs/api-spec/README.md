@@ -267,6 +267,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | bankName | string | 은행명 |
+| accountHolder | string | 계좌주명 |
 | maskedAccountNumber | string | 마스킹된 계좌번호 |
 | updatedAt | string | 수정 시각 |
 
@@ -524,6 +525,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 |------|------|------|------|
 | bankName | string | O | 지원 은행명 목록에 포함된 값 |
 | accountNumber | string | O | 숫자 6~30자리 |
+| accountHolder | string | O | 공백 불가, 최대 100자 |
 
 #### `GET /v1/settlement/banks`
 

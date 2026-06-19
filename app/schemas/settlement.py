@@ -37,6 +37,7 @@ SUPPORTED_BANK_NAMES = (
 class SettlementAccountRequest(BaseModel):
     bank_name: str = Field(..., alias="bankName", max_length=50)
     account_number: str = Field(..., alias="accountNumber")
+    account_holder: str = Field(..., alias="accountHolder", max_length=100)
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
@@ -58,9 +59,18 @@ class SettlementAccountRequest(BaseModel):
             raise ValueError("unsupported bankName")
         return stripped
 
+    @field_validator("account_holder")
+    @classmethod
+    def validate_account_holder(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("must not be blank")
+        return stripped
+
 
 class SettlementAccountResponse(BaseModel):
     bank_name: str = Field(..., alias="bankName")
+    account_holder: str = Field(..., alias="accountHolder")
     masked_account_number: str = Field(..., alias="maskedAccountNumber")
     updated_at: datetime = Field(..., alias="updatedAt")
 

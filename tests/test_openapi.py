@@ -245,9 +245,9 @@ def test_representative_success_examples_match_contracts():
         "example"
     ]
     assert settlement["message"] == "정산 계좌가 저장되었습니다."
+    assert settlement["data"]["accountHolder"] == "홍길동"
     assert settlement["data"]["maskedAccountNumber"] == "********9012"
     assert "bankCode" not in settlement["data"]
-    assert "accountHolder" not in settlement["data"]
 
     settlement_banks = schema["paths"]["/v1/settlement/banks"]["get"]["responses"]["200"]["content"][
         "application/json"

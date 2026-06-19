@@ -21,18 +21,20 @@ def test_save_and_update_settlement_account(client, db, auth_headers, sample_use
         json={
             "bankName": "국민은행",
             "accountNumber": "123456789012",
+            "accountHolder": "홍길동",
         },
     )
 
     assert create_response.status_code == 200
     created = create_response.json()["data"]
     assert created["bankName"] == "국민은행"
+    assert created["accountHolder"] == "홍길동"
     assert created["maskedAccountNumber"] == "********9012"
     assert "bankCode" not in created
-    assert "accountHolder" not in created
     assert created["updatedAt"] is not None
 
     stored = db.query(SettlementAccount).filter(SettlementAccount.user_id == sample_user.id).one()
+    assert stored.account_holder == "홍길동"
     assert stored.encrypted_account_number == "123456789012"
 
     update_response = client.put(
@@ -41,12 +43,14 @@ def test_save_and_update_settlement_account(client, db, auth_headers, sample_use
         json={
             "bankName": "신한은행",
             "accountNumber": "987654321",
+            "accountHolder": "김오더",
         },
     )
 
     assert update_response.status_code == 200
     updated = update_response.json()["data"]
     assert updated["bankName"] == "신한은행"
+    assert updated["accountHolder"] == "김오더"
     assert updated["maskedAccountNumber"] == "*****4321"
     assert db.query(SettlementAccount).filter(SettlementAccount.user_id == sample_user.id).count() == 1
 
@@ -71,6 +75,7 @@ def test_settlement_account_validation_and_auth(client, auth_headers):
         json={
             "bankName": " ",
             "accountNumber": "123",
+            "accountHolder": " ",
         },
     )
 
@@ -97,6 +102,7 @@ def test_settlement_account_rejects_removed_fields_and_unsupported_bank(client, 
         json={
             "bankName": "없는은행",
             "accountNumber": "123456789012",
+            "accountHolder": "홍길동",
         },
     )
 
@@ -104,3 +110,17 @@ def test_settlement_account_rejects_removed_fields_and_unsupported_bank(client, 
     assert removed_fields.json()["error"]["code"] == "VALIDATION_ERROR"
     assert unsupported_bank.status_code == 400
     assert unsupported_bank.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_settlement_account_requires_account_holder(client, auth_headers):
+    missing_holder = client.put(
+        "/v1/settlement/account",
+        headers=auth_headers,
+        json={
+            "bankName": "국민은행",
+            "accountNumber": "123456789012",
+        },
+    )
+
+    assert missing_holder.status_code == 400
+    assert missing_holder.json()["error"]["code"] == "VALIDATION_ERROR"

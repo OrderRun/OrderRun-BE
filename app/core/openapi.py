@@ -486,6 +486,7 @@ OFFER_RESOLVED_EXAMPLE = {
 
 SETTLEMENT_ACCOUNT_EXAMPLE = {
     "bankName": "국민은행",
+    "accountHolder": "홍길동",
     "maskedAccountNumber": "********9012",
     "updatedAt": EXAMPLE_UPDATED_AT,
 }

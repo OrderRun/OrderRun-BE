@@ -336,6 +336,7 @@ def test_withdraw_user_soft_deletes_user_and_keeps_activity_history(client, db, 
     settlement = SettlementAccount(
         user_id=user_id,
         bank_name="신한은행",
+        account_holder="탈퇴사용자",
         encrypted_account_number="encrypted",
         masked_account_number="********1234",
     )

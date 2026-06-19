@@ -26,6 +26,7 @@ class SettlementService:
             db.add(account)
 
         account.bank_name = request.bank_name
+        account.account_holder = request.account_holder
         account.encrypted_account_number = request.account_number
         account.masked_account_number = SettlementService._mask_account_number(request.account_number)
 
@@ -47,6 +48,7 @@ class SettlementService:
     def _to_response(account: SettlementAccount) -> SettlementAccountResponse:
         return SettlementAccountResponse(
             bank_name=account.bank_name,
+            account_holder=account.account_holder,
             masked_account_number=account.masked_account_number,
             updated_at=account.updated_at,
         )
