@@ -1,7 +1,7 @@
 """Hard delete withdrawn-user PII and remove snapshots.
 
-Revision ID: 0013_hard_delete_withdrawn_user_pii
-Revises: 0012_add_user_soft_delete_and_withdrawn_snapshots
+Revision ID: 0014_hard_delete_withdrawn_user_pii
+Revises: 0013_restore_account_holder
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from alembic import op
 
 
-revision = "0013_hard_delete_withdrawn_user_pii"
-down_revision = "0012_add_user_soft_delete_and_withdrawn_snapshots"
+revision = "0014_hard_delete_withdrawn_user_pii"
+down_revision = "0013_restore_account_holder"
 branch_labels = None
 depends_on = None
 
