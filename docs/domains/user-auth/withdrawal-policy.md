@@ -1,13 +1,12 @@
 # 회원 탈퇴 정책
 
-회원 탈퇴는 즉시 hard delete가 아니라 soft delete로 처리한다. 거래 이력과 운영 대응 가능성을 보존하면서, 로그인과 일반 API 접근은 즉시 차단한다.
+회원 탈퇴 시 개인정보와 인증·연락 수단은 즉시 hard delete한다. 거래 이력의 참조 무결성을 위해 `users` row와 비식별 활동 기록만 유지하며, 로그인과 일반 API 접근은 즉시 차단한다.
 
 ## 기본 원칙
 
 - `users` row는 삭제하지 않고 `deleted = true`, `deleted_at = now`로 표시한다.
-- 탈퇴 직후 사용자 이름은 `탈퇴한 사용자`, 전화번호는 `null`로 마스킹한다.
-- 마스킹 전 원본 이름/전화번호/가입·로그인 시각은 `withdrawn_user_snapshots`에 30일간 임시 보관한다.
-- 30일이 지난 snapshot은 배치로 익명화한다.
+- 사용자 이름, 전화번호, 전화번호 인증 시각, 마지막 로그인 시각, 비밀번호 해시, 알림 설정은 `null`로 영구 삭제한다.
+- 탈퇴 사용자의 이름은 저장하지 않고, 활동 조회 응답에서만 `탈퇴한 사용자`로 표시한다.
 - 탈퇴 후 같은 전화번호 재가입은 허용한다.
 - Proposal, Offer, Proof 같은 거래 활동 기록은 삭제하지 않는다.
 
@@ -70,13 +69,14 @@ Offer 기준:
 
 - `user_fcm_tokens`
 - 탈퇴 사용자 전화번호 기준 `auth_phone_verifications`
+- `settlement_accounts`
+- `notifications`
 
 ## 보존 데이터
 
 즉시 삭제하지 않는다.
 
 - `users` soft-deleted row
-- `withdrawn_user_snapshots` 30일 임시 보관 row
 - `proposals`
 - `offers`
 - `proofs`
@@ -86,4 +86,4 @@ Offer 기준:
 
 ## API 공개 상태
 
-회원 탈퇴 서비스 로직은 구현되어 있지만, 외부 API 라우트는 정책/운영 오픈 전까지 주석 처리해 호출할 수 없게 둔다.
+`DELETE /v1/user`는 인증된 사용자의 탈퇴 요청을 처리한다.

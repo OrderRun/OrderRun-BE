@@ -20,10 +20,11 @@ from app.models.user import (
     PhoneVerificationStatus,
     User,
     UserFCMToken,
-    WithdrawnUserSnapshot,
 )
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
+from app.models.notification import Notification
+from app.models.settlement import SettlementAccount
 from app.schemas.user import (
     AuthAccessTokenResponse,
     AuthLoginConfirmRequest,
@@ -58,7 +59,6 @@ WITHDRAWAL_AUTO_CANCEL_PROPOSAL_STATUSES = {
     ProposalStatus.OFFERED,
 }
 WITHDRAWAL_AUTO_CANCEL_OFFER_STATUSES = {OfferStatus.WAITING}
-WITHDRAWN_SNAPSHOT_RETENTION_DAYS = 30
 
 
 class UserAuthService:
@@ -347,27 +347,16 @@ class UserAuthService:
         if self._has_blocking_activity(user_id):
             raise api_error(AppError.USER_WITHDRAWAL_BLOCKED)
 
-        now = self._now()
         original_phone = fresh_user.phone
         self._auto_cancel_pre_match_activity(user_id)
-        self.db.add(
-            WithdrawnUserSnapshot(
-                user_id=user_id,
-                name=fresh_user.name,
-                phone=original_phone,
-                phone_verified_at=fresh_user.phone_verified_at,
-                last_login_at=fresh_user.last_login_at,
-                user_created_at=fresh_user.created_at,
-                withdrawn_at=now,
-                anonymize_after=now + timedelta(days=WITHDRAWN_SNAPSHOT_RETENTION_DAYS),
-            )
-        )
         if original_phone is not None:
             self.db.query(AuthPhoneVerification).filter(AuthPhoneVerification.phone == original_phone).delete(
                 synchronize_session=False
             )
         self.db.query(UserFCMToken).filter(UserFCMToken.user_id == user_id).delete(synchronize_session=False)
-        fresh_user.withdraw(now)
+        self.db.query(SettlementAccount).filter(SettlementAccount.user_id == user_id).delete(synchronize_session=False)
+        self.db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
+        fresh_user.withdraw(self._now())
         self.db.commit()
 
     def _has_blocking_activity(self, user_id: str) -> bool:
@@ -428,21 +417,6 @@ class UserAuthService:
             )
             .update({Offer.status: OfferStatus.CANCELLED}, synchronize_session=False)
         )
-
-    def anonymize_due_withdrawn_user_snapshots(self) -> int:
-        now = self._now()
-        snapshots = (
-            self.db.query(WithdrawnUserSnapshot)
-            .filter(
-                WithdrawnUserSnapshot.anonymized_at.is_(None),
-                WithdrawnUserSnapshot.anonymize_after <= now,
-            )
-            .all()
-        )
-        for snapshot in snapshots:
-            snapshot.anonymize(now)
-        self.db.commit()
-        return len(snapshots)
 
     def upsert_fcm_token(self, user: User, fcm_token: str) -> None:
         fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()

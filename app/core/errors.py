@@ -65,7 +65,7 @@ ERRORS: dict[AppError, ApiErrorSpec] = {
     AppError.USER_WITHDRAWAL_BLOCKED: ApiErrorSpec(
         status.HTTP_409_CONFLICT,
         "USER_WITHDRAWAL_BLOCKED",
-        "탈퇴할 수 없는 진행 중 활동이 있습니다.",
+        "진행 중인 임무, 분쟁 또는 정산이 있어 탈퇴할 수 없습니다. 모든 절차가 완료된 후 다시 이용해주세요.",
     ),
     AppError.VALIDATION_ERROR: ApiErrorSpec(
         status.HTTP_400_BAD_REQUEST,

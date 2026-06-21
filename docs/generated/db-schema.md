@@ -12,7 +12,6 @@
 | 테이블 | 담당 도메인 | ORM 매핑 | 세부 문서 | 설명 |
 |--------|-------------|----------|-----------|------|
 | `users` | user/auth | O | `docs/domains/user-auth/README.md` | 사용자 계정 |
-| `withdrawn_user_snapshots` | user/auth | O | `docs/domains/user-auth/withdrawal-policy.md` | 탈퇴 사용자 원본 정보 30일 임시 보관 |
 | `auth_phone_verifications` | auth | O | `docs/domains/user-auth/README.md` | 회원가입/로그인 전화번호 인증 |
 | `phone_verifications` | user legacy | X | 이 문서 | 구 전화번호 인증 테이블. 현재 코드 미사용 |
 | `user_fcm_tokens` | user | O | `docs/domains/user-auth/README.md` | 사용자별 FCM 토큰 |
@@ -32,7 +31,6 @@ users 1 -> N offers(runner_id)
 users 1 -> 1 user_fcm_tokens
 users 1 -> 1 terms_agreements
 users 1 -> 1 settlement_accounts
-users 1 -> N withdrawn_user_snapshots
 
 proposals 1 -> N offers
 proposals 1 -> N proofs
@@ -58,11 +56,11 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 |------|------|------|-----------|------|
 | `id` | `varchar(36)` | NO | PK | 사용자 UUID |
 | `password_hash` | `varchar(255)` | YES |  | 비밀번호 해시. 현재 phone-auth 흐름에서는 null 가능 |
-| `name` | `varchar(100)` | NO |  | 사용자 이름 |
+| `name` | `varchar(100)` | YES |  | 사용자 이름 |
 | `phone` | `varchar(20)` | YES | UNIQUE `uk_users_phone` | 정규화된 전화번호 |
 | `phone_verified_at` | `datetime(6)` | YES |  | 전화번호 인증 완료 시각 |
 | `last_login_at` | `datetime(6)` | YES |  | 마지막 로그인 시각 |
-| `alarm_enabled` | `boolean` | NO |  | 알림 수신 동의 여부 |
+| `alarm_enabled` | `boolean` | YES |  | 알림 수신 동의 여부 |
 | `level` | `integer` | NO |  | 성공 완료한 러너 Offer 수 기반 레벨 |
 | `deleted` | `boolean` | NO | INDEX `idx_users_deleted` | 탈퇴 여부 |
 | `deleted_at` | `datetime(6)` | YES |  | 탈퇴 처리 시각 |
@@ -73,29 +71,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 
 - `id`는 애플리케이션에서 UUID로 생성한다.
 - `phone`은 하이픈/공백 제거 및 `+82` -> `0` 변환 후 저장한다.
-- 탈퇴 시 `deleted = true`, `phone = null`, `name = '탈퇴한 사용자'`로 soft delete 처리한다.
-
-## `withdrawn_user_snapshots`
-
-| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
-|------|------|------|-----------|------|
-| `id` | `bigint` | NO | PK, auto increment | 탈퇴 snapshot row ID |
-| `user_id` | `varchar(36)` | NO | INDEX `idx_withdrawn_user_snapshots_user_id` | 탈퇴 사용자 ID |
-| `name` | `varchar(100)` | YES |  | 탈퇴 전 사용자 이름 |
-| `phone` | `varchar(20)` | YES | INDEX `idx_withdrawn_user_snapshots_phone` | 탈퇴 전 전화번호 |
-| `phone_verified_at` | `datetime(6)` | YES |  | 탈퇴 전 전화번호 인증 시각 |
-| `last_login_at` | `datetime(6)` | YES |  | 탈퇴 전 마지막 로그인 시각 |
-| `user_created_at` | `datetime(6)` | YES |  | 탈퇴 전 가입 시각 |
-| `withdrawn_at` | `datetime(6)` | NO | INDEX `idx_withdrawn_user_snapshots_withdrawn_at` | 탈퇴 처리 시각 |
-| `anonymize_after` | `datetime(6)` | NO | INDEX `idx_withdrawn_user_snapshots_anonymize_after` | 익명화 예정 시각 |
-| `anonymized_at` | `datetime(6)` | YES |  | 익명화 완료 시각 |
-| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
-| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
-
-메모:
-
-- 탈퇴 원본 정보는 고객센터/분쟁 대응 목적으로 30일간 임시 보관한다.
-- `anonymize_after`가 지난 row는 배치에서 개인정보 필드를 null로 익명화한다.
+- 탈퇴 시 `deleted = true`로 표시하고, 개인정보 필드는 `null`로 영구 삭제한다. 활동 조회에서만 작성자를 `탈퇴한 사용자`로 표시한다.
 
 ## `auth_phone_verifications`
 

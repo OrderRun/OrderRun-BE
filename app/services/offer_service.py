@@ -61,7 +61,7 @@ class OfferService:
         user = db.query(User).filter(User.id == user_id).first()
         if user is None:
             return "", 0
-        return user.name, user.level
+        return ("탈퇴한 사용자" if user.deleted else user.name or ""), user.level
 
     @staticmethod
     def _response_fields(db: Session, offer: Offer) -> dict:

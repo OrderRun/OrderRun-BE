@@ -82,8 +82,11 @@ class ProposalService:
     def _user_profiles(db: Session, user_ids: list[str]) -> dict[str, tuple[str, int]]:
         if not user_ids:
             return {}
-        rows = db.query(User.id, User.name, User.level).filter(User.id.in_(set(user_ids))).all()
-        return {user_id: (name, level) for user_id, name, level in rows}
+        rows = db.query(User.id, User.name, User.level, User.deleted).filter(User.id.in_(set(user_ids))).all()
+        return {
+            user_id: ("탈퇴한 사용자" if deleted else name or "", level)
+            for user_id, name, level, deleted in rows
+        }
 
     @staticmethod
     def _sync_all_completed(db: Session, proposal: Proposal, offer: Offer) -> None:

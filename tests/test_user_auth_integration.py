@@ -19,9 +19,9 @@ from app.models.user import (
     PhoneVerificationStatus,
     User,
     UserFCMToken,
-    WithdrawnUserSnapshot,
 )
 from app.services.sms_service import get_sms_sender
+from app.services.proposal_service import ProposalService
 from app.services.user_auth_service import UserAuthService
 
 
@@ -322,7 +322,7 @@ def test_update_user_name_validation_errors(client, factory):
     assert extra_field.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
-def test_withdraw_user_soft_deletes_user_and_keeps_activity_history(client, db, factory):
+def test_withdraw_user_hard_deletes_pii_and_keeps_anonymized_activity_history(client, db, factory):
     user = factory.user(phone="01012340004", name="탈퇴사용자")
     headers = factory.headers_for(user)
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -367,31 +367,34 @@ def test_withdraw_user_soft_deletes_user_and_keeps_activity_history(client, db, 
     db.add_all([proof, fcm_token, settlement, terms, verification, notification])
     db.commit()
 
-    UserAuthService(db=db).withdraw_user(user)
+    response = client.delete("/v1/user", headers=headers)
+    assert response.status_code == 200
+    assert response.json() == {"success": True, "data": None, "message": "회원 탈퇴가 완료되었습니다."}
 
     withdrawn_user = db.query(User).filter(User.id == user_id).first()
     assert withdrawn_user is not None
     assert withdrawn_user.deleted is True
     assert withdrawn_user.deleted_at is not None
-    assert withdrawn_user.name == "탈퇴한 사용자"
+    assert withdrawn_user.name is None
     assert withdrawn_user.phone is None
     assert withdrawn_user.phone_verified_at is None
-    assert withdrawn_user.alarm_enabled is False
-
-    snapshot = db.query(WithdrawnUserSnapshot).filter(WithdrawnUserSnapshot.user_id == user_id).first()
-    assert snapshot is not None
-    assert snapshot.name == "탈퇴사용자"
-    assert snapshot.phone == user_phone
-    assert snapshot.anonymize_after.date() == (snapshot.withdrawn_at + timedelta(days=30)).date()
+    assert withdrawn_user.password_hash is None
+    assert withdrawn_user.last_login_at is None
+    assert withdrawn_user.alarm_enabled is None
 
     assert db.query(UserFCMToken).filter(UserFCMToken.user_id == user_id).first() is None
     assert db.query(AuthPhoneVerification).filter(AuthPhoneVerification.phone == user_phone).first() is None
-    assert db.query(SettlementAccount).filter(SettlementAccount.user_id == user_id).first() is not None
+    assert db.query(SettlementAccount).filter(SettlementAccount.user_id == user_id).first() is None
     assert db.query(TermsAgreement).filter(TermsAgreement.user_id == user_id).first() is not None
-    assert db.query(Notification).filter(Notification.user_id == user_id).first() is not None
+    assert db.query(Notification).filter(Notification.user_id == user_id).first() is None
     assert db.query(Proposal).filter(Proposal.id == proposal.id, Proposal.orderer_id == user_id).first() is not None
     assert db.query(Offer).filter(Offer.id == offer.id, Offer.runner_id == user_id).first() is not None
     assert db.query(Proof).filter(Proof.id == proof.id, Proof.actor_id == user_id).first() is not None
+
+    activity_viewer = factory.user(phone="01012340012", name="조회사용자")
+    proposal_detail = ProposalService.get_proposal_detail(db, proposal.id, activity_viewer.id)
+    assert proposal_detail.orderer_name == "탈퇴한 사용자"
+    assert proposal_detail.offers[0].runner_name == "탈퇴한 사용자"
 
     detail = client.get("/v1/user/detail", headers=headers)
     assert detail.status_code == 404
@@ -453,40 +456,6 @@ def test_withdraw_user_blocks_when_user_has_accepted_offer(db, factory):
     assert exc_info.value.detail["code"] == "USER_WITHDRAWAL_BLOCKED"
     db.refresh(user)
     assert user.deleted is False
-
-
-def test_anonymize_due_withdrawn_user_snapshots(db):
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
-    due = WithdrawnUserSnapshot(
-        user_id="due-user-id",
-        name="탈퇴사용자",
-        phone="01012340010",
-        phone_verified_at=now,
-        last_login_at=now,
-        user_created_at=now,
-        withdrawn_at=now - timedelta(days=31),
-        anonymize_after=now - timedelta(days=1),
-    )
-    pending = WithdrawnUserSnapshot(
-        user_id="pending-user-id",
-        name="보관사용자",
-        phone="01012340011",
-        withdrawn_at=now,
-        anonymize_after=now + timedelta(days=1),
-    )
-    db.add_all([due, pending])
-    db.commit()
-
-    count = UserAuthService(db=db).anonymize_due_withdrawn_user_snapshots()
-
-    assert count == 1
-    db.refresh(due)
-    db.refresh(pending)
-    assert due.name is None
-    assert due.phone is None
-    assert due.anonymized_at is not None
-    assert pending.name == "보관사용자"
-    assert pending.phone == "01012340011"
 
 
 def test_verification_state_rules(client, db, sms_sender):
@@ -583,6 +552,8 @@ def test_model_spec_matches_user_auth_docs():
     assert User.__table__.c.phone.unique is True
     assert User.__table__.c.deleted.nullable is False
     assert User.__table__.c.deleted_at.nullable is True
+    assert User.__table__.c.name.nullable is True
+    assert User.__table__.c.alarm_enabled.nullable is True
 
     assert str(AuthPhoneVerification.__table__.c.id.type).upper() == "BIGINT"
     assert str(AuthPhoneVerification.__table__.c.code_hash.type).upper() == "VARCHAR(100)"
@@ -593,10 +564,3 @@ def test_model_spec_matches_user_auth_docs():
     assert str(UserFCMToken.__table__.c.user_id.type).upper() == "VARCHAR(36)"
     assert UserFCMToken.__table__.c.user_id.unique is True
     assert UserFCMToken.__table__.foreign_keys == set()
-
-    assert str(WithdrawnUserSnapshot.__table__.c.id.type).upper() == "BIGINT"
-    assert str(WithdrawnUserSnapshot.__table__.c.user_id.type).upper() == "VARCHAR(36)"
-    assert str(WithdrawnUserSnapshot.__table__.c.phone.type).upper() == "VARCHAR(20)"
-    assert WithdrawnUserSnapshot.__table__.c.withdrawn_at.nullable is False
-    assert WithdrawnUserSnapshot.__table__.c.anonymize_after.nullable is False
-    assert WithdrawnUserSnapshot.__table__.foreign_keys == set()

@@ -323,8 +323,9 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | 사용자 닉네임 수정 | `PATCH` | `/v1/user/name` | 필요 | `200 OK` | `null` |
 | FCM 토큰 갱신 | `PATCH` | `/v1/user/fcm-token` | 필요 | `200 OK` | `null` |
 | 사용자 프로필 조회 | `GET` | `/v1/user/detail` | 필요 | `200 OK` | `UserDetailResponse` |
+| 회원 탈퇴 | `DELETE` | `/v1/user` | 필요 | `200 OK` | `null` |
 
-회원 탈퇴 정책은 [`../domains/user-auth/withdrawal-policy.md`](../domains/user-auth/withdrawal-policy.md)에 정의되어 있으나, API 라우트는 운영 오픈 전까지 비활성화한다.
+회원 탈퇴는 개인정보를 즉시 삭제하고, 거래 활동은 작성자를 `탈퇴한 사용자`로 익명화해 유지한다. 매칭 이후 진행 중인 거래·분쟁·정산이 있으면 `409 USER_WITHDRAWAL_BLOCKED`를 반환한다. 자세한 규칙은 [`../domains/user-auth/withdrawal-policy.md`](../domains/user-auth/withdrawal-policy.md)를 따른다.
 
 ### Terms API
 

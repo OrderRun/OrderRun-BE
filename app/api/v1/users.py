@@ -117,20 +117,19 @@ def update_fcm_token(
     return {"success": True, "data": None, "message": "FCM 토큰이 업데이트되었습니다."}
 
 
-# 회원 탈퇴 API는 정책/운영 오픈 전까지 외부 호출을 막기 위해 라우터 등록을 비활성화합니다.
-# @router.delete(
-#     "",
-#     summary="회원 탈퇴",
-#     description="현재 사용자를 탈퇴 처리합니다. 진행 중인 요청 또는 오퍼가 있으면 탈퇴할 수 없습니다.",
-#     responses={
-#         200: success_response(USER_WITHDRAWAL_EXAMPLE),
-#         **error_responses(AppError.INVALID_TOKEN, AppError.USER_NOT_FOUND, AppError.USER_WITHDRAWAL_BLOCKED),
-#     },
-# )
-# def withdraw_user(
-#     current_user: User = Depends(get_current_user),
-#     db: Session = Depends(get_db),
-# ):
-#     service = UserAuthService(db=db)
-#     service.withdraw_user(current_user)
-#     return {"success": True, "data": None, "message": "회원 탈퇴가 완료되었습니다."}
+@router.delete(
+    "",
+    summary="회원 탈퇴",
+    description="현재 사용자의 개인정보를 삭제합니다. 매칭 이후 진행 중인 거래, 분쟁 또는 정산이 있으면 탈퇴할 수 없습니다.",
+    responses={
+        200: success_response(USER_WITHDRAWAL_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN, AppError.USER_NOT_FOUND, AppError.USER_WITHDRAWAL_BLOCKED),
+    },
+)
+def withdraw_user(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    service = UserAuthService(db=db)
+    service.withdraw_user(current_user)
+    return {"success": True, "data": None, "message": "회원 탈퇴가 완료되었습니다."}
