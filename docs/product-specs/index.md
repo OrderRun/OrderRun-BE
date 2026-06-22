@@ -16,6 +16,7 @@
 ## 현재 스펙
 
 - [`new-user-onboarding.md`](./new-user-onboarding.md): 첫 세션 계정 생성과 초기 활성화 흐름
+- [`proposal-reporting.md`](./proposal-reporting.md): 공개 요청 게시글 신고와 관리자 검토 흐름
 
 ## 예정 스펙
 

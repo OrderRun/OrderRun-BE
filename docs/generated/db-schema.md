@@ -20,6 +20,8 @@
 | `offers` | bidding/offer | O | `docs/domains/offer/README.md` | 러너 지원서 |
 | `proofs` | execution/proof | O | `docs/domain.md` | 배송 사진/분쟁 사유 증빙 |
 | `dispute_survey_questions` | dispute-survey | O | `docs/api-spec/README.md` | 분쟁 접수 전 설문 질문 마스터 |
+| `proposal_report_reason_questions` | proposal-report | O | `docs/product-specs/proposal-reporting.md` | 게시글 신고 사유 마스터 |
+| `proposal_reports` | proposal-report | O | `docs/product-specs/proposal-reporting.md` | 사용자 게시글 신고 및 관리자 검토 이력 |
 | `payments` | settlement | 목표 O / 현재 미구현 | 이 문서 | 결제/정산 처리 |
 | `settlement_accounts` | settlement | O | 이 문서 | 러너 정산 계좌 |
 
@@ -34,6 +36,7 @@ users 1 -> 1 settlement_accounts
 
 proposals 1 -> N offers
 proposals 1 -> N proofs
+proposals 1 -> N proposal_reports
 offers 1 -> N proofs
 offers 1 -> 1 payments
 ```
@@ -153,7 +156,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `errand_fee` | `integer` | NO |  | 심부름비 |
 | `item_price` | `integer` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
 | `deposit` | `integer` | NO |  | legacy 호환 컬럼. 현재 API 미노출 |
-| `status` | `varchar(20)` | NO |  | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `ORDER_COMPLETED`, `ALL_COMPLETED`, `DISPUTED`, `RESOLVED`, `CANCELLED` |
+| `status` | `varchar(20)` | NO |  | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `ORDER_COMPLETED`, `ALL_COMPLETED`, `DISPUTED`, `RESOLVED`, `REPORTED`, `CANCELLED` |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 | `matched_at` | `datetime(6)` | YES |  | Offer 수락으로 매칭된 시각 |
 | `delivery_reported_at` | `datetime(6)` | YES |  | 러너 완료가 Proposal에 반영된 시각 |
@@ -215,6 +218,31 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 
 - 분쟁 접수 API는 `surveyQuestionId`와 `disputeReason`을 필수로 받는다.
 - `GET /v1/dispute-survey/questions`는 active 질문만 대상별 순서대로 반환한다.
+
+## `proposal_report_reason_questions`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 신고 사유 ID |
+| `question_text` | `varchar(500)` | NO |  | 신고 사유 문구 |
+| `display_order` | `integer` | NO | UNIQUE `uk_proposal_report_reason_questions_display_order`, INDEX `idx_proposal_report_reason_questions_lookup` | 표시 순서 |
+| `is_active` | `boolean` | NO | INDEX `idx_proposal_report_reason_questions_lookup` | 조회 노출 여부 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+## `proposal_reports`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 신고 ID |
+| `proposal_id` | `bigint` | NO | UNIQUE `uk_proposal_reports_proposal_reporter` 일부, INDEX `idx_proposal_reports_proposal_status` | 신고 대상 Proposal ID |
+| `reporter_id` | `varchar(36)` | NO | UNIQUE `uk_proposal_reports_proposal_reporter` 일부, INDEX `idx_proposal_reports_reporter_id` | 신고 사용자 ID |
+| `reason_question_id` | `bigint` | NO |  | 선택한 신고 사유 ID |
+| `detail_reason` | `varchar(500)` | YES |  | 선택 상세 사유 |
+| `status` | `varchar(8)` | NO | INDEX `idx_proposal_reports_proposal_status`, `idx_proposal_reports_status_created` | `PENDING`, `ACCEPTED`, `REJECTED` |
+| `created_at` | `datetime(6)` | NO | INDEX `idx_proposal_reports_status_created` | 신고 접수 시각 |
+| `reviewed_at` | `datetime(6)` | YES |  | 관리자 검토 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
 ## `payments`
 

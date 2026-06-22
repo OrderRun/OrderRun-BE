@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.database import SessionLocal
 from app.core.firebase import get_notification_worker, init_fcm
-from app.api.v1 import auth, dispute_survey, proposal, offer, notifications, admin, settlement, terms, users
+from app.api.v1 import auth, dispute_survey, proposal, proposal_report, offer, notifications, admin, settlement, terms, users
 from app.core.exceptions import http_exception_handler, validation_exception_handler
 from app.listeners import notification_listener
 from app.schemas.common import ApiResponse
@@ -77,6 +77,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(terms.router)
 app.include_router(dispute_survey.router)
+app.include_router(proposal_report.router)
 app.include_router(proposal.router)
 app.include_router(offer.router)
 app.include_router(settlement.router)

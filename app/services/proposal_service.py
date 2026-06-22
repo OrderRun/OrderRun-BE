@@ -39,6 +39,7 @@ OPEN_CHAT_OFFER_STATUSES = (
     OfferStatus.DISPUTED,
     OfferStatus.RESOLVED,
 )
+PUBLIC_PROPOSAL_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)
 
 
 class ProposalService:
@@ -105,7 +106,7 @@ class ProposalService:
         page: int,
         size: int,
     ) -> PageResponse[Proposal]:
-        query = db.query(Proposal)
+        query = db.query(Proposal).filter(Proposal.status.in_(PUBLIC_PROPOSAL_STATUSES))
         if proposal_statuses:
             query = query.filter(Proposal.status.in_(proposal_statuses))
         total = query.count()

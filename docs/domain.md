@@ -17,6 +17,7 @@ Proposal은 오더 관점의 모집 및 수행 상태를 추적한다.
 | ALL_COMPLETED | 러너와 오더러가 모두 완료 확인을 마친 상태 |
 | DISPUTED | 분쟁 접수 |
 | RESOLVED | 분쟁 해결 완료 |
+| REPORTED | 관리자 승인으로 신고 처리된 게시글 |
 | CANCELLED | 매칭 전 취소됨 |
 
 ### Proposal 상태 전이
@@ -30,6 +31,7 @@ Proposal은 오더 관점의 모집 및 수행 상태를 추적한다.
 | `ORDER_COMPLETED + Offer RUNNER_COMPLETED -> ALL_COMPLETED` | 러너와 오더러 완료가 모두 접수될 때 |
 | `MATCHED/ORDER_COMPLETED -> DISPUTED` | 오더 또는 러너가 분쟁을 접수할 때 |
 | `DISPUTED -> RESOLVED` | 분쟁 처리가 완료될 때 |
+| `POSTED/OFFERED -> REPORTED` | 관리자가 게시글 신고를 승인할 때 |
 | `HOLDING/POSTED/OFFERED -> CANCELLED` | 오더가 매칭 전 Proposal을 취소할 때 |
 
 ## OfferStatus
@@ -78,4 +80,5 @@ Proof는 `proposalId`, `offerId`, `actorId`, `proofType`, `imageUrl`, `reason`, 
 - 수락된 Offer ID가 매칭 이후 수행 건의 기준 식별자다.
 - 매칭 이후 오더 관점 진행 상태는 Proposal, 러너 관점 진행 상태는 Offer에서 추적한다.
 - 완료 증빙과 분쟁 사유 및 선택한 분쟁 설문 질문 ID는 Proof에 기록한다.
+- 공개 모집 상태의 Proposal은 다른 사용자가 신고할 수 있으며, 승인된 신고는 Proposal을 `REPORTED`로 전환하고 대기 Offer를 거절한다.
 - 정산 계좌와 약관 동의는 사용자 식별자에 종속된 사용자 부가 정책이다.

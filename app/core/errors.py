@@ -47,6 +47,11 @@ class AppError(str, Enum):
     PROPOSAL_NOT_OPEN = "PROPOSAL_NOT_OPEN"
     PROPOSAL_NOT_MATCHABLE = "PROPOSAL_NOT_MATCHABLE"
     PROPOSAL_NOT_UPDATABLE = "PROPOSAL_NOT_UPDATABLE"
+    PROPOSAL_NOT_REPORTABLE = "PROPOSAL_NOT_REPORTABLE"
+    PROPOSAL_SELF_REPORT_NOT_ALLOWED = "PROPOSAL_SELF_REPORT_NOT_ALLOWED"
+    DUPLICATE_PROPOSAL_REPORT = "DUPLICATE_PROPOSAL_REPORT"
+    PROPOSAL_REPORT_NOT_FOUND = "PROPOSAL_REPORT_NOT_FOUND"
+    PROPOSAL_REPORT_NOT_REVIEWABLE = "PROPOSAL_REPORT_NOT_REVIEWABLE"
     INVALID_STATUS = "INVALID_STATUS"
     FORBIDDEN = "FORBIDDEN"
 
@@ -175,6 +180,31 @@ ERRORS: dict[AppError, ApiErrorSpec] = {
         status.HTTP_409_CONFLICT,
         "PROPOSAL_NOT_UPDATABLE",
         "업데이트할 수 없는 요청 상태입니다.",
+    ),
+    AppError.PROPOSAL_NOT_REPORTABLE: ApiErrorSpec(
+        status.HTTP_409_CONFLICT,
+        "PROPOSAL_NOT_REPORTABLE",
+        "신고할 수 없는 요청 상태입니다.",
+    ),
+    AppError.PROPOSAL_SELF_REPORT_NOT_ALLOWED: ApiErrorSpec(
+        status.HTTP_403_FORBIDDEN,
+        "PROPOSAL_SELF_REPORT_NOT_ALLOWED",
+        "본인의 요청은 신고할 수 없습니다.",
+    ),
+    AppError.DUPLICATE_PROPOSAL_REPORT: ApiErrorSpec(
+        status.HTTP_409_CONFLICT,
+        "DUPLICATE_PROPOSAL_REPORT",
+        "이미 해당 요청을 신고했습니다.",
+    ),
+    AppError.PROPOSAL_REPORT_NOT_FOUND: ApiErrorSpec(
+        status.HTTP_404_NOT_FOUND,
+        "PROPOSAL_REPORT_NOT_FOUND",
+        "신고 내역을 찾을 수 없습니다.",
+    ),
+    AppError.PROPOSAL_REPORT_NOT_REVIEWABLE: ApiErrorSpec(
+        status.HTTP_409_CONFLICT,
+        "PROPOSAL_REPORT_NOT_REVIEWABLE",
+        "이미 처리된 신고입니다.",
     ),
     AppError.INVALID_STATUS: ApiErrorSpec(status.HTTP_400_BAD_REQUEST, "INVALID_STATUS", "입금 확인 대기 상태가 아닙니다."),
     AppError.FORBIDDEN: ApiErrorSpec(status.HTTP_403_FORBIDDEN, "FORBIDDEN", "권한이 없습니다."),

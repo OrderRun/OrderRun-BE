@@ -33,7 +33,9 @@ from app.schemas.proposal import (
     ProposalResponse,
 )
 from app.schemas.proof import ProofDisputeRequest
+from app.schemas.proposal_report import ProposalReportCreateRequest, ProposalReportResponse
 from app.services.proposal_service import ProposalService
+from app.services.proposal_report_service import ProposalReportService
 
 
 router = APIRouter(prefix="/v1/proposal", tags=["요청"])
@@ -123,6 +125,34 @@ def get_proposal(
 ) -> ApiResponse[ProposalDetailResponse]:
     proposal = ProposalService.get_proposal_detail(db, proposal_id, current_user.id)
     return ApiResponse(success=True, data=proposal)
+
+
+@router.post(
+    "/{proposal_id}/reports",
+    response_model=ApiResponse[ProposalReportResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="요청 게시글 신고",
+    description="공개 모집 중인 다른 사용자의 요청 게시글을 신고합니다.",
+    responses={
+        201: success_response({"success": True, "data": {"id": 1, "proposalId": 1, "reporterId": "550e8400-e29b-41d4-a716-446655440001", "reasonQuestionId": 1, "reasonQuestionText": "광고 또는 스팸이에요", "detailReason": "반복 광고입니다.", "status": "PENDING", "createdAt": "2026-06-01T12:00:00+09:00", "reviewedAt": None}, "message": "신고가 접수되었습니다."}),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.VALIDATION_ERROR,
+            AppError.PROPOSAL_NOT_FOUND,
+            AppError.PROPOSAL_NOT_REPORTABLE,
+            AppError.PROPOSAL_SELF_REPORT_NOT_ALLOWED,
+            AppError.DUPLICATE_PROPOSAL_REPORT,
+        ),
+    },
+)
+def create_proposal_report(
+    proposal_id: int,
+    request: ProposalReportCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ApiResponse[ProposalReportResponse]:
+    report = ProposalReportService.create(db, proposal_id, current_user.id, request)
+    return ApiResponse(success=True, data=report, message="신고가 접수되었습니다.")
 
 
 @router.post(

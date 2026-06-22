@@ -1,5 +1,5 @@
 """Admin API endpoints."""
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -14,11 +14,56 @@ from app.core.openapi import (
 from app.schemas.offer import OfferResponse
 from app.schemas.proposal import ProposalResponse
 from app.schemas.common import ApiResponse
+from app.schemas.common import PageResponse
+from app.schemas.proposal_report import ProposalReportResponse
+from app.models.proposal_report import ProposalReportStatus
 from app.services.offer_service import OfferService
 from app.services.proposal_service import ProposalService
+from app.services.proposal_report_service import ProposalReportService
 
 
 router = APIRouter(prefix="/admin", tags=["관리자"])
+
+
+@router.get(
+    "/proposal-reports",
+    response_model=ApiResponse[PageResponse[ProposalReportResponse]],
+    summary="게시글 신고 목록 조회 (관리자 전용)",
+    responses={200: success_response({"success": True, "data": {"content": [], "totalElements": 0, "totalPages": 0, "pageNumber": 0, "pageSize": 20, "first": True, "last": True}, "message": None})},
+)
+def list_proposal_reports(
+    report_status: ProposalReportStatus | None = Query(None, alias="status"),
+    page: int = Query(0, ge=0),
+    size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> ApiResponse[PageResponse[ProposalReportResponse]]:
+    return ApiResponse(success=True, data=ProposalReportService.list_reports(db, report_status, page, size))
+
+
+@router.post(
+    "/proposal-reports/{report_id}/accept",
+    response_model=ApiResponse[ProposalReportResponse],
+    summary="게시글 신고 승인 (관리자 전용)",
+    responses={
+        200: success_response({"success": True, "data": {"id": 1, "proposalId": 1, "reporterId": "550e8400-e29b-41d4-a716-446655440001", "reasonQuestionId": 1, "reasonQuestionText": "광고 또는 스팸이에요", "detailReason": None, "status": "ACCEPTED", "createdAt": "2026-06-01T12:00:00+09:00", "reviewedAt": "2026-06-01T12:10:00+09:00"}, "message": "신고가 승인되었습니다."}),
+        **error_responses(AppError.PROPOSAL_REPORT_NOT_FOUND, AppError.PROPOSAL_REPORT_NOT_REVIEWABLE, AppError.PROPOSAL_NOT_REPORTABLE),
+    },
+)
+def accept_proposal_report(report_id: int, db: Session = Depends(get_db)) -> ApiResponse[ProposalReportResponse]:
+    return ApiResponse(success=True, data=ProposalReportService.accept(db, report_id), message="신고가 승인되었습니다.")
+
+
+@router.post(
+    "/proposal-reports/{report_id}/reject",
+    response_model=ApiResponse[ProposalReportResponse],
+    summary="게시글 신고 반려 (관리자 전용)",
+    responses={
+        200: success_response({"success": True, "data": {"id": 1, "proposalId": 1, "reporterId": "550e8400-e29b-41d4-a716-446655440001", "reasonQuestionId": 1, "reasonQuestionText": "광고 또는 스팸이에요", "detailReason": None, "status": "REJECTED", "createdAt": "2026-06-01T12:00:00+09:00", "reviewedAt": "2026-06-01T12:10:00+09:00"}, "message": "신고가 반려되었습니다."}),
+        **error_responses(AppError.PROPOSAL_REPORT_NOT_FOUND, AppError.PROPOSAL_REPORT_NOT_REVIEWABLE),
+    },
+)
+def reject_proposal_report(report_id: int, db: Session = Depends(get_db)) -> ApiResponse[ProposalReportResponse]:
+    return ApiResponse(success=True, data=ProposalReportService.reject(db, report_id), message="신고가 반려되었습니다.")
 
 
 @router.post(

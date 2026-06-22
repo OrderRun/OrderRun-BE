@@ -23,6 +23,7 @@ class ProposalStatus(str, enum.Enum):
     ALL_COMPLETED = "ALL_COMPLETED"
     DISPUTED = "DISPUTED"
     RESOLVED = "RESOLVED"
+    REPORTED = "REPORTED"
     CANCELLED = "CANCELLED"
 
 

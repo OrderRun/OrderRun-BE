@@ -55,15 +55,15 @@ def test_list_public_requires_auth_and_supports_multi_status_filter(client, db, 
     assert response.status_code == 200
     body = response.json()
     ids = {item["id"] for item in body["data"]["content"]}
-    assert ids == {holding.id, posted.id, offered.id, matched.id, cancelled.id}
+    assert ids == {posted.id, offered.id}
     assert body["data"]["pageNumber"] == 0
     assert body["data"]["pageSize"] == 20
-    assert body["data"]["totalElements"] == 5
+    assert body["data"]["totalElements"] == 2
 
     filtered = client.get("/v1/proposal?status=HOLDING&status=POSTED", headers=auth_headers)
     assert filtered.status_code == 200
     filtered_ids = {item["id"] for item in filtered.json()["data"]["content"]}
-    assert filtered_ids == {holding.id, posted.id}
+    assert filtered_ids == {posted.id}
 
     invalid = client.get("/v1/proposal?status=INVALID", headers=auth_headers)
     assert invalid.status_code == 400
@@ -573,6 +573,7 @@ def test_proposal_model_contract(db):
         "ALL_COMPLETED",
         "DISPUTED",
         "RESOLVED",
+        "REPORTED",
         "CANCELLED",
     }
     foreign_keys = inspect(db.bind).get_foreign_keys("proposals")

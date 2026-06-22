@@ -296,6 +296,28 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | questionText | string | 질문 내용 |
 | displayOrder | number | 클라이언트 표시 순서 |
 
+### ProposalReportReasonQuestionResponse
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| id | number | 신고 사유 ID |
+| questionText | string | 신고 사유 문구 |
+| displayOrder | number | 클라이언트 표시 순서 |
+
+### ProposalReportResponse
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| id | number | 신고 ID |
+| proposalId | number | 신고 대상 Proposal ID |
+| reporterId | string | 신고 사용자 ID |
+| reasonQuestionId | number | 선택한 신고 사유 ID |
+| reasonQuestionText | string | 선택한 신고 사유 문구 |
+| detailReason | string, null | 선택 상세 사유 |
+| status | string | `PENDING`, `ACCEPTED`, `REJECTED` |
+| createdAt | string | 신고 접수 시각 |
+| reviewedAt | string, null | 관리자 검토 시각 |
+
 ## API 목록
 
 ### Health API
@@ -351,6 +373,13 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | 요청 게시글 취소 | `POST` | `/v1/proposal/{id}/cancel` | 필요. 작성자만 가능 | `200 OK` | `ProposalResponse` |
 | 오더 수령 확인 | `POST` | `/v1/proposal/{id}/confirm-received` | 필요. 작성자만 가능 | `200 OK` | `ProposalDetailResponse` |
 | 오더 분쟁 접수 | `POST` | `/v1/proposal/{id}/dispute` | 필요. 작성자만 가능 | `200 OK` | `ProposalDetailResponse` |
+| 게시글 신고 | `POST` | `/v1/proposal/{id}/reports` | 필요. 작성자 외 사용자만 가능 | `201 Created` | `ProposalReportResponse` |
+
+### Proposal Report API
+
+| 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
+|------|--------|------|------|-----------|-----------|
+| 게시글 신고 사유 조회 | `GET` | `/v1/proposal-report-reasons` | 필요 | `200 OK` | `ProposalReportReasonQuestionResponse[]` |
 
 ### Offer API
 
@@ -372,6 +401,9 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
 |------|--------|------|------|-----------|-----------|
 | Offer 분쟁 해결 | `POST` | `/v1/admin/offer/{offerId}/resolve` | 관리자 필요 | `200 OK` | `OfferResponse` |
+| 게시글 신고 목록 조회 | `GET` | `/v1/admin/proposal-reports?status={status}&page={page}&size={size}` | 관리자 필요 | `200 OK` | `PageResponse<ProposalReportResponse>` |
+| 게시글 신고 승인 | `POST` | `/v1/admin/proposal-reports/{reportId}/accept` | 관리자 필요 | `200 OK` | `ProposalReportResponse` |
+| 게시글 신고 반려 | `POST` | `/v1/admin/proposal-reports/{reportId}/reject` | 관리자 필요 | `200 OK` | `ProposalReportResponse` |
 
 ### Settlement API
 
@@ -444,7 +476,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 
 | 파라미터 | 타입 | 필수 | 기본값 | 설명 |
 |----------|------|------|--------|------|
-| status | array[string] | X | 없음 | Proposal 상태 필터. 반복 입력 가능: `status=A&status=B`. 없으면 전체 상태 |
+| status | array[string] | X | 없음 | Proposal 상태 필터. 반복 입력 가능: `status=A&status=B`. 공개 상태(`POSTED`, `OFFERED`)만 반환 |
 | page | integer | X | 0 | 페이지 번호 |
 | size | integer | X | 20 | 페이지 크기 |
 | sort | string | X | `createdAt,desc` | 정렬 |
@@ -466,6 +498,13 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | content | string | O | 공백 불가, 최대 500자 |
 | deadline | string | O | 오프셋 포함 ISO-8601 문자열, 현재보다 미래 |
 | errandFee | integer | O | 1000원 이상 |
+
+#### `POST /v1/proposal/{id}/reports`
+
+| 필드 | 타입 | 필수 | 제약 |
+|------|------|------|------|
+| reasonQuestionId | integer | O | 활성 신고 사유 ID |
+| detailReason | string | X | 입력 시 공백 불가, 최대 500자 |
 
 ### Offer
 
@@ -546,6 +585,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | ALL_COMPLETED | 러너와 오더러 모두 완료 |
 | DISPUTED | 분쟁 접수 |
 | RESOLVED | 분쟁 해결 완료 |
+| REPORTED | 관리자 승인으로 신고 처리됨 |
 | CANCELLED | 취소됨 |
 
 ### OfferStatus
