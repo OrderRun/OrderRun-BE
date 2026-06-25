@@ -159,8 +159,8 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `status` | `varchar(20)` | NO |  | `HOLDING`, `POSTED`, `OFFERED`, `MATCHED`, `ORDER_COMPLETED`, `ALL_COMPLETED`, `DISPUTED`, `RESOLVED`, `REPORTED`, `CANCELLED` |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 | `matched_at` | `datetime(6)` | YES |  | Offer 수락으로 매칭된 시각 |
-| `delivery_reported_at` | `datetime(6)` | YES |  | 러너 완료가 Proposal에 반영된 시각 |
-| `received_confirmed_at` | `datetime(6)` | YES |  | 오더러 완료 확인 시각 |
+| `runner_confirmed_at` | `datetime(6)` | YES |  | 러너 완료 확인 시각 |
+| `orderer_confirmed_at` | `datetime(6)` | YES |  | 오더러 완료 확인 시각 |
 | `settled_at` | `datetime(6)` | YES |  | legacy 호환 컬럼. 현재 API 미노출 |
 | `disputed_at` | `datetime(6)` | YES |  | 분쟁 접수 시각 |
 | `resolved_at` | `datetime(6)` | YES |  | 분쟁 해결 시각 |
@@ -177,8 +177,8 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `open_chat_url` | `varchar(500)` | YES |  | 매칭 당사자에게 노출할 카카오톡 오픈채팅방 링크 |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 | `accepted_at` | `datetime(6)` | YES |  | 오더가 Offer를 수락한 시각 |
-| `delivery_completed_at` | `datetime(6)` | YES |  | 러너 완료 시각 |
-| `receipt_confirmed_at` | `datetime(6)` | YES |  | 오더러 완료 확인이 Offer에 반영된 시각 |
+| `runner_confirmed_at` | `datetime(6)` | YES |  | 러너 완료 확인 시각 |
+| `orderer_confirmed_at` | `datetime(6)` | YES |  | 오더러 완료 확인 시각 |
 | `settled_at` | `datetime(6)` | YES |  | legacy 호환 컬럼. 현재 API 미노출 |
 | `disputed_at` | `datetime(6)` | YES |  | 분쟁 접수 시각 |
 | `resolved_at` | `datetime(6)` | YES |  | 분쟁 해결 시각 |

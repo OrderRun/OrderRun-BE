@@ -53,8 +53,8 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
         "runnerLevel": runner.level,
         "status": "WAITING",
         "acceptedAt": None,
-        "deliveryCompletedAt": None,
-        "receiptConfirmedAt": None,
+        "runnerConfirmedAt": None,
+        "ordererConfirmedAt": None,
         "disputedAt": None,
         "resolvedAt": None,
         "createdAt": body["data"]["createdAt"],
@@ -65,14 +65,13 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
     assert offer.status == OfferStatus.WAITING
     assert proposal.status == ProposalStatus.OFFERED
     assert offer.accepted_at is None
-    assert offer.delivery_completed_at is None
-    assert offer.receipt_confirmed_at is None
+    assert offer.runner_confirmed_at is None
+    assert offer.orderer_confirmed_at is None
     assert offer.disputed_at is None
     assert offer.resolved_at is None
-    assert offer.settled_at is None
     assert proposal.matched_at is None
-    assert proposal.delivery_reported_at is None
-    assert proposal.received_confirmed_at is None
+    assert proposal.runner_confirmed_at is None
+    assert proposal.orderer_confirmed_at is None
     assert proposal.disputed_at is None
     assert proposal.resolved_at is None
     assert proposal.settled_at is None
@@ -113,6 +112,11 @@ def test_get_offers_returns_latest_first_and_supports_multi_status_filter(client
     assert [item["id"] for item in items] == [accepted_offer.id, new_offer.id, old_offer.id]
     assert [item["runnerName"] for item in items] == ["Accepted Runner", "New Runner", "Old Runner"]
     assert all("openChatUrl" not in item for item in items)
+    assert all("acceptedAt" in item for item in items)
+    assert all("runnerConfirmedAt" in item for item in items)
+    assert all("ordererConfirmedAt" in item for item in items)
+    assert all("deliveryCompletedAt" not in item for item in items)
+    assert all("receiptConfirmedAt" not in item for item in items)
 
     filtered = client.get(
         f"/v1/offer?proposalId={proposal.id}&status=WAITING&status=ACCEPTED",
@@ -148,6 +152,11 @@ def test_get_offer_detail_allows_any_logged_in_user(client, db, factory, sample_
     assert "missionId" not in runner_response.json()["data"]
     assert runner_response.json()["data"]["openChatUrl"] is None
     assert runner_response.json()["data"]["acceptedAt"] is None
+    assert runner_response.json()["data"]["runnerConfirmedAt"] is None
+    assert runner_response.json()["data"]["ordererConfirmedAt"] is None
+    assert "matchedAt" not in runner_response.json()["data"]
+    assert "deliveryCompletedAt" not in runner_response.json()["data"]
+    assert "receiptConfirmedAt" not in runner_response.json()["data"]
     assert runner_response.json()["data"]["ordererId"] == sample_user.id
     assert runner_response.json()["data"]["ordererName"] == sample_user.name
     assert runner_response.json()["data"]["ordererLevel"] == 2
@@ -168,6 +177,11 @@ def test_get_offer_detail_returns_state_timestamps_when_accepted(client, db, fac
 
     assert response.status_code == 200
     assert response.json()["data"]["acceptedAt"] is not None
+    assert response.json()["data"]["runnerConfirmedAt"] is None
+    assert response.json()["data"]["ordererConfirmedAt"] is None
+    assert "matchedAt" not in response.json()["data"]
+    assert "deliveryCompletedAt" not in response.json()["data"]
+    assert "receiptConfirmedAt" not in response.json()["data"]
     assert response.json()["data"]["openChatUrl"] is None
     assert "missionId" not in response.json()["data"]
 
@@ -226,6 +240,11 @@ def test_get_own_offers_supports_paging_and_multi_status_filter(client, db, fact
     page = response.json()["data"]
     assert page["totalElements"] == 2
     assert [item["id"] for item in page["content"]] == [accepted.id, waiting.id]
+    assert all("acceptedAt" in item for item in page["content"])
+    assert all("runnerConfirmedAt" in item for item in page["content"])
+    assert all("ordererConfirmedAt" in item for item in page["content"])
+    assert all("deliveryCompletedAt" not in item for item in page["content"])
+    assert all("receiptConfirmedAt" not in item for item in page["content"])
 
 
 def test_accept_offer_updates_states_and_timestamps(client, db, factory, sample_user):
@@ -266,22 +285,19 @@ def test_accept_offer_updates_states_and_timestamps(client, db, factory, sample_
     assert proposal.matched_at is not None
     assert selected.accepted_at is not None
     assert proposal.matched_at == selected.accepted_at
-    assert selected.delivery_completed_at is None
-    assert selected.receipt_confirmed_at is None
+    assert selected.runner_confirmed_at is None
+    assert selected.orderer_confirmed_at is None
     assert selected.disputed_at is None
     assert selected.resolved_at is None
-    assert selected.settled_at is None
     assert other.accepted_at is None
-    assert other.delivery_completed_at is None
-    assert other.receipt_confirmed_at is None
+    assert other.runner_confirmed_at is None
+    assert other.orderer_confirmed_at is None
     assert other.disputed_at is None
     assert other.resolved_at is None
-    assert other.settled_at is None
-    assert proposal.delivery_reported_at is None
-    assert proposal.received_confirmed_at is None
+    assert proposal.runner_confirmed_at is None
+    assert proposal.orderer_confirmed_at is None
     assert proposal.disputed_at is None
     assert proposal.resolved_at is None
-    assert proposal.settled_at is None
 
 
 def test_accept_offer_domain_and_validation_errors(client, db, factory, sample_user):
@@ -379,19 +395,22 @@ def test_complete_delivery_marks_offer_completed_without_finishing_proposal(clie
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["status"] == "RUNNER_COMPLETED"
-    assert data["deliveryCompletedAt"] is not None
+    assert data["runnerConfirmedAt"] is not None
+    assert data["ordererConfirmedAt"] is None
+    assert "deliveryCompletedAt" not in data
+    assert "receiptConfirmedAt" not in data
 
     db.refresh(offer)
     db.refresh(proposal)
     assert offer.status == OfferStatus.RUNNER_COMPLETED
-    assert offer.delivery_completed_at is not None
+    assert offer.runner_confirmed_at is not None
     assert proposal.status == ProposalStatus.MATCHED
-    assert proposal.delivery_reported_at is not None
-    assert offer.receipt_confirmed_at is None
+    assert proposal.runner_confirmed_at is not None
+    assert offer.orderer_confirmed_at is None
     assert offer.disputed_at is None
     assert offer.resolved_at is None
     assert offer.settled_at is None
-    assert proposal.received_confirmed_at is None
+    assert proposal.orderer_confirmed_at is None
     assert proposal.disputed_at is None
     assert proposal.resolved_at is None
     assert proposal.settled_at is None
@@ -415,8 +434,12 @@ def test_complete_delivery_after_orderer_completion_marks_both_all_completed(cli
 
     assert response.status_code == 200
     assert response.json()["data"]["status"] == "ALL_COMPLETED"
+    assert response.json()["data"]["runnerConfirmedAt"] is not None
+    assert response.json()["data"]["ordererConfirmedAt"] is not None
     assert response.json()["data"]["ordererLevel"] == 7
     assert response.json()["data"]["runnerLevel"] == 1
+    assert "deliveryCompletedAt" not in response.json()["data"]
+    assert "receiptConfirmedAt" not in response.json()["data"]
     db.refresh(offer)
     db.refresh(proposal)
     db.refresh(runner)
@@ -425,16 +448,14 @@ def test_complete_delivery_after_orderer_completion_marks_both_all_completed(cli
     assert proposal.status == ProposalStatus.ALL_COMPLETED
     assert runner.level == 1
     assert sample_user.level == 7
-    assert offer.delivery_completed_at is not None
-    assert proposal.delivery_reported_at is not None
-    assert offer.receipt_confirmed_at is None
-    assert proposal.received_confirmed_at is None
+    assert offer.runner_confirmed_at is not None
+    assert proposal.runner_confirmed_at is not None
+    assert offer.orderer_confirmed_at is None
+    assert proposal.orderer_confirmed_at is None
     assert offer.disputed_at is None
     assert proposal.disputed_at is None
     assert offer.resolved_at is None
     assert proposal.resolved_at is None
-    assert offer.settled_at is None
-    assert proposal.settled_at is None
 
 
 def test_runner_level_counts_each_completed_offer(client, db, factory, sample_user):
@@ -485,6 +506,11 @@ def test_raise_offer_dispute_updates_both_statuses_and_timestamps(client, db, fa
     data = response.json()["data"]
     assert data["status"] == "DISPUTED"
     assert data["disputedAt"] is not None
+    assert data["acceptedAt"] is not None
+    assert data["runnerConfirmedAt"] is None
+    assert data["ordererConfirmedAt"] is None
+    assert "deliveryCompletedAt" not in data
+    assert "receiptConfirmedAt" not in data
     db.refresh(offer)
     db.refresh(proposal)
     assert offer.status == OfferStatus.DISPUTED

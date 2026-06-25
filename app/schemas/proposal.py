@@ -62,8 +62,8 @@ class ProposalDetailResponse(BaseModel):
     orderer_level: int = Field(..., serialization_alias="ordererLevel")
     status: ProposalStatus
     matched_at: datetime | None = Field(None, serialization_alias="matchedAt")
-    delivery_reported_at: datetime | None = Field(None, serialization_alias="deliveryReportedAt")
-    received_confirmed_at: datetime | None = Field(None, serialization_alias="receivedConfirmedAt")
+    runner_confirmed_at: datetime | None = Field(None, serialization_alias="runnerConfirmedAt")
+    orderer_confirmed_at: datetime | None = Field(None, serialization_alias="ordererConfirmedAt")
     disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
     resolved_at: datetime | None = Field(None, serialization_alias="resolvedAt")
     open_chat_url: str | None = Field(None, serialization_alias="openChatUrl")

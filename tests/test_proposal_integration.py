@@ -119,6 +119,10 @@ def test_detail_returns_proposal_regardless_of_status(client, db, factory, auth_
     data = cancelled_response.json()["data"]
     assert data["status"] == "CANCELLED"
     assert data["matchedAt"] is None
+    assert data["runnerConfirmedAt"] is None
+    assert data["ordererConfirmedAt"] is None
+    assert "deliveryReportedAt" not in data
+    assert "receivedConfirmedAt" not in data
     assert data["openChatUrl"] is None
     assert data["offers"] == []
 
@@ -139,6 +143,10 @@ def test_detail_returns_state_timestamps_when_matched(client, db, factory, auth_
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["matchedAt"] is not None
+    assert data["runnerConfirmedAt"] is None
+    assert data["ordererConfirmedAt"] is None
+    assert "deliveryReportedAt" not in data
+    assert "receivedConfirmedAt" not in data
     assert data["openChatUrl"] is None
     assert data["ordererId"] == sample_user.id
     assert "missionId" not in data
@@ -360,17 +368,15 @@ def test_cancel_proposal_author_status_rules_and_rejects_waiting_offers(client, 
     for cancelled_proposal in [holding, posted, offered]:
         db.refresh(cancelled_proposal)
         assert cancelled_proposal.matched_at is None
-        assert cancelled_proposal.delivery_reported_at is None
-        assert cancelled_proposal.received_confirmed_at is None
+        assert cancelled_proposal.runner_confirmed_at is None
+        assert cancelled_proposal.orderer_confirmed_at is None
         assert cancelled_proposal.disputed_at is None
         assert cancelled_proposal.resolved_at is None
-        assert cancelled_proposal.settled_at is None
     assert waiting_offer.accepted_at is None
-    assert waiting_offer.delivery_completed_at is None
-    assert waiting_offer.receipt_confirmed_at is None
+    assert waiting_offer.runner_confirmed_at is None
+    assert waiting_offer.orderer_confirmed_at is None
     assert waiting_offer.disputed_at is None
     assert waiting_offer.resolved_at is None
-    assert waiting_offer.settled_at is None
 
     for not_cancellable in [matched, cancelled]:
         response = client.post(f"/v1/proposal/{not_cancellable.id}/cancel", headers=auth_headers)
@@ -388,15 +394,18 @@ def test_confirm_received_marks_proposal_completed_without_finishing_offer(clien
     assert response.json()["message"] == "완료 확인되었습니다."
     assert response.json()["data"]["status"] == "ORDER_COMPLETED"
     assert response.json()["data"]["ordererId"] == sample_user.id
-    assert response.json()["data"]["receivedConfirmedAt"] is not None
+    assert response.json()["data"]["ordererConfirmedAt"] is not None
+    assert response.json()["data"]["runnerConfirmedAt"] is None
+    assert "receivedConfirmedAt" not in response.json()["data"]
+    assert "deliveryReportedAt" not in response.json()["data"]
     db.refresh(proposal)
     db.refresh(offer)
     assert proposal.status == ProposalStatus.ORDER_COMPLETED
     assert offer.status == OfferStatus.ACCEPTED
-    assert proposal.received_confirmed_at is not None
-    assert offer.receipt_confirmed_at is not None
-    assert proposal.delivery_reported_at is None
-    assert offer.delivery_completed_at is None
+    assert proposal.orderer_confirmed_at is not None
+    assert offer.orderer_confirmed_at is not None
+    assert proposal.runner_confirmed_at is None
+    assert offer.runner_confirmed_at is None
     assert proposal.disputed_at is None
     assert offer.disputed_at is None
     assert proposal.resolved_at is None
@@ -409,8 +418,8 @@ def test_confirm_received_after_runner_completion_marks_both_all_completed(clien
     runner = factory.user("01055550002")
     sample_user.level = 6
     proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.RUNNER_COMPLETED)
-    proposal.delivery_reported_at = datetime.now(timezone.utc)
-    offer.delivery_completed_at = proposal.delivery_reported_at
+    proposal.runner_confirmed_at = datetime.now(timezone.utc)
+    offer.runner_confirmed_at = proposal.runner_confirmed_at
     db.commit()
 
     response = client.post(f"/v1/proposal/{proposal.id}/confirm-received", headers=auth_headers)
@@ -427,10 +436,10 @@ def test_confirm_received_after_runner_completion_marks_both_all_completed(clien
     assert offer.status == OfferStatus.ALL_COMPLETED
     assert runner.level == 1
     assert sample_user.level == 6
-    assert proposal.delivery_reported_at is not None
-    assert offer.delivery_completed_at is not None
-    assert proposal.received_confirmed_at is not None
-    assert offer.receipt_confirmed_at is not None
+    assert proposal.runner_confirmed_at is not None
+    assert offer.runner_confirmed_at is not None
+    assert proposal.orderer_confirmed_at is not None
+    assert offer.orderer_confirmed_at is not None
     assert proposal.disputed_at is None
     assert offer.disputed_at is None
     assert proposal.resolved_at is None

@@ -47,9 +47,8 @@ class Proposal(Base):
 
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
     matched_at = Column(DateTime(timezone=True), nullable=True)
-    delivery_reported_at = Column(DateTime(timezone=True), nullable=True)
-    received_confirmed_at = Column(DateTime(timezone=True), nullable=True)
-    settled_at = Column(DateTime(timezone=True), nullable=True)
+    runner_confirmed_at = Column(DateTime(timezone=True), nullable=True)
+    orderer_confirmed_at = Column(DateTime(timezone=True), nullable=True)
     disputed_at = Column(DateTime(timezone=True), nullable=True)
     resolved_at = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
@@ -63,22 +62,22 @@ class Proposal(Base):
         if self.status == ProposalStatus.POSTED:
             self.status = ProposalStatus.OFFERED
 
-    def can_report_delivery(self) -> bool:
+    def can_confirm_runner_completion(self) -> bool:
         return self.status in {ProposalStatus.MATCHED, ProposalStatus.ORDER_COMPLETED}
 
-    def report_delivery(self) -> None:
-        if not self.can_report_delivery():
-            raise ValueError("Cannot report delivery for proposal not in active execution status")
-        self.delivery_reported_at = utcnow_naive()
+    def confirm_runner_completion(self) -> None:
+        if not self.can_confirm_runner_completion():
+            raise ValueError("Cannot confirm runner completion for proposal not in active execution status")
+        self.runner_confirmed_at = utcnow_naive()
 
-    def can_confirm_receipt(self) -> bool:
+    def can_confirm_orderer_completion(self) -> bool:
         return self.status == ProposalStatus.MATCHED
 
-    def confirm_receipt(self) -> None:
-        if not self.can_confirm_receipt():
-            raise ValueError("Cannot confirm receipt for proposal not in MATCHED status")
+    def confirm_orderer_completion(self) -> None:
+        if not self.can_confirm_orderer_completion():
+            raise ValueError("Cannot confirm orderer completion for proposal not in MATCHED status")
         self.status = ProposalStatus.ORDER_COMPLETED
-        self.received_confirmed_at = utcnow_naive()
+        self.orderer_confirmed_at = utcnow_naive()
 
     def mark_all_completed(self) -> None:
         if self.status not in {ProposalStatus.ORDER_COMPLETED, ProposalStatus.MATCHED}:

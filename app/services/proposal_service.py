@@ -148,8 +148,8 @@ class ProposalService:
             orderer_level=orderer_level,
             status=proposal.status,
             matched_at=proposal.matched_at,
-            delivery_reported_at=proposal.delivery_reported_at,
-            received_confirmed_at=proposal.received_confirmed_at,
+            runner_confirmed_at=proposal.runner_confirmed_at,
+            orderer_confirmed_at=proposal.orderer_confirmed_at,
             disputed_at=proposal.disputed_at,
             resolved_at=proposal.resolved_at,
             open_chat_url=open_chat_url,
@@ -302,11 +302,11 @@ class ProposalService:
         ProposalService._ensure_owner(proposal, orderer_id)
         offer = ProposalService._get_execution_offer(db, proposal.id)
 
-        if not proposal.can_confirm_receipt() or not offer.can_confirm_receipt():
+        if not proposal.can_confirm_orderer_completion() or not offer.can_confirm_orderer_completion():
             raise api_error(AppError.PROPOSAL_NOT_UPDATABLE, f"status: {proposal.status.value}")
 
-        proposal.confirm_receipt()
-        offer.confirm_receipt()
+        proposal.confirm_orderer_completion()
+        offer.confirm_orderer_completion()
         ProposalService._sync_all_completed(db, proposal, offer)
         db.flush()
         EventBus.publish(MeetingConfirmedByOrdererEvent(
