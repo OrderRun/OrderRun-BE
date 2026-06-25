@@ -62,6 +62,8 @@ class AppError(str, Enum):
     OFFER_NOT_ACCEPTABLE = "OFFER_NOT_ACCEPTABLE"
     OFFER_NOT_UPDATABLE = "OFFER_NOT_UPDATABLE"
 
+    DISPUTE_EVIDENCE_NOT_FOUND = "DISPUTE_EVIDENCE_NOT_FOUND"
+
     NOTIFICATION_NOT_FOUND = "NOTIFICATION_NOT_FOUND"
 
 
@@ -233,6 +235,11 @@ ERRORS: dict[AppError, ApiErrorSpec] = {
         status.HTTP_409_CONFLICT,
         "OFFER_NOT_UPDATABLE",
         "업데이트할 수 없는 제안 상태입니다.",
+    ),
+    AppError.DISPUTE_EVIDENCE_NOT_FOUND: ApiErrorSpec(
+        status.HTTP_404_NOT_FOUND,
+        "DISPUTE_EVIDENCE_NOT_FOUND",
+        "분쟁 증빙을 찾을 수 없습니다.",
     ),
     AppError.NOTIFICATION_NOT_FOUND: ApiErrorSpec(status.HTTP_404_NOT_FOUND, "ERROR", "Notification not found"),
 }

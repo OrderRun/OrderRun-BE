@@ -339,6 +339,19 @@ PROPOSAL_DISPUTE_EXAMPLE = {
     "data": PROPOSAL_DISPUTED_DETAIL_EXAMPLE,
     "message": "분쟁이 접수되었습니다.",
 }
+DISPUTE_EVIDENCE_EXAMPLE = {
+    "success": True,
+    "data": {
+        "id": 1,
+        "proposalId": 1,
+        "offerId": 10,
+        "actorId": EXAMPLE_RUNNER_ID,
+        "reason": "배송 중 파손",
+        "surveyQuestionId": 3,
+        "createdAt": EXAMPLE_CREATED_AT,
+    },
+    "message": "Success",
+}
 
 OFFER_EXAMPLE = {
     "id": 10,
@@ -449,7 +462,7 @@ OFFER_LIST_EXAMPLE = {"success": True, "data": [OFFER_EXAMPLE], "message": "Succ
 OFFER_CREATE_EXAMPLE = {"success": True, "data": OFFER_EXAMPLE, "message": "제안이 제출되었습니다."}
 OFFER_DETAIL_EXAMPLE = {"success": True, "data": OFFER_EXAMPLE, "message": "Success"}
 OFFER_ACCEPTED_DETAIL_EXAMPLE = OFFER_DETAIL_EXAMPLES["accepted"]
-OFFER_DELIVERY_EXAMPLE = {
+OFFER_COMPLETE_DELIVERY_EXAMPLE = {
     "success": True,
     "data": OFFER_RUNNER_COMPLETED_EXAMPLE,
     "message": "완료 처리되었습니다.",
