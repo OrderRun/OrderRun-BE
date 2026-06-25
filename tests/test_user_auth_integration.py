@@ -7,9 +7,9 @@ import pytest
 from fastapi import HTTPException
 
 from app.main import app
+from app.models.dispute_evidence import DisputeEvidence
 from app.models.notification import Notification
 from app.models.offer import Offer, OfferStatus
-from app.models.proof import Proof, ProofType
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.settlement import SettlementAccount
 from app.models.terms import TermsAgreement
@@ -331,7 +331,13 @@ def test_withdraw_user_hard_deletes_pii_and_keeps_anonymized_activity_history(cl
 
     proposal = factory.proposal(orderer_id=user_id, status=ProposalStatus.ALL_COMPLETED)
     offer = factory.offer(proposal_id=proposal.id, runner_id=user_id, status=OfferStatus.ALL_COMPLETED)
-    proof = Proof(proposal_id=proposal.id, offer_id=offer.id, actor_id=user_id, proof_type=ProofType.DELIVERY)
+    evidence = DisputeEvidence(
+        proposal_id=proposal.id,
+        offer_id=offer.id,
+        actor_id=user_id,
+        survey_question_id=1,
+        reason="탈퇴 전 분쟁 사유",
+    )
     fcm_token = UserFCMToken(user_id=user_id, fcm_token="withdraw-token")
     settlement = SettlementAccount(
         user_id=user_id,
@@ -364,7 +370,7 @@ def test_withdraw_user_hard_deletes_pii_and_keeps_anonymized_activity_history(cl
         body="탈퇴 전 알림 본문",
         status="sent",
     )
-    db.add_all([proof, fcm_token, settlement, terms, verification, notification])
+    db.add_all([evidence, fcm_token, settlement, terms, verification, notification])
     db.commit()
 
     response = client.delete("/v1/user", headers=headers)
@@ -389,7 +395,10 @@ def test_withdraw_user_hard_deletes_pii_and_keeps_anonymized_activity_history(cl
     assert db.query(Notification).filter(Notification.user_id == user_id).first() is None
     assert db.query(Proposal).filter(Proposal.id == proposal.id, Proposal.orderer_id == user_id).first() is not None
     assert db.query(Offer).filter(Offer.id == offer.id, Offer.runner_id == user_id).first() is not None
-    assert db.query(Proof).filter(Proof.id == proof.id, Proof.actor_id == user_id).first() is not None
+    assert db.query(DisputeEvidence).filter(
+        DisputeEvidence.id == evidence.id,
+        DisputeEvidence.actor_id == user_id,
+    ).first() is not None
 
     activity_viewer = factory.user(phone="01012340012", name="조회사용자")
     proposal_detail = ProposalService.get_proposal_detail(db, proposal.id, activity_viewer.id)

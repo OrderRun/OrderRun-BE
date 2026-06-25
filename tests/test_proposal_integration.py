@@ -5,9 +5,9 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import inspect
 
 from app.models.dispute_survey import DisputeSurveyQuestion, DisputeSurveyTargetType
+from app.models.dispute_evidence import DisputeEvidence
 from app.models.notification import Notification, NotificationType
 from app.models.offer import Offer, OfferStatus
-from app.models.proof import Proof, ProofType
 from app.models.proposal import Proposal, ProposalStatus
 
 
@@ -469,18 +469,17 @@ def test_raise_proposal_dispute_updates_both_statuses_and_timestamps(client, db,
     assert offer.resolved_at is None
     assert proposal.settled_at is None
     assert offer.settled_at is None
-    proof = (
-        db.query(Proof)
+    evidence = (
+        db.query(DisputeEvidence)
         .filter(
-            Proof.proposal_id == proposal.id,
-            Proof.offer_id == offer.id,
-            Proof.actor_id == sample_user.id,
-            Proof.proof_type == ProofType.DISPUTE,
+            DisputeEvidence.proposal_id == proposal.id,
+            DisputeEvidence.offer_id == offer.id,
+            DisputeEvidence.actor_id == sample_user.id,
         )
         .one()
     )
-    assert proof.survey_question_id == question.id
-    assert proof.reason == "물품 상태 불량"
+    assert evidence.survey_question_id == question.id
+    assert evidence.reason == "물품 상태 불량"
     notification = (
         db.query(Notification)
         .filter(

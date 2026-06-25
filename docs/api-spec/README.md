@@ -248,19 +248,17 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | runnerLevel | number | 러너 사용자 레벨 |
 | acceptedAt | string | Offer 수락 시각 |
 
-### ProofResponse
+### DisputeEvidenceResponse
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| id | number | Proof ID |
+| id | number | 분쟁 증빙 ID |
 | proposalId | number | 연결된 Proposal ID |
 | offerId | number | 연결된 Offer ID |
-| actorId | string | 증빙을 남긴 사용자 ID |
-| proofType | string | `DELIVERY` 또는 `DISPUTE` |
-| imageUrl | string, null | 배송 사진 URL |
-| reason | string, null | 분쟁 사유 |
-| surveyQuestionId | number, null | 선택한 분쟁 설문 질문 ID |
-| createdAt | string | Proof 생성 시각 |
+| actorId | string | 분쟁을 접수한 사용자 ID |
+| reason | string | 분쟁 사유 |
+| surveyQuestionId | number | 선택한 분쟁 설문 질문 ID |
+| createdAt | string | 분쟁 증빙 생성 시각 |
 
 ### SettlementAccountResponse
 
@@ -360,6 +358,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | 기능 | Method | Path | 인증 | 성공 상태 | 응답 data |
 |------|--------|------|------|-----------|-----------|
 | 분쟁 설문 질문 조회 | `GET` | `/v1/dispute-survey/questions?targetType={targetType}` | 필요 | `200 OK` | `DisputeSurveyQuestionResponse[]` |
+| 분쟁 증빙 상세 조회 | `GET` | `/v1/dispute-evidence?proposalId={id}` 또는 `/v1/dispute-evidence?offerId={id}` | 필요. 거래 당사자만 가능 | `200 OK` | `DisputeEvidenceResponse` |
 
 ### Proposal API
 
@@ -520,9 +519,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 
 #### `POST /v1/offer/{offerId}/complete-delivery`
 
-| 필드 | 타입 | 필수 | 제약 |
-|------|------|------|------|
-| proofImageUrl | string | X | 완료 인증 이미지 URL |
+요청 본문 없음.
 
 #### `POST /v1/offer/{offerId}/dispute`
 
@@ -556,6 +553,13 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 |------|------|------|------|
 | surveyQuestionId | number | O | active `ORDER` 분쟁 설문 질문 ID |
 | disputeReason | string | O | 분쟁 사유 |
+
+#### `GET /v1/dispute-evidence`
+
+| 쿼리 | 타입 | 필수 | 제약 |
+|------|------|------|------|
+| proposalId | number | 조건부 | `proposalId`, `offerId` 중 정확히 하나만 입력 |
+| offerId | number | 조건부 | `proposalId`, `offerId` 중 정확히 하나만 입력 |
 
 ### Settlement
 
@@ -601,12 +605,6 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | REJECTED | 거절됨 |
 | CANCELLED | 취소됨 |
 
-### ProofType
-
-| 값 | 설명 |
-|----|------|
-| DELIVERY | 완료 증빙 |
-| DISPUTE | 분쟁 사유 등 분쟁 증빙 |
 
 ## 에러 코드
 

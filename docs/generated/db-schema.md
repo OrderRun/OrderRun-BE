@@ -18,7 +18,7 @@
 | `terms_agreements` | terms | O | `docs/exec-plans/completed/terms-agreement/model.md` | 사용자별 필수 약관 동의 |
 | `proposals` | bidding/proposal | O | `docs/exec-plans/completed/proposal/model.md` | 심부름 모집 공고 |
 | `offers` | bidding/offer | O | `docs/domains/offer/README.md` | 러너 지원서 |
-| `proofs` | execution/proof | O | `docs/domain.md` | 배송 사진/분쟁 사유 증빙 |
+| `dispute_evidences` | execution/dispute-evidence | O | `docs/domain.md` | 분쟁 사유 증빙 |
 | `dispute_survey_questions` | dispute-survey | O | `docs/api-spec/README.md` | 분쟁 접수 전 설문 질문 마스터 |
 | `proposal_report_reason_questions` | proposal-report | O | `docs/product-specs/proposal-reporting.md` | 게시글 신고 사유 마스터 |
 | `proposal_reports` | proposal-report | O | `docs/product-specs/proposal-reporting.md` | 사용자 게시글 신고 및 관리자 검토 이력 |
@@ -35,9 +35,9 @@ users 1 -> 1 terms_agreements
 users 1 -> 1 settlement_accounts
 
 proposals 1 -> N offers
-proposals 1 -> N proofs
+proposals 1 -> N dispute_evidences
 proposals 1 -> N proposal_reports
-offers 1 -> N proofs
+offers 1 -> N dispute_evidences
 offers 1 -> 1 payments
 ```
 
@@ -184,18 +184,16 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `resolved_at` | `datetime(6)` | YES |  | 분쟁 해결 시각 |
 | `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
-## `proofs`
+## `dispute_evidences`
 
 | 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
 |------|------|------|-----------|------|
-| `id` | `bigint` | NO | PK, auto increment | Proof ID |
-| `proposal_id` | `bigint` | NO | INDEX `idx_proofs_proposal_id` | 연관 Proposal ID |
-| `offer_id` | `bigint` | NO | INDEX `idx_proofs_offer_id` | 연관 Offer ID |
-| `actor_id` | `varchar(36)` | NO |  | 증빙 작성 사용자 ID |
-| `proof_type` | `varchar(30)` | NO | INDEX `idx_proofs_proof_type` | `DELIVERY`, `DISPUTE` |
-| `image_url` | `varchar(500)` | YES |  | 배송 사진 URL |
-| `reason` | `text` | YES |  | 분쟁 사유 |
-| `survey_question_id` | `bigint` | YES | INDEX `idx_proofs_survey_question_id` | 선택한 분쟁 설문 질문 ID |
+| `id` | `bigint` | NO | PK, auto increment | 분쟁 증빙 ID |
+| `proposal_id` | `bigint` | NO | INDEX `ix_dispute_evidences_proposal_id` | 연관 Proposal ID |
+| `offer_id` | `bigint` | NO | INDEX `ix_dispute_evidences_offer_id` | 연관 Offer ID |
+| `actor_id` | `varchar(36)` | NO | INDEX `ix_dispute_evidences_actor_id` | 분쟁 접수 사용자 ID |
+| `reason` | `text` | NO |  | 분쟁 사유 |
+| `survey_question_id` | `bigint` | NO | INDEX `idx_dispute_evidences_survey_question_id` | 선택한 분쟁 설문 질문 ID |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 
 현재 코드 갭:

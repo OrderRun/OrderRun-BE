@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from app.models.dispute_survey import DisputeSurveyQuestion, DisputeSurveyTargetType
+from app.models.dispute_evidence import DisputeEvidence
 from app.models.notification import Notification, NotificationType
 from app.models.offer import Offer, OfferStatus
-from app.models.proof import Proof, ProofType
 from app.models.proposal import Proposal, ProposalStatus
 
 
@@ -373,7 +373,6 @@ def test_complete_delivery_marks_offer_completed_without_finishing_proposal(clie
 
     response = client.post(
         f"/v1/offer/{offer.id}/complete-delivery",
-        json={"proofImageUrl": "https://example.com/proof.jpg"},
         headers=factory.headers_for(runner),
     )
 
@@ -396,6 +395,7 @@ def test_complete_delivery_marks_offer_completed_without_finishing_proposal(clie
     assert proposal.disputed_at is None
     assert proposal.resolved_at is None
     assert proposal.settled_at is None
+    assert db.query(DisputeEvidence).filter(DisputeEvidence.offer_id == offer.id).count() == 0
 
 
 def test_complete_delivery_after_orderer_completion_marks_both_all_completed(client, db, factory, sample_user):
@@ -410,7 +410,6 @@ def test_complete_delivery_after_orderer_completion_marks_both_all_completed(cli
 
     response = client.post(
         f"/v1/offer/{offer.id}/complete-delivery",
-        json={"proofImageUrl": "https://example.com/proof.jpg"},
         headers=factory.headers_for(runner),
     )
 
@@ -452,12 +451,10 @@ def test_runner_level_counts_each_completed_offer(client, db, factory, sample_us
 
     first = client.post(
         f"/v1/offer/{first_offer.id}/complete-delivery",
-        json={"proofImageUrl": None},
         headers=factory.headers_for(runner),
     )
     second = client.post(
         f"/v1/offer/{second_offer.id}/complete-delivery",
-        json={"proofImageUrl": None},
         headers=factory.headers_for(runner),
     )
 
@@ -498,18 +495,17 @@ def test_raise_offer_dispute_updates_both_statuses_and_timestamps(client, db, fa
     assert proposal.resolved_at is None
     assert offer.settled_at is None
     assert proposal.settled_at is None
-    proof = (
-        db.query(Proof)
+    evidence = (
+        db.query(DisputeEvidence)
         .filter(
-            Proof.proposal_id == proposal.id,
-            Proof.offer_id == offer.id,
-            Proof.actor_id == runner.id,
-            Proof.proof_type == ProofType.DISPUTE,
+            DisputeEvidence.proposal_id == proposal.id,
+            DisputeEvidence.offer_id == offer.id,
+            DisputeEvidence.actor_id == runner.id,
         )
         .one()
     )
-    assert proof.survey_question_id == question.id
-    assert proof.reason == "배송 중 파손"
+    assert evidence.survey_question_id == question.id
+    assert evidence.reason == "배송 중 파손"
     notification = (
         db.query(Notification)
         .filter(
@@ -595,12 +591,10 @@ def test_complete_delivery_forbidden_and_wrong_status_errors(client, db, factory
 
     forbidden = client.post(
         f"/v1/offer/{accepted_offer.id}/complete-delivery",
-        json={"proofImageUrl": None},
         headers=factory.headers_for(other_runner),
     )
     not_updatable = client.post(
         f"/v1/offer/{waiting_offer.id}/complete-delivery",
-        json={"proofImageUrl": None},
         headers=factory.headers_for(runner),
     )
 

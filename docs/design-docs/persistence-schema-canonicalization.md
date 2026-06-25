@@ -18,7 +18,7 @@
 | `terms_agreements` | terms | O | 사용자별 필수 약관 동의 |
 | `proposals` | bidding/proposal | O | 요청 모집 공고 |
 | `offers` | bidding/offer | O | 러너 지원서와 수행 상태 |
-| `proofs` | execution/proof | O | 완료 증빙과 분쟁 사유 |
+| `dispute_evidences` | execution/dispute-evidence | O | 분쟁 사유 증빙 |
 | `payments` | settlement | 목표 O / 현재 미구현 | 결제/정산 처리 |
 | `settlement_accounts` | settlement | O | 러너 정산 계좌 |
 
@@ -32,8 +32,8 @@ users 1 -> 1 terms_agreements
 users 1 -> 1 settlement_accounts
 
 proposals 1 -> N offers
-proposals 1 -> N proofs
-offers 1 -> N proofs
+proposals 1 -> N dispute_evidences
+offers 1 -> N dispute_evidences
 offers 1 -> 1 payments
 ```
 
@@ -43,7 +43,7 @@ offers 1 -> 1 payments
 |------|-----------|-----------|
 | User/Auth | 모델 있음 | 인덱스명과 감사 컬럼 규칙 유지 |
 | Terms | 모델 있음 | 도메인/API 정본과 계속 정렬 |
-| Proposal/Offer/Proof | 모델 있음 | 상태 전이와 timestamp 규칙을 `domain.md`와 정렬 |
+| Proposal/Offer/DisputeEvidence | 모델 있음 | 상태 전이와 timestamp 규칙을 `domain.md`와 정렬 |
 | Payment | 모델 없음 | 구현 전 모델/API/테스트 계획 작성 |
 | Settlement Account | 모델 있음 | 암호화와 마스킹 정책 확정 필요 |
 | Notification 보조 테이블 | 모델 있음 | 핵심 정본과 분리해 알림 도메인 문서에서 관리 |

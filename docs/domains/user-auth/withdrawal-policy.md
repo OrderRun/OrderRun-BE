@@ -8,7 +8,7 @@
 - 사용자 이름, 전화번호, 전화번호 인증 시각, 마지막 로그인 시각, 비밀번호 해시, 알림 설정은 `null`로 영구 삭제한다.
 - 탈퇴 사용자의 이름은 저장하지 않고, 활동 조회 응답에서만 `탈퇴한 사용자`로 표시한다.
 - 탈퇴 후 같은 전화번호 재가입은 허용한다.
-- Proposal, Offer, Proof 같은 거래 활동 기록은 삭제하지 않는다.
+- Proposal, Offer, DisputeEvidence 같은 거래 활동 기록은 삭제하지 않는다.
 
 ## 탈퇴 불가 상태
 
@@ -79,7 +79,7 @@ Offer 기준:
 - `users` soft-deleted row
 - `proposals`
 - `offers`
-- `proofs`
+- `dispute_evidences`
 - `terms_agreements`
 - `settlement_accounts`
 - `notifications`

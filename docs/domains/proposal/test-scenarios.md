@@ -12,7 +12,7 @@
 - 생성은 계약 필드와 validation을 검증하고 초기 상태를 `HOLDING`으로 저장한다.
 - 수정과 취소는 작성자 권한, 상태 규칙, 대기 Offer 정리 규칙을 검증한다.
 - 오더러 수령 확인은 Proposal을 `ORDER_COMPLETED` 또는 `ALL_COMPLETED`로 전이하고 Offer 상태와 동기화한다.
-- 오더러 분쟁 접수는 active `ORDER` 설문 질문 ID와 사유를 Proof에 기록하고, `MATCHED` 또는 `ORDER_COMPLETED`에서 Proposal과 수락된 Offer를 `DISPUTED`로 전이하고 timestamp를 기록한다.
+- 오더러 분쟁 접수는 active `ORDER` 설문 질문 ID와 사유를 DisputeEvidence에 기록하고, `MATCHED` 또는 `ORDER_COMPLETED`에서 Proposal과 수락된 Offer를 `DISPUTED`로 전이하고 timestamp를 기록한다.
 - 오더러 분쟁 접수는 누락, 비활성, 대상 불일치 설문 질문 ID를 거절한다.
 - 오더러 분쟁 접수는 `ALL_COMPLETED`에서 거절되며 상태와 timestamp를 유지한다.
 - 오더러 분쟁 접수는 알림이 켜진 러너에게 분쟁 알림을 생성한다.

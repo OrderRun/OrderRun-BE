@@ -14,7 +14,7 @@
 - 이미 활성 수락 Offer가 있으면 추가 수락을 막는다.
 - 취소는 러너 본인과 `WAITING` 상태 규칙을 따른다.
 - 러너 완료는 Offer를 `RUNNER_COMPLETED` 또는 `ALL_COMPLETED`로 전이하고 Proposal 상태와 동기화한다.
-- 러너 분쟁은 active `RUNNER` 설문 질문 ID와 사유를 Proof에 기록하고, `ACCEPTED` 또는 `RUNNER_COMPLETED`에서 Offer와 Proposal을 `DISPUTED`로 전이하고 timestamp를 기록한다.
+- 러너 분쟁은 active `RUNNER` 설문 질문 ID와 사유를 DisputeEvidence에 기록하고, `ACCEPTED` 또는 `RUNNER_COMPLETED`에서 Offer와 Proposal을 `DISPUTED`로 전이하고 timestamp를 기록한다.
 - 러너 분쟁은 누락, 비활성, 대상 불일치 설문 질문 ID를 거절한다.
 - 러너 분쟁은 `ALL_COMPLETED`에서 거절되며 상태와 timestamp를 유지한다.
 - 러너 분쟁은 알림이 켜진 오더러에게 분쟁 알림을 생성한다.

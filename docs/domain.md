@@ -61,17 +61,12 @@ Offer는 러너 관점의 제안 및 수행 상태를 추적한다.
 | `WAITING -> REJECTED` | 같은 Proposal의 다른 Offer가 수락되거나 Proposal 취소로 대기 Offer가 정리될 때 |
 | `WAITING -> CANCELLED` | 러너가 수락 전 Offer를 취소할 때 |
 
-## Proof
+## DisputeEvidence
 
-Proof는 수행 과정에서 남기는 증빙성 기록이다.
-수행 상태의 정본은 Proposal/Offer이며, Proof는 사진 또는 사유 같은 근거를 보관한다.
+DisputeEvidence는 수행 중 분쟁이 접수될 때 남기는 분쟁 증빙 기록이다.
+수행 상태의 정본은 Proposal/Offer이며, DisputeEvidence는 분쟁 사유와 선택한 설문 질문을 보관한다.
 
-| ProofType | 설명 |
-|-----------|------|
-| DELIVERY | 러너 완료 증빙 |
-| DISPUTE | 오더 또는 러너의 분쟁 사유 |
-
-Proof는 `proposalId`, `offerId`, `actorId`, `proofType`, `imageUrl`, `reason`, `surveyQuestionId`, `createdAt`을 가진다.
+DisputeEvidence는 `proposalId`, `offerId`, `actorId`, `reason`, `surveyQuestionId`, `createdAt`을 가진다.
 
 ## 정책 기준
 
@@ -79,6 +74,6 @@ Proof는 `proposalId`, `offerId`, `actorId`, `proofType`, `imageUrl`, `reason`, 
 - Offer 수락 시 선택된 Offer는 `ACCEPTED`, 같은 Proposal의 다른 대기 Offer는 `REJECTED`가 된다.
 - 수락된 Offer ID가 매칭 이후 수행 건의 기준 식별자다.
 - 매칭 이후 오더 관점 진행 상태는 Proposal, 러너 관점 진행 상태는 Offer에서 추적한다.
-- 완료 증빙과 분쟁 사유 및 선택한 분쟁 설문 질문 ID는 Proof에 기록한다.
+- 분쟁 사유 및 선택한 분쟁 설문 질문 ID는 DisputeEvidence에 기록한다.
 - 공개 모집 상태의 Proposal은 다른 사용자가 신고할 수 있으며, 승인된 신고는 Proposal을 `REPORTED`로 전환하고 대기 Offer를 거절한다.
 - 정산 계좌와 약관 동의는 사용자 식별자에 종속된 사용자 부가 정책이다.

@@ -236,6 +236,7 @@ def test_representative_success_examples_match_contracts():
     offer_delivery = schema["paths"]["/v1/offer/{offer_id}/complete-delivery"]["post"]["responses"]["200"][
         "content"
     ]["application/json"]["example"]
+    assert "requestBody" not in schema["paths"]["/v1/offer/{offer_id}/complete-delivery"]["post"]
     assert offer_delivery["message"] == "완료 처리되었습니다."
     assert offer_delivery["data"]["status"] == "RUNNER_COMPLETED"
     assert "missionId" not in offer_delivery["data"]
@@ -304,6 +305,24 @@ def test_dispute_requests_require_survey_question_id_and_reason():
 
         assert set(body_schema["required"]) == {"surveyQuestionId", "disputeReason"}
         assert body_schema["properties"]["surveyQuestionId"]["minimum"] == 1
+
+
+def test_dispute_evidence_lookup_is_documented_with_exclusive_query_params():
+    operation = app.openapi()["paths"]["/v1/dispute-evidence"]["get"]
+    params = {param["name"]: param for param in operation["parameters"]}
+
+    assert set(params) == {"proposalId", "offerId"}
+    assert params["proposalId"]["required"] is False
+    assert params["offerId"]["required"] is False
+    assert operation["responses"]["200"]["content"]["application/json"]["example"]["data"] == {
+        "id": 1,
+        "proposalId": 1,
+        "offerId": 10,
+        "actorId": "550e8400-e29b-41d4-a716-446655440001",
+        "reason": "배송 중 파손",
+        "surveyQuestionId": 3,
+        "createdAt": "2026-06-01T12:00:00+09:00",
+    }
 
 
 def test_mission_collection_get_is_not_documented():
