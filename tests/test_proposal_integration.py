@@ -410,8 +410,6 @@ def test_confirm_received_marks_proposal_completed_without_finishing_offer(clien
     assert offer.disputed_at is None
     assert proposal.resolved_at is None
     assert offer.resolved_at is None
-    assert proposal.settled_at is None
-    assert offer.settled_at is None
 
 
 def test_confirm_received_after_runner_completion_marks_both_all_completed(client, db, factory, auth_headers, sample_user):
@@ -444,8 +442,6 @@ def test_confirm_received_after_runner_completion_marks_both_all_completed(clien
     assert offer.disputed_at is None
     assert proposal.resolved_at is None
     assert offer.resolved_at is None
-    assert proposal.settled_at is None
-    assert offer.settled_at is None
 
 
 def test_raise_proposal_dispute_updates_both_statuses_and_timestamps(client, db, factory, auth_headers, sample_user):
@@ -476,8 +472,6 @@ def test_raise_proposal_dispute_updates_both_statuses_and_timestamps(client, db,
     assert offer.disputed_at is not None
     assert proposal.resolved_at is None
     assert offer.resolved_at is None
-    assert proposal.settled_at is None
-    assert offer.settled_at is None
     evidence = (
         db.query(DisputeEvidence)
         .filter(

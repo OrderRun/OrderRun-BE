@@ -57,5 +57,3 @@ def test_resolve_offer_sets_resolved_from_disputed(client, db, factory, sample_u
     assert offer.resolved_at is not None
     assert proposal.disputed_at is not None
     assert offer.disputed_at is not None
-    assert proposal.settled_at is None
-    assert offer.settled_at is None

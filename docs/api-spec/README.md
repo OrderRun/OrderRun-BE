@@ -192,8 +192,8 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | ordererName | string, null | 작성자/오더러 사용자 이름 |
 | ordererLevel | number | 작성자/오더러 사용자 레벨 |
 | matchedAt | string, null | Offer 수락으로 매칭된 시각 |
-| deliveryReportedAt | string, null | 러너 완료가 Proposal에 반영된 시각 |
-| receivedConfirmedAt | string, null | 오더러 완료 확인 시각 |
+| runnerConfirmedAt | string, null | 러너가 전달/만남 완료를 확인한 시각 |
+| ordererConfirmedAt | string, null | 오더러가 수령/만남 완료를 확인한 시각 |
 | disputedAt | string, null | 분쟁 접수 시각 |
 | resolvedAt | string, null | 분쟁 해결 시각 |
 | openChatUrl | string, null | 매칭 당사자에게만 반환되는 카카오톡 오픈채팅방 링크 |
@@ -213,19 +213,37 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | runnerLevel | number | Offer 제출 러너 레벨 |
 | status | string | Offer 상태. `OfferStatus` 참조 |
 | acceptedAt | string, null | 오더가 Offer를 수락한 시각 |
-| deliveryCompletedAt | string, null | 러너 완료 시각 |
-| receiptConfirmedAt | string, null | 오더러 완료 확인이 Offer에 반영된 시각 |
+| runnerConfirmedAt | string, null | 러너가 전달/만남 완료를 확인한 시각 |
+| ordererConfirmedAt | string, null | 오더러가 수령/만남 완료를 확인한 시각 |
 | disputedAt | string, null | 분쟁 접수 시각 |
 | resolvedAt | string, null | 분쟁 해결 시각 |
 | createdAt | string | Offer 생성 시각 |
 
 ### OfferSummaryResponse
 
-Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `OfferResponse`와 동일하며 오픈채팅방 링크는 반환하지 않는다.
+Offer 조회 API에서 사용하는 응답이다. `OfferResponse`와 동일한 timestamp 계약을 사용하며, 오픈채팅방 링크는 반환하지 않는다.
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| id | number | Offer ID |
+| proposalId | number | 대상 Proposal ID |
+| ordererId | string | 대상 Proposal 작성자/오더러 ID |
+| ordererName | string, null | 대상 Proposal 작성자/오더러 이름 |
+| ordererLevel | number | 대상 Proposal 작성자/오더러 레벨 |
+| runnerId | string | Offer 제출 러너 ID |
+| runnerName | string, null | Offer 제출 러너 이름 |
+| runnerLevel | number | Offer 제출 러너 레벨 |
+| status | string | Offer 상태. `OfferStatus` 참조 |
+| acceptedAt | string, null | 오더러가 Offer를 수락한 시각 |
+| runnerConfirmedAt | string, null | 러너가 전달/만남 완료를 확인한 시각 |
+| ordererConfirmedAt | string, null | 오더러가 수령/만남 완료를 확인한 시각 |
+| disputedAt | string, null | 분쟁 접수 시각 |
+| resolvedAt | string, null | 분쟁 해결 시각 |
+| createdAt | string | Offer 생성 시각 |
 
 ### OfferDetailResponse
 
-`OfferResponse`와 동일한 필드에 다음 필드를 추가로 반환한다.
+상세 조회에서는 `OfferSummaryResponse`와 동일한 필드에 다음 필드를 추가로 반환한다.
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
@@ -388,7 +406,7 @@ Proposal별 오퍼 목록 조회에서 사용하는 응답이다. 필드는 `Off
 | 오퍼 수락 | `POST` | `/v1/offer/{offerId}/accept` | 필요. 연결된 Proposal 작성자만 가능 | `201 Created` | `OfferAcceptResponse` |
 | 오퍼 상세 조회 | `GET` | `/v1/offer/{id}` | 필요 | `200 OK` | `OfferDetailResponse` |
 | Proposal별 오퍼 목록 조회 | `GET` | `/v1/offer?proposalId={id}` | 필요 | `200 OK` | `OfferSummaryResponse[]` |
-| 내 오퍼 목록 조회 | `GET` | `/v1/offer/own` | 필요 | `200 OK` | `PageResponse<OfferResponse>` |
+| 내 오퍼 목록 조회 | `GET` | `/v1/offer/own` | 필요 | `200 OK` | `PageResponse<OfferSummaryResponse>` |
 | 러너 전달 완료 | `POST` | `/v1/offer/{offerId}/complete-delivery` | 필요. Offer 제출 러너만 가능 | `200 OK` | `OfferResponse` |
 | 러너 분쟁 접수 | `POST` | `/v1/offer/{offerId}/dispute` | 필요. Offer 제출 러너만 가능 | `200 OK` | `OfferResponse` |
 | 오퍼 취소 | `DELETE` | `/v1/offer/{offerId}` | 필요. Offer 제출 러너만 가능 | `204 No Content` | 없음 |

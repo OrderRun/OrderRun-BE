@@ -49,6 +49,11 @@ class TestDataFactory:
             item_price=0,
             deposit=0,
         )
+        # Set timestamps based on status
+        if status in {ProposalStatus.ORDER_COMPLETED, ProposalStatus.ALL_COMPLETED}:
+            proposal.orderer_confirmed_at = utcnow_naive()
+        if status == ProposalStatus.MATCHED:
+            proposal.matched_at = utcnow_naive()
         self.db.add(proposal)
         self.db.commit()
         self.db.refresh(proposal)

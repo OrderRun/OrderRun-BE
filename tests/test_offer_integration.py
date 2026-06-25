@@ -74,7 +74,6 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
     assert proposal.orderer_confirmed_at is None
     assert proposal.disputed_at is None
     assert proposal.resolved_at is None
-    assert proposal.settled_at is None
 
 
 def test_create_second_offer_keeps_proposal_offered(client, db, factory, sample_user):
@@ -409,11 +408,9 @@ def test_complete_delivery_marks_offer_completed_without_finishing_proposal(clie
     assert offer.orderer_confirmed_at is None
     assert offer.disputed_at is None
     assert offer.resolved_at is None
-    assert offer.settled_at is None
     assert proposal.orderer_confirmed_at is None
     assert proposal.disputed_at is None
     assert proposal.resolved_at is None
-    assert proposal.settled_at is None
     assert db.query(DisputeEvidence).filter(DisputeEvidence.offer_id == offer.id).count() == 0
 
 
@@ -450,8 +447,8 @@ def test_complete_delivery_after_orderer_completion_marks_both_all_completed(cli
     assert sample_user.level == 7
     assert offer.runner_confirmed_at is not None
     assert proposal.runner_confirmed_at is not None
-    assert offer.orderer_confirmed_at is None
-    assert proposal.orderer_confirmed_at is None
+    assert offer.orderer_confirmed_at is not None
+    assert proposal.orderer_confirmed_at is not None
     assert offer.disputed_at is None
     assert proposal.disputed_at is None
     assert offer.resolved_at is None
@@ -519,8 +516,6 @@ def test_raise_offer_dispute_updates_both_statuses_and_timestamps(client, db, fa
     assert proposal.disputed_at is not None
     assert offer.resolved_at is None
     assert proposal.resolved_at is None
-    assert offer.settled_at is None
-    assert proposal.settled_at is None
     evidence = (
         db.query(DisputeEvidence)
         .filter(

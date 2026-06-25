@@ -158,8 +158,10 @@ def test_representative_success_examples_match_contracts():
     assert proposal_detail_examples["holding"]["value"]["data"]["offers"] == []
     assert proposal_detail_examples["posted"]["value"]["data"]["offers"] == []
     assert proposal_detail_examples["matched"]["value"]["data"]["matchedAt"] is not None
-    assert proposal_detail_examples["order_completed"]["value"]["data"]["receivedConfirmedAt"] is not None
-    assert proposal_detail_examples["all_completed"]["value"]["data"]["deliveryReportedAt"] is not None
+    assert proposal_detail_examples["order_completed"]["value"]["data"]["ordererConfirmedAt"] is not None
+    assert proposal_detail_examples["all_completed"]["value"]["data"]["runnerConfirmedAt"] is not None
+    assert "receivedConfirmedAt" not in proposal_detail_examples["order_completed"]["value"]["data"]
+    assert "deliveryReportedAt" not in proposal_detail_examples["all_completed"]["value"]["data"]
     assert proposal_detail_examples["disputed"]["value"]["data"]["disputedAt"] is not None
     assert proposal_detail_examples["resolved"]["value"]["data"]["resolvedAt"] is not None
 
@@ -222,8 +224,11 @@ def test_representative_success_examples_match_contracts():
     assert "get" not in schema["paths"].get("/v1/offer/{offer_id}", {})
     assert offer_detail_examples["accepted"]["value"]["data"]["openChatUrl"] is not None
     assert offer_detail_examples["accepted"]["value"]["data"]["acceptedAt"] is not None
-    assert offer_detail_examples["runner_completed"]["value"]["data"]["deliveryCompletedAt"] is not None
-    assert offer_detail_examples["all_completed"]["value"]["data"]["receiptConfirmedAt"] is not None
+    assert offer_detail_examples["runner_completed"]["value"]["data"]["runnerConfirmedAt"] is not None
+    assert offer_detail_examples["all_completed"]["value"]["data"]["ordererConfirmedAt"] is not None
+    assert "matchedAt" not in offer_detail_examples["accepted"]["value"]["data"]
+    assert "deliveryCompletedAt" not in offer_detail_examples["runner_completed"]["value"]["data"]
+    assert "receiptConfirmedAt" not in offer_detail_examples["all_completed"]["value"]["data"]
     assert offer_detail_examples["disputed"]["value"]["data"]["disputedAt"] is not None
     assert offer_detail_examples["resolved"]["value"]["data"]["resolvedAt"] is not None
 
@@ -232,6 +237,15 @@ def test_representative_success_examples_match_contracts():
             "examples"
         ]
         assert set(operation_examples) == set(expected_offer_statuses)
+        runner_completed = operation_examples["runner_completed"]["value"]["data"]
+        if path == "/v1/offer/own":
+            runner_completed = runner_completed["content"][0]
+        else:
+            runner_completed = runner_completed[0]
+        assert "acceptedAt" in runner_completed
+        assert runner_completed["runnerConfirmedAt"] is not None
+        assert "deliveryCompletedAt" not in runner_completed
+        assert "receiptConfirmedAt" not in runner_completed
 
     offer_delivery = schema["paths"]["/v1/offer/{offer_id}/complete-delivery"]["post"]["responses"]["200"][
         "content"
@@ -240,7 +254,9 @@ def test_representative_success_examples_match_contracts():
     assert offer_delivery["message"] == "완료 처리되었습니다."
     assert offer_delivery["data"]["status"] == "RUNNER_COMPLETED"
     assert "missionId" not in offer_delivery["data"]
-    assert offer_delivery["data"]["deliveryCompletedAt"] is not None
+    assert offer_delivery["data"]["runnerConfirmedAt"] is not None
+    assert "deliveryCompletedAt" not in offer_delivery["data"]
+    assert "receiptConfirmedAt" not in offer_delivery["data"]
 
     settlement = schema["paths"]["/v1/settlement/account"]["put"]["responses"]["200"]["content"]["application/json"][
         "example"
