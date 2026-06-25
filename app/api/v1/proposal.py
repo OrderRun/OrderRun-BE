@@ -32,7 +32,7 @@ from app.schemas.proposal import (
     ProposalRequest,
     ProposalResponse,
 )
-from app.schemas.proof import ProofDisputeRequest
+from app.schemas.dispute_evidence import DisputeRequest
 from app.schemas.proposal_report import ProposalReportCreateRequest, ProposalReportResponse
 from app.services.proposal_service import ProposalService
 from app.services.proposal_report_service import ProposalReportService
@@ -288,7 +288,7 @@ def confirm_received(
 )
 def raise_proposal_dispute(
     proposal_id: int,
-    request: ProofDisputeRequest,
+    request: DisputeRequest,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

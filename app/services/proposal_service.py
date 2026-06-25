@@ -8,8 +8,8 @@ from app.core.errors import AppError, api_error
 from app.events.base import EventBus
 from app.events.execution_events import DisputeRaisedByOrdererEvent, MeetingConfirmedByOrdererEvent
 from app.models.dispute_survey import DisputeSurveyTargetType
+from app.models.dispute_evidence import DisputeEvidence
 from app.models.offer import Offer, OfferStatus
-from app.models.proof import Proof, ProofType
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
@@ -338,11 +338,10 @@ class ProposalService:
         DisputeSurveyService.ensure_active_question(db, survey_question_id, DisputeSurveyTargetType.ORDER)
         proposal.raise_dispute()
         offer.raise_dispute()
-        db.add(Proof(
+        db.add(DisputeEvidence(
             proposal_id=proposal.id,
             offer_id=offer.id,
             actor_id=orderer_id,
-            proof_type=ProofType.DISPUTE,
             survey_question_id=survey_question_id,
             reason=dispute_reason,
         ))

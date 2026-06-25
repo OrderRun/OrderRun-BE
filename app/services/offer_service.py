@@ -10,8 +10,8 @@ from app.events.base import EventBus
 from app.events.execution_events import DisputeRaisedByRunnerEvent, MeetingConfirmedByRunnerEvent
 from app.events.offer_events import OfferAcceptedEvent, OfferCreatedEvent
 from app.models.dispute_survey import DisputeSurveyTargetType
+from app.models.dispute_evidence import DisputeEvidence
 from app.models.offer import Offer, OfferStatus
-from app.models.proof import Proof, ProofType
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
@@ -293,7 +293,6 @@ class OfferService:
         db: Session,
         offer_id: int,
         runner_id: str,
-        proof_image_url: str | None,
     ) -> OfferResponse:
         offer = OfferService._get_offer(db, offer_id)
         if offer.runner_id != runner_id:
@@ -310,13 +309,6 @@ class OfferService:
         if proposal.status in {ProposalStatus.MATCHED, ProposalStatus.ORDER_COMPLETED}:
             proposal.report_delivery()
         OfferService._sync_all_completed(db, offer, proposal)
-        db.add(Proof(
-            proposal_id=proposal.id,
-            offer_id=offer.id,
-            actor_id=runner_id,
-            proof_type=ProofType.DELIVERY,
-            image_url=proof_image_url,
-        ))
         db.flush()
         EventBus.publish(MeetingConfirmedByRunnerEvent(
             offer_id=offer.id,
@@ -348,11 +340,10 @@ class OfferService:
         DisputeSurveyService.ensure_active_question(db, survey_question_id, DisputeSurveyTargetType.RUNNER)
         offer.raise_dispute()
         proposal.raise_dispute()
-        db.add(Proof(
+        db.add(DisputeEvidence(
             proposal_id=proposal.id,
             offer_id=offer.id,
             actor_id=runner_id,
-            proof_type=ProofType.DISPUTE,
             survey_question_id=survey_question_id,
             reason=dispute_reason,
         ))

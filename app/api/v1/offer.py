@@ -11,7 +11,7 @@ from app.core.firebase import get_notification_worker
 from app.core.openapi import (
     OFFER_ACCEPT_EXAMPLE,
     OFFER_CREATE_EXAMPLE,
-    OFFER_DELIVERY_EXAMPLE,
+    OFFER_COMPLETE_DELIVERY_EXAMPLE,
     OFFER_DETAIL_EXAMPLES,
     OFFER_DISPUTE_EXAMPLE,
     OFFER_LIST_EXAMPLES,
@@ -26,7 +26,7 @@ from app.models.offer import OfferStatus
 from app.models.user import User
 from app.schemas.common import ApiResponse, PageResponse
 from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferDetailResponse, OfferResponse, OfferSummaryResponse
-from app.schemas.proof import ProofDeliveryRequest, ProofDisputeRequest
+from app.schemas.dispute_evidence import DisputeRequest
 from app.services.offer_service import OfferService
 
 
@@ -193,9 +193,9 @@ def accept_offer(
     response_model=ApiResponse[OfferResponse],
     status_code=status.HTTP_200_OK,
     summary="러너 완료 처리",
-    description="러너가 완료 증빙 이미지를 등록하고 제안을 완료 상태로 변경합니다.",
+    description="러너가 제안을 완료 상태로 변경합니다.",
     responses={
-        200: success_response(OFFER_DELIVERY_EXAMPLE),
+        200: success_response(OFFER_COMPLETE_DELIVERY_EXAMPLE),
         **error_responses(
             AppError.INVALID_TOKEN,
             AppError.VALIDATION_ERROR,
@@ -207,7 +207,6 @@ def accept_offer(
 )
 def complete_delivery(
     offer_id: int,
-    request: ProofDeliveryRequest,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -216,7 +215,6 @@ def complete_delivery(
         db,
         offer_id=offer_id,
         runner_id=current_user.id,
-        proof_image_url=request.proof_image_url,
     )
     background_tasks.add_task(get_notification_worker().flush_pending, SessionLocal)
     return ApiResponse(success=True, data=offer, message="완료 처리되었습니다.")
@@ -241,7 +239,7 @@ def complete_delivery(
 )
 def raise_offer_dispute(
     offer_id: int,
-    request: ProofDisputeRequest,
+    request: DisputeRequest,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
