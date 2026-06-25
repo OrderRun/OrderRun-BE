@@ -31,8 +31,8 @@ class OfferResponse(BaseModel):
     runner_level: int = Field(..., serialization_alias="runnerLevel")
     status: OfferStatus
     accepted_at: datetime | None = Field(None, serialization_alias="acceptedAt")
-    delivery_completed_at: datetime | None = Field(None, serialization_alias="deliveryCompletedAt")
-    receipt_confirmed_at: datetime | None = Field(None, serialization_alias="receiptConfirmedAt")
+    runner_confirmed_at: datetime | None = Field(None, serialization_alias="runnerConfirmedAt")
+    orderer_confirmed_at: datetime | None = Field(None, serialization_alias="ordererConfirmedAt")
     disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
     resolved_at: datetime | None = Field(None, serialization_alias="resolvedAt")
     created_at: datetime = Field(..., serialization_alias="createdAt")
@@ -53,8 +53,8 @@ class OfferSummaryResponse(BaseModel):
     runner_level: int = Field(..., serialization_alias="runnerLevel")
     status: OfferStatus
     accepted_at: datetime | None = Field(None, serialization_alias="acceptedAt")
-    delivery_completed_at: datetime | None = Field(None, serialization_alias="deliveryCompletedAt")
-    receipt_confirmed_at: datetime | None = Field(None, serialization_alias="receiptConfirmedAt")
+    runner_confirmed_at: datetime | None = Field(None, serialization_alias="runnerConfirmedAt")
+    orderer_confirmed_at: datetime | None = Field(None, serialization_alias="ordererConfirmedAt")
     disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
     resolved_at: datetime | None = Field(None, serialization_alias="resolvedAt")
     created_at: datetime = Field(..., serialization_alias="createdAt")
@@ -75,8 +75,8 @@ class OfferDetailResponse(BaseModel):
     runner_level: int = Field(..., serialization_alias="runnerLevel")
     status: OfferStatus
     accepted_at: datetime | None = Field(None, serialization_alias="acceptedAt")
-    delivery_completed_at: datetime | None = Field(None, serialization_alias="deliveryCompletedAt")
-    receipt_confirmed_at: datetime | None = Field(None, serialization_alias="receiptConfirmedAt")
+    runner_confirmed_at: datetime | None = Field(None, serialization_alias="runnerConfirmedAt")
+    orderer_confirmed_at: datetime | None = Field(None, serialization_alias="ordererConfirmedAt")
     disputed_at: datetime | None = Field(None, serialization_alias="disputedAt")
     resolved_at: datetime | None = Field(None, serialization_alias="resolvedAt")
     open_chat_url: str | None = Field(None, serialization_alias="openChatUrl")

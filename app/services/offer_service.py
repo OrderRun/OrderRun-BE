@@ -79,8 +79,8 @@ class OfferService:
             "runner_level": runner_level,
             "status": offer.status,
             "accepted_at": offer.accepted_at,
-            "delivery_completed_at": offer.delivery_completed_at,
-            "receipt_confirmed_at": offer.receipt_confirmed_at,
+            "runner_confirmed_at": offer.runner_confirmed_at,
+            "orderer_confirmed_at": offer.orderer_confirmed_at,
             "disputed_at": offer.disputed_at,
             "resolved_at": offer.resolved_at,
             "created_at": offer.created_at,
@@ -299,15 +299,17 @@ class OfferService:
             raise api_error(AppError.FORBIDDEN)
 
         proposal = OfferService._get_proposal(db, offer.proposal_id)
-        if not offer.can_complete_delivery() or proposal.status not in {
+        if not offer.can_confirm_runner_completion() or proposal.status not in {
             ProposalStatus.MATCHED,
             ProposalStatus.ORDER_COMPLETED,
         }:
             raise api_error(AppError.OFFER_NOT_UPDATABLE, f"status: {offer.status.value}")
 
-        offer.complete_delivery()
+        offer.confirm_runner_completion()
         if proposal.status in {ProposalStatus.MATCHED, ProposalStatus.ORDER_COMPLETED}:
-            proposal.report_delivery()
+            proposal.confirm_runner_completion()
+        if proposal.status == ProposalStatus.ORDER_COMPLETED:
+            offer.confirm_orderer_completion()
         OfferService._sync_all_completed(db, offer, proposal)
         db.flush()
         EventBus.publish(MeetingConfirmedByRunnerEvent(

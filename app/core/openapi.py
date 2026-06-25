@@ -364,8 +364,8 @@ OFFER_EXAMPLE = {
     "runnerLevel": EXAMPLE_RUNNER_LEVEL,
     "status": "WAITING",
     "acceptedAt": None,
-    "deliveryCompletedAt": None,
-    "receiptConfirmedAt": None,
+    "runnerConfirmedAt": None,
+    "ordererConfirmedAt": None,
     "disputedAt": None,
     "resolvedAt": None,
     "createdAt": EXAMPLE_CREATED_AT,
@@ -376,12 +376,12 @@ OFFER_RUNNER_COMPLETED_EXAMPLE = {
     **OFFER_EXAMPLE,
     "status": "RUNNER_COMPLETED",
     "acceptedAt": EXAMPLE_CREATED_AT,
-    "deliveryCompletedAt": EXAMPLE_UPDATED_AT,
+    "runnerConfirmedAt": EXAMPLE_UPDATED_AT,
 }
 OFFER_ALL_COMPLETED_EXAMPLE = {
     **OFFER_RUNNER_COMPLETED_EXAMPLE,
     "status": "ALL_COMPLETED",
-    "receiptConfirmedAt": EXAMPLE_UPDATED_AT,
+    "ordererConfirmedAt": EXAMPLE_UPDATED_AT,
 }
 OFFER_DISPUTED_STATUS_EXAMPLE = {
     **OFFER_EXAMPLE,

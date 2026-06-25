@@ -36,9 +36,8 @@ class Offer(Base):
 
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
     accepted_at = Column(DateTime(timezone=True), nullable=True)
-    delivery_completed_at = Column(DateTime(timezone=True), nullable=True)
-    receipt_confirmed_at = Column(DateTime(timezone=True), nullable=True)
-    settled_at = Column(DateTime(timezone=True), nullable=True)
+    runner_confirmed_at = Column(DateTime(timezone=True), nullable=True)
+    orderer_confirmed_at = Column(DateTime(timezone=True), nullable=True)
     disputed_at = Column(DateTime(timezone=True), nullable=True)
     resolved_at = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
@@ -62,22 +61,22 @@ class Offer(Base):
         self.status = OfferStatus.ACCEPTED
         self.accepted_at = utcnow_naive()
 
-    def can_complete_delivery(self) -> bool:
+    def can_confirm_runner_completion(self) -> bool:
         return self.status == OfferStatus.ACCEPTED
 
-    def complete_delivery(self) -> None:
-        if not self.can_complete_delivery():
-            raise ValueError("Cannot complete delivery for offer not in ACCEPTED status")
+    def confirm_runner_completion(self) -> None:
+        if not self.can_confirm_runner_completion():
+            raise ValueError("Cannot confirm runner completion for offer not in ACCEPTED status")
         self.status = OfferStatus.RUNNER_COMPLETED
-        self.delivery_completed_at = utcnow_naive()
+        self.runner_confirmed_at = utcnow_naive()
 
-    def can_confirm_receipt(self) -> bool:
+    def can_confirm_orderer_completion(self) -> bool:
         return self.status in {OfferStatus.ACCEPTED, OfferStatus.RUNNER_COMPLETED}
 
-    def confirm_receipt(self) -> None:
-        if not self.can_confirm_receipt():
-            raise ValueError("Cannot confirm receipt for offer not in active execution status")
-        self.receipt_confirmed_at = utcnow_naive()
+    def confirm_orderer_completion(self) -> None:
+        if not self.can_confirm_orderer_completion():
+            raise ValueError("Cannot confirm orderer completion for offer not in active execution status")
+        self.orderer_confirmed_at = utcnow_naive()
 
     def mark_all_completed(self) -> None:
         if self.status not in {OfferStatus.RUNNER_COMPLETED, OfferStatus.ACCEPTED}:
