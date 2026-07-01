@@ -11,7 +11,7 @@ from app.core.firebase import get_notification_worker
 from app.core.openapi import (
     OFFER_ACCEPT_EXAMPLE,
     OFFER_CREATE_EXAMPLE,
-    OFFER_COMPLETE_DELIVERY_EXAMPLE,
+    OFFER_COMPLETE_DELIVERY_EXAMPLES,
     OFFER_DETAIL_EXAMPLES,
     OFFER_DISPUTE_EXAMPLE,
     OFFER_LIST_EXAMPLES,
@@ -195,7 +195,7 @@ def accept_offer(
     summary="러너 완료 처리",
     description="러너가 제안을 완료 상태로 변경합니다.",
     responses={
-        200: success_response(OFFER_COMPLETE_DELIVERY_EXAMPLE),
+        200: success_response_examples(OFFER_COMPLETE_DELIVERY_EXAMPLES),
         **error_responses(
             AppError.INVALID_TOKEN,
             AppError.VALIDATION_ERROR,

@@ -14,3 +14,4 @@
 - [`user-auth/`](./user-auth/): User/Auth 마이그레이션 기준 문서 묶음
 - [`proposal/`](./proposal/): Proposal 마이그레이션 기준 문서 묶음
 - [`terms-agreement/`](./terms-agreement/): Terms Agreement 마이그레이션 기준 문서 묶음
+- [`2026-07-01-user-service-responsibility-refactor.md`](./2026-07-01-user-service-responsibility-refactor.md): 사용자 인증·프로필·탈퇴 서비스 책임 분리

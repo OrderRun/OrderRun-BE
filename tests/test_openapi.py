@@ -247,16 +247,24 @@ def test_representative_success_examples_match_contracts():
         assert "deliveryCompletedAt" not in runner_completed
         assert "receiptConfirmedAt" not in runner_completed
 
-    offer_delivery = schema["paths"]["/v1/offer/{offer_id}/complete-delivery"]["post"]["responses"]["200"][
+    offer_delivery_examples = schema["paths"]["/v1/offer/{offer_id}/complete-delivery"]["post"]["responses"]["200"][
         "content"
-    ]["application/json"]["example"]
+    ]["application/json"]["examples"]
     assert "requestBody" not in schema["paths"]["/v1/offer/{offer_id}/complete-delivery"]["post"]
-    assert offer_delivery["message"] == "완료 처리되었습니다."
-    assert offer_delivery["data"]["status"] == "RUNNER_COMPLETED"
-    assert "missionId" not in offer_delivery["data"]
-    assert offer_delivery["data"]["runnerConfirmedAt"] is not None
-    assert "deliveryCompletedAt" not in offer_delivery["data"]
-    assert "receiptConfirmedAt" not in offer_delivery["data"]
+    assert set(offer_delivery_examples) == {"runner_completed", "all_completed"}
+    for example_name, expected_status in {
+        "runner_completed": "RUNNER_COMPLETED",
+        "all_completed": "ALL_COMPLETED",
+    }.items():
+        offer_delivery = offer_delivery_examples[example_name]["value"]
+        assert offer_delivery["message"] == "완료 처리되었습니다."
+        assert offer_delivery["data"]["status"] == expected_status
+        assert "missionId" not in offer_delivery["data"]
+        assert offer_delivery["data"]["runnerConfirmedAt"] is not None
+        assert "deliveryCompletedAt" not in offer_delivery["data"]
+        assert "receiptConfirmedAt" not in offer_delivery["data"]
+    assert "ordererConfirmedAt" not in offer_delivery_examples["runner_completed"]["value"]["data"]
+    assert offer_delivery_examples["all_completed"]["value"]["data"]["ordererConfirmedAt"] is not None
 
     settlement = schema["paths"]["/v1/settlement/account"]["put"]["responses"]["200"]["content"]["application/json"][
         "example"

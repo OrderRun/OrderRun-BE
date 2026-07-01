@@ -164,8 +164,8 @@ PROPOSAL_STATE_TIMESTAMPS = {
     "ordererName": EXAMPLE_ORDERER_NAME,
     "ordererLevel": EXAMPLE_ORDERER_LEVEL,
     "matchedAt": None,
-    "deliveryReportedAt": None,
-    "receivedConfirmedAt": None,
+    "runnerConfirmedAt": None,
+    "ordererConfirmedAt": None,
     "disputedAt": None,
     "resolvedAt": None,
     "openChatUrl": None,
@@ -224,13 +224,13 @@ PROPOSAL_MATCHED_DETAIL_EXAMPLE = {
 PROPOSAL_ORDER_COMPLETED_DETAIL_EXAMPLE = {
     **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
     "status": "ORDER_COMPLETED",
-    "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
+    "ordererConfirmedAt": EXAMPLE_UPDATED_AT,
 }
 PROPOSAL_ALL_COMPLETED_DETAIL_EXAMPLE = {
     **PROPOSAL_MATCHED_DETAIL_EXAMPLE,
     "status": "ALL_COMPLETED",
-    "deliveryReportedAt": EXAMPLE_UPDATED_AT,
-    "receivedConfirmedAt": EXAMPLE_UPDATED_AT,
+    "runnerConfirmedAt": EXAMPLE_UPDATED_AT,
+    "ordererConfirmedAt": EXAMPLE_UPDATED_AT,
     "offers": [PROPOSAL_ALL_COMPLETED_OFFER_EXAMPLE],
 }
 PROPOSAL_DISPUTED_DETAIL_EXAMPLE = {
@@ -463,10 +463,17 @@ OFFER_LIST_EXAMPLE = {"success": True, "data": [OFFER_EXAMPLE], "message": "Succ
 OFFER_CREATE_EXAMPLE = {"success": True, "data": OFFER_EXAMPLE, "message": "제안이 제출되었습니다."}
 OFFER_DETAIL_EXAMPLE = {"success": True, "data": OFFER_EXAMPLE, "message": "Success"}
 OFFER_ACCEPTED_DETAIL_EXAMPLE = OFFER_DETAIL_EXAMPLES["accepted"]
-OFFER_COMPLETE_DELIVERY_EXAMPLE = {
-    "success": True,
-    "data": OFFER_RUNNER_COMPLETED_EXAMPLE,
-    "message": "완료 처리되었습니다.",
+OFFER_COMPLETE_DELIVERY_EXAMPLES = {
+    "runner_completed": {
+        "success": True,
+        "data": OFFER_RUNNER_COMPLETED_EXAMPLE,
+        "message": "완료 처리되었습니다.",
+    },
+    "all_completed": {
+        "success": True,
+        "data": OFFER_ALL_COMPLETED_EXAMPLE,
+        "message": "완료 처리되었습니다.",
+    },
 }
 OFFER_DISPUTE_EXAMPLE = {
     "success": True,
