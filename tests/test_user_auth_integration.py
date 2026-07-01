@@ -22,6 +22,7 @@ from app.models.user import (
 )
 from app.services.sms_service import get_sms_sender
 from app.services.proposal_service import ProposalService
+from app.services.phone_verification import VERIFICATION_CODE_MAX_ATTEMPTS
 from app.services.user_auth_service import UserAuthService
 
 
@@ -498,7 +499,7 @@ def test_verification_state_rules(client, db, sms_sender):
     db.refresh(verification)
     assert verification.attempt_count == 1
 
-    verification.attempt_count = 4
+    verification.attempt_count = VERIFICATION_CODE_MAX_ATTEMPTS - 1
     db.commit()
 
     mismatch_again = client.post(
@@ -553,6 +554,46 @@ def test_signup_send_persists_verification_even_if_background_sms_fails(client, 
     ).first()
     assert verification is not None
     assert verification.status == PhoneVerificationStatus.PENDING
+
+
+def test_login_send_persists_verification_even_if_background_sms_fails(client, db, factory):
+    class FailingSmsSender:
+        def send(self, phone: str, message: str) -> None:
+            raise RuntimeError("sms failed")
+
+    user = factory.user(phone="01033334445")
+    app.dependency_overrides[get_sms_sender] = lambda: FailingSmsSender()
+
+    response = client.post("/v1/auth/login/send", json={"phone": user.phone})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["phone"] == user.phone
+
+    verification = db.query(AuthPhoneVerification).filter(
+        AuthPhoneVerification.phone == user.phone,
+        AuthPhoneVerification.purpose == PhoneVerificationPurpose.LOGIN,
+    ).first()
+    assert verification is not None
+    assert verification.status == PhoneVerificationStatus.PENDING
+
+
+def test_verification_send_does_not_persist_when_sms_sender_is_missing(client, db, factory):
+    login_user = factory.user(phone="01033334446")
+    app.dependency_overrides[get_sms_sender] = lambda: None
+
+    signup_response = client.post(
+        "/v1/auth/signup/send",
+        json={"name": "홍길동", "phone": "010-3333-4447", "carrier": "SKT"},
+    )
+    login_response = client.post("/v1/auth/login/send", json={"phone": login_user.phone})
+
+    assert signup_response.status_code == 500
+    assert signup_response.json()["error"]["code"] == "SMS_SENDER_NOT_CONFIGURED"
+    assert login_response.status_code == 500
+    assert login_response.json()["error"]["code"] == "SMS_SENDER_NOT_CONFIGURED"
+    assert db.query(AuthPhoneVerification).filter(
+        AuthPhoneVerification.phone.in_(["01033334447", login_user.phone])
+    ).count() == 0
 
 
 def test_model_spec_matches_user_auth_docs():

@@ -29,6 +29,10 @@ def test_verification_code_ttl_and_message_share_policy():
     )
 
 
+def test_verification_code_max_attempts_policy():
+    assert phone_verification.VERIFICATION_CODE_MAX_ATTEMPTS == 5
+
+
 @pytest.mark.parametrize("app_env", ["development", "local", "staging"])
 def test_login_test_code_is_allowed_in_non_production_environments(monkeypatch, app_env):
     monkeypatch.setattr(phone_verification.settings, "app_env", app_env)

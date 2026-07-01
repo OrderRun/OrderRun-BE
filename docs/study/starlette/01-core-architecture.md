@@ -174,6 +174,8 @@ async def signup(background_tasks: BackgroundTasks):
 background_tasks.add_task(self._send_sms_safely, phone, message)
 ```
 
+회원가입과 로그인 인증번호 발송 메서드는 `BackgroundTasks`를 필수로 받는다. 따라서 `None` 여부에 따라 동기 발송으로 전환하지 않고, DB 저장이 완료된 뒤 항상 응답 후 작업으로 등록한다.
+
 `_send_sms_safely`는 일반 `def`이므로 응답 전송 뒤 AnyIO 스레드 풀에서 실행된다. 즉, 인증번호 발송 실패가 이미 완료된 HTTP 응답을 바꾸지는 않는다. 이 특성은 현재 통합 테스트의 `test_signup_send_persists_verification_even_if_background_sms_fails`가 검증한다.
 
 ### 알림 발송 대기 항목 처리

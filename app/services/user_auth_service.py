@@ -39,6 +39,7 @@ from app.schemas.user import (
     UserDetailResponse,
 )
 from app.services.phone_verification import (
+    VERIFICATION_CODE_MAX_ATTEMPTS,
     VERIFICATION_CODE_TTL,
     build_verification_message,
     generate_verification_code,
@@ -119,14 +120,17 @@ class UserAuthService:
             is not None
         )
 
-    def _send_verification(
+    def send_signup_verification(
         self,
-        purpose: PhoneVerificationPurpose,
-        phone: str,
-        name: str | None = None,
-        carrier: str | None = None,
-        background_tasks: BackgroundTasks | None = None,
+        payload: AuthSignupSendRequest,
+        background_tasks: BackgroundTasks,
     ) -> AuthVerificationSendResponse:
+        phone = normalize_phone(payload.phone)
+        if self._find_user_by_phone(phone) is not None:
+            raise api_error(AppError.PHONE_ALREADY_EXISTS)
+        if self._has_active_pending_verification(PhoneVerificationPurpose.SIGNUP, phone):
+            raise api_error(AppError.PHONE_VERIFICATION_ALREADY_SENT)
+
         if self.sms_sender is None:
             raise api_error(AppError.SMS_SENDER_NOT_CONFIGURED)
 
@@ -134,10 +138,10 @@ class UserAuthService:
         message = build_verification_message(code)
         now = utcnow_naive()
         verification = AuthPhoneVerification(
-            purpose=purpose,
+            purpose=PhoneVerificationPurpose.SIGNUP,
             phone=phone,
-            name=name,
-            carrier=carrier,
+            name=payload.name.strip(),
+            carrier=payload.carrier.strip(),
             code_hash=hash_verification_code(code),
             status=PhoneVerificationStatus.PENDING,
             expires_at=now + VERIFICATION_CODE_TTL,
@@ -145,37 +149,16 @@ class UserAuthService:
             attempt_count=0,
         )
         self.db.add(verification)
-
         self.db.commit()
         self.db.refresh(verification)
-        if background_tasks is not None:
-            background_tasks.add_task(self._send_sms_safely, phone, message)
-        else:
-            self._send_sms_safely(phone, message)
-        return AuthVerificationSendResponse(phone=phone, expires_at=verification.expires_at)
 
-    def send_signup_verification(
-        self,
-        payload: AuthSignupSendRequest,
-        background_tasks: BackgroundTasks | None = None,
-    ) -> AuthVerificationSendResponse:
-        phone = normalize_phone(payload.phone)
-        if self._find_user_by_phone(phone) is not None:
-            raise api_error(AppError.PHONE_ALREADY_EXISTS)
-        if self._has_active_pending_verification(PhoneVerificationPurpose.SIGNUP, phone):
-            raise api_error(AppError.PHONE_VERIFICATION_ALREADY_SENT)
-        return self._send_verification(
-            purpose=PhoneVerificationPurpose.SIGNUP,
-            phone=phone,
-            name=payload.name.strip(),
-            carrier=payload.carrier.strip(),
-            background_tasks=background_tasks,
-        )
+        background_tasks.add_task(self._send_sms_safely, phone, message)
+        return AuthVerificationSendResponse(phone=phone, expires_at=verification.expires_at)
 
     def send_login_verification(
         self,
         payload: AuthLoginSendRequest,
-        background_tasks: BackgroundTasks | None = None,
+        background_tasks: BackgroundTasks,
     ) -> AuthVerificationSendResponse:
         phone = normalize_phone(payload.phone)
         user = self._find_user_by_phone(phone)
@@ -183,13 +166,30 @@ class UserAuthService:
             raise api_error(AppError.INVALID_CREDENTIALS)
         if self._has_active_pending_verification(PhoneVerificationPurpose.LOGIN, phone):
             raise api_error(AppError.PHONE_VERIFICATION_ALREADY_SENT)
-        return self._send_verification(
+
+        if self.sms_sender is None:
+            raise api_error(AppError.SMS_SENDER_NOT_CONFIGURED)
+
+        code = generate_verification_code()
+        message = build_verification_message(code)
+        now = utcnow_naive()
+        verification = AuthPhoneVerification(
             purpose=PhoneVerificationPurpose.LOGIN,
             phone=phone,
-            background_tasks=background_tasks,
+            code_hash=hash_verification_code(code),
+            status=PhoneVerificationStatus.PENDING,
+            expires_at=now + VERIFICATION_CODE_TTL,
+            sent_at=now,
+            attempt_count=0,
         )
+        self.db.add(verification)
+        self.db.commit()
+        self.db.refresh(verification)
 
-    def _confirm_verification(
+        background_tasks.add_task(self._send_sms_safely, phone, message)
+        return AuthVerificationSendResponse(phone=phone, expires_at=verification.expires_at)
+
+    def _verify_phone_verification(
         self,
         purpose: PhoneVerificationPurpose,
         phone: str,
@@ -207,7 +207,7 @@ class UserAuthService:
 
         if verification.code_hash != hash_verification_code(code):
             verification.attempt_count += 1
-            if verification.attempt_count >= 5:
+            if verification.attempt_count >= VERIFICATION_CODE_MAX_ATTEMPTS:
                 verification.status = PhoneVerificationStatus.EXPIRED
             self.db.commit()
             raise api_error(AppError.PHONE_VERIFICATION_CODE_MISMATCH)
@@ -229,7 +229,7 @@ class UserAuthService:
 
     def confirm_signup(self, payload: AuthPhoneConfirmRequest) -> AuthTokenResponse:
         phone = normalize_phone(payload.phone)
-        verification = self._confirm_verification(PhoneVerificationPurpose.SIGNUP, phone, payload.code)
+        verification = self._verify_phone_verification(PhoneVerificationPurpose.SIGNUP, phone, payload.code)
 
         if self._find_user_by_phone(phone) is not None:
             self.db.rollback()
@@ -260,7 +260,7 @@ class UserAuthService:
             raise api_error(AppError.USER_NOT_FOUND)
 
         if not is_login_test_code_allowed(payload.code):
-            self._confirm_verification(PhoneVerificationPurpose.LOGIN, phone, payload.code)
+            self._verify_phone_verification(PhoneVerificationPurpose.LOGIN, phone, payload.code)
 
         now = utcnow_naive()
         user.update_last_login_at(now)
