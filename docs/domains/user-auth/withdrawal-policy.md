@@ -81,8 +81,6 @@ Offer 기준:
 - `offers`
 - `dispute_evidences`
 - `terms_agreements`
-- `settlement_accounts`
-- `notifications`
 
 ## API 공개 상태
 

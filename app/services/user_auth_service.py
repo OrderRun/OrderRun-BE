@@ -1,8 +1,6 @@
-"""Phone-auth and user account service layer."""
+"""Phone-auth application service."""
 
 from __future__ import annotations
-
-import logging
 
 from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
@@ -16,17 +14,7 @@ from app.core.security import (
     verify_token,
 )
 from app.core.time import utcnow_naive
-from app.models.user import (
-    AuthPhoneVerification,
-    PhoneVerificationPurpose,
-    PhoneVerificationStatus,
-    User,
-    UserFCMToken,
-)
-from app.models.offer import Offer, OfferStatus
-from app.models.proposal import Proposal, ProposalStatus
-from app.models.notification import Notification
-from app.models.settlement import SettlementAccount
+from app.models.user import PhoneVerificationPurpose, User
 from app.schemas.user import (
     AuthAccessTokenResponse,
     AuthLoginConfirmRequest,
@@ -36,203 +24,65 @@ from app.schemas.user import (
     AuthSignupSendRequest,
     AuthTokenResponse,
     AuthVerificationSendResponse,
-    UserDetailResponse,
 )
-from app.services.phone_verification import (
-    VERIFICATION_CODE_MAX_ATTEMPTS,
-    VERIFICATION_CODE_TTL,
-    build_verification_message,
-    generate_verification_code,
-    hash_verification_code,
-    is_login_test_code_allowed,
-)
-from app.services.sms_service import SmsSender
-
-
-logger = logging.getLogger(__name__)
-
-WITHDRAWAL_BLOCKING_PROPOSAL_STATUSES = {
-    ProposalStatus.MATCHED,
-    ProposalStatus.ORDER_COMPLETED,
-    ProposalStatus.DISPUTED,
-}
-WITHDRAWAL_BLOCKING_OFFER_STATUSES = {
-    OfferStatus.ACCEPTED,
-    OfferStatus.RUNNER_COMPLETED,
-    OfferStatus.DISPUTED,
-}
-WITHDRAWAL_AUTO_CANCEL_PROPOSAL_STATUSES = {
-    ProposalStatus.HOLDING,
-    ProposalStatus.POSTED,
-    ProposalStatus.OFFERED,
-}
-WITHDRAWAL_AUTO_CANCEL_OFFER_STATUSES = {OfferStatus.WAITING}
+from app.services.phone_verification import is_login_test_code_allowed
+from app.services.phone_verification_service import PhoneVerificationService
+from app.services.user_profile_service import UserProfileService
 
 
 class UserAuthService:
-    def __init__(self, db: Session, sms_sender: SmsSender | None = None):
-        self.db = db
-        self.sms_sender = sms_sender
-
-    def _send_sms_safely(self, phone: str, message: str) -> None:
-        if self.sms_sender is None:
-            logger.error("SMS sender not configured")
-            return
-        try:
-            self.sms_sender.send(phone, message)
-        except Exception:
-            logger.exception("SMS sending failed")
-
-    def _find_user_by_phone(self, phone: str) -> User | None:
-        return self.db.query(User).filter(User.phone == phone, User.deleted.is_(False)).first()
-
-    def _latest_pending_verification(
-        self,
-        purpose: PhoneVerificationPurpose,
-        phone: str,
-    ) -> AuthPhoneVerification | None:
-        return (
-            self.db.query(AuthPhoneVerification)
-            .filter(
-                AuthPhoneVerification.purpose == purpose,
-                AuthPhoneVerification.phone == phone,
-                AuthPhoneVerification.status == PhoneVerificationStatus.PENDING,
-            )
-            .order_by(AuthPhoneVerification.sent_at.desc(), AuthPhoneVerification.id.desc())
-            .first()
-        )
-
-    def _has_active_pending_verification(
-        self,
-        purpose: PhoneVerificationPurpose,
-        phone: str,
-    ) -> bool:
-        now = utcnow_naive()
-        return (
-            self.db.query(AuthPhoneVerification)
-            .filter(
-                AuthPhoneVerification.purpose == purpose,
-                AuthPhoneVerification.phone == phone,
-                AuthPhoneVerification.status == PhoneVerificationStatus.PENDING,
-                AuthPhoneVerification.expires_at > now,
-            )
-            .first()
-            is not None
-        )
-
+    @staticmethod
     def send_signup_verification(
-        self,
+        db: Session,
+        phone_verification: PhoneVerificationService,
         payload: AuthSignupSendRequest,
         background_tasks: BackgroundTasks,
     ) -> AuthVerificationSendResponse:
         phone = normalize_phone(payload.phone)
-        if self._find_user_by_phone(phone) is not None:
+        if UserAuthService._find_user_by_phone(db, phone) is not None:
             raise api_error(AppError.PHONE_ALREADY_EXISTS)
-        if self._has_active_pending_verification(PhoneVerificationPurpose.SIGNUP, phone):
-            raise api_error(AppError.PHONE_VERIFICATION_ALREADY_SENT)
-
-        if self.sms_sender is None:
-            raise api_error(AppError.SMS_SENDER_NOT_CONFIGURED)
-
-        code = generate_verification_code()
-        message = build_verification_message(code)
-        now = utcnow_naive()
-        verification = AuthPhoneVerification(
-            purpose=PhoneVerificationPurpose.SIGNUP,
-            phone=phone,
+        return phone_verification.send(
+            db,
+            PhoneVerificationPurpose.SIGNUP,
+            phone,
+            background_tasks,
             name=payload.name.strip(),
             carrier=payload.carrier.strip(),
-            code_hash=hash_verification_code(code),
-            status=PhoneVerificationStatus.PENDING,
-            expires_at=now + VERIFICATION_CODE_TTL,
-            sent_at=now,
-            attempt_count=0,
         )
-        self.db.add(verification)
-        self.db.commit()
-        self.db.refresh(verification)
 
-        background_tasks.add_task(self._send_sms_safely, phone, message)
-        return AuthVerificationSendResponse(phone=phone, expires_at=verification.expires_at)
-
+    @staticmethod
     def send_login_verification(
-        self,
+        db: Session,
+        phone_verification: PhoneVerificationService,
         payload: AuthLoginSendRequest,
         background_tasks: BackgroundTasks,
     ) -> AuthVerificationSendResponse:
         phone = normalize_phone(payload.phone)
-        user = self._find_user_by_phone(phone)
-        if user is None:
+        if UserAuthService._find_user_by_phone(db, phone) is None:
             raise api_error(AppError.INVALID_CREDENTIALS)
-        if self._has_active_pending_verification(PhoneVerificationPurpose.LOGIN, phone):
-            raise api_error(AppError.PHONE_VERIFICATION_ALREADY_SENT)
-
-        if self.sms_sender is None:
-            raise api_error(AppError.SMS_SENDER_NOT_CONFIGURED)
-
-        code = generate_verification_code()
-        message = build_verification_message(code)
-        now = utcnow_naive()
-        verification = AuthPhoneVerification(
-            purpose=PhoneVerificationPurpose.LOGIN,
-            phone=phone,
-            code_hash=hash_verification_code(code),
-            status=PhoneVerificationStatus.PENDING,
-            expires_at=now + VERIFICATION_CODE_TTL,
-            sent_at=now,
-            attempt_count=0,
-        )
-        self.db.add(verification)
-        self.db.commit()
-        self.db.refresh(verification)
-
-        background_tasks.add_task(self._send_sms_safely, phone, message)
-        return AuthVerificationSendResponse(phone=phone, expires_at=verification.expires_at)
-
-    def _verify_phone_verification(
-        self,
-        purpose: PhoneVerificationPurpose,
-        phone: str,
-        code: str,
-    ) -> AuthPhoneVerification:
-        verification = self._latest_pending_verification(purpose, phone)
-        if verification is None:
-            raise api_error(AppError.PHONE_VERIFICATION_NOT_FOUND)
-
-        now = utcnow_naive()
-        if verification.expires_at <= now:
-            verification.status = PhoneVerificationStatus.EXPIRED
-            self.db.commit()
-            raise api_error(AppError.PHONE_VERIFICATION_EXPIRED)
-
-        if verification.code_hash != hash_verification_code(code):
-            verification.attempt_count += 1
-            if verification.attempt_count >= VERIFICATION_CODE_MAX_ATTEMPTS:
-                verification.status = PhoneVerificationStatus.EXPIRED
-            self.db.commit()
-            raise api_error(AppError.PHONE_VERIFICATION_CODE_MISMATCH)
-
-        verification.status = PhoneVerificationStatus.VERIFIED
-        verification.verified_at = now
-        return verification
-
-    def _build_tokens(self, user: User) -> AuthTokenResponse:
-        access_token = create_access_token({"sub": str(user.id)})
-        refresh_token = create_refresh_token({"sub": str(user.id)})
-        return AuthTokenResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="Bearer",
-            expires_in=access_token_expires_in_ms(),
-            user_id=str(user.id),
+        return phone_verification.send(
+            db,
+            PhoneVerificationPurpose.LOGIN,
+            phone,
+            background_tasks,
         )
 
-    def confirm_signup(self, payload: AuthPhoneConfirmRequest) -> AuthTokenResponse:
+    @staticmethod
+    def confirm_signup(
+        db: Session,
+        phone_verification: PhoneVerificationService,
+        payload: AuthPhoneConfirmRequest,
+    ) -> AuthTokenResponse:
         phone = normalize_phone(payload.phone)
-        verification = self._verify_phone_verification(PhoneVerificationPurpose.SIGNUP, phone, payload.code)
+        verification = phone_verification.verify(
+            db,
+            PhoneVerificationPurpose.SIGNUP,
+            phone,
+            payload.code,
+        )
 
-        if self._find_user_by_phone(phone) is not None:
-            self.db.rollback()
+        if UserAuthService._find_user_by_phone(db, phone) is not None:
+            db.rollback()
             raise api_error(AppError.PHONE_ALREADY_EXISTS)
 
         now = utcnow_naive()
@@ -243,171 +93,71 @@ class UserAuthService:
             last_login_at=now,
             alarm_enabled=False,
         )
-        self.db.add(user)
+        db.add(user)
         try:
-            self.db.commit()
+            db.commit()
         except Exception as exc:  # pragma: no cover - defensive transactional guard
-            self.db.rollback()
+            db.rollback()
             raise api_error(AppError.PHONE_ALREADY_EXISTS) from exc
 
-        self.db.refresh(user)
-        return self._build_tokens(user)
+        db.refresh(user)
+        return UserAuthService._build_tokens(user)
 
-    def confirm_login(self, payload: AuthLoginConfirmRequest) -> AuthTokenResponse:
+    @staticmethod
+    def confirm_login(
+        db: Session,
+        phone_verification: PhoneVerificationService,
+        payload: AuthLoginConfirmRequest,
+    ) -> AuthTokenResponse:
         phone = normalize_phone(payload.phone)
-        user = self._find_user_by_phone(phone)
+        user = UserAuthService._find_user_by_phone(db, phone)
         if user is None:
             raise api_error(AppError.USER_NOT_FOUND)
 
         if not is_login_test_code_allowed(payload.code):
-            self._verify_phone_verification(PhoneVerificationPurpose.LOGIN, phone, payload.code)
+            phone_verification.verify(
+                db,
+                PhoneVerificationPurpose.LOGIN,
+                phone,
+                payload.code,
+            )
 
-        now = utcnow_naive()
-        user.update_last_login_at(now)
+        user.update_last_login_at(utcnow_naive())
         if payload.fcm_token is not None:
-            self._upsert_fcm_token(user.id, payload.fcm_token)
+            UserProfileService.upsert_fcm_token(db, str(user.id), payload.fcm_token.strip())
 
-        self.db.commit()
-        self.db.refresh(user)
-        return self._build_tokens(user)
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        db.refresh(user)
+        return UserAuthService._build_tokens(user)
 
-    def refresh_access_token(self, payload: AuthRefreshRequest) -> AuthAccessTokenResponse:
+    @staticmethod
+    def refresh_access_token(db: Session, payload: AuthRefreshRequest) -> AuthAccessTokenResponse:
         token_payload = verify_token(payload.refresh_token, token_type="refresh")
         user_id = token_payload.get("sub")
         if not user_id:
             raise api_error(AppError.INVALID_TOKEN)
 
-        user = self.db.query(User).filter(User.id == str(user_id), User.deleted.is_(False)).first()
+        user = db.query(User).filter(User.id == str(user_id), User.deleted.is_(False)).first()
         if user is None:
             raise api_error(AppError.USER_NOT_FOUND)
 
         access_token = create_access_token({"sub": str(user.id)})
         return AuthAccessTokenResponse(access_token=access_token, expires_in=access_token_expires_in_ms())
 
-    def get_user_detail(self, user: User) -> UserDetailResponse:
-        fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
-        if fresh_user is None:
-            raise api_error(AppError.USER_NOT_FOUND)
+    @staticmethod
+    def _find_user_by_phone(db: Session, phone: str) -> User | None:
+        return db.query(User).filter(User.phone == phone, User.deleted.is_(False)).first()
 
-        return UserDetailResponse(
-            id=str(fresh_user.id),
-            name=fresh_user.name,
-            phone=fresh_user.phone,
-            phone_verified_at=fresh_user.phone_verified_at,
-            created_at=fresh_user.created_at,
-            last_login_at=fresh_user.last_login_at,
-            alarm_enabled=fresh_user.alarm_enabled,
-            level=fresh_user.level,
+    @staticmethod
+    def _build_tokens(user: User) -> AuthTokenResponse:
+        return AuthTokenResponse(
+            access_token=create_access_token({"sub": str(user.id)}),
+            refresh_token=create_refresh_token({"sub": str(user.id)}),
+            token_type="Bearer",
+            expires_in=access_token_expires_in_ms(),
+            user_id=str(user.id),
         )
-
-    def update_alarm(self, user: User, alarm_enabled: bool) -> None:
-        fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
-        if fresh_user is None:
-            raise api_error(AppError.USER_NOT_FOUND)
-
-        fresh_user.update_alarm_setting(alarm_enabled)
-        self.db.commit()
-
-    def update_name(self, user: User, name: str) -> None:
-        fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
-        if fresh_user is None:
-            raise api_error(AppError.USER_NOT_FOUND)
-
-        fresh_user.name = name.strip()
-        self.db.commit()
-
-    def withdraw_user(self, user: User) -> None:
-        fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
-        if fresh_user is None:
-            raise api_error(AppError.USER_NOT_FOUND)
-
-        user_id = str(fresh_user.id)
-        if self._has_blocking_activity(user_id):
-            raise api_error(AppError.USER_WITHDRAWAL_BLOCKED)
-
-        original_phone = fresh_user.phone
-        self._auto_cancel_pre_match_activity(user_id)
-        if original_phone is not None:
-            self.db.query(AuthPhoneVerification).filter(AuthPhoneVerification.phone == original_phone).delete(
-                synchronize_session=False
-            )
-        self.db.query(UserFCMToken).filter(UserFCMToken.user_id == user_id).delete(synchronize_session=False)
-        self.db.query(SettlementAccount).filter(SettlementAccount.user_id == user_id).delete(synchronize_session=False)
-        self.db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
-        fresh_user.withdraw(utcnow_naive())
-        self.db.commit()
-
-    def _has_blocking_activity(self, user_id: str) -> bool:
-        has_blocking_proposal = (
-            self.db.query(Proposal.id)
-            .filter(
-                Proposal.orderer_id == user_id,
-                Proposal.status.in_(WITHDRAWAL_BLOCKING_PROPOSAL_STATUSES),
-            )
-            .first()
-            is not None
-        )
-        if has_blocking_proposal:
-            return True
-
-        return (
-            self.db.query(Offer.id)
-            .filter(
-                Offer.runner_id == user_id,
-                Offer.status.in_(WITHDRAWAL_BLOCKING_OFFER_STATUSES),
-            )
-            .first()
-            is not None
-        )
-
-    def _auto_cancel_pre_match_activity(self, user_id: str) -> None:
-        proposal_ids = [
-            proposal_id
-            for (proposal_id,) in (
-                self.db.query(Proposal.id)
-                .filter(
-                    Proposal.orderer_id == user_id,
-                    Proposal.status.in_(WITHDRAWAL_AUTO_CANCEL_PROPOSAL_STATUSES),
-                )
-                .all()
-            )
-        ]
-        if proposal_ids:
-            (
-                self.db.query(Offer)
-                .filter(
-                    Offer.proposal_id.in_(proposal_ids),
-                    Offer.status.in_(WITHDRAWAL_AUTO_CANCEL_OFFER_STATUSES),
-                )
-                .update({Offer.status: OfferStatus.CANCELLED}, synchronize_session=False)
-            )
-            (
-                self.db.query(Proposal)
-                .filter(Proposal.id.in_(proposal_ids))
-                .update({Proposal.status: ProposalStatus.CANCELLED}, synchronize_session=False)
-            )
-
-        (
-            self.db.query(Offer)
-            .filter(
-                Offer.runner_id == user_id,
-                Offer.status.in_(WITHDRAWAL_AUTO_CANCEL_OFFER_STATUSES),
-            )
-            .update({Offer.status: OfferStatus.CANCELLED}, synchronize_session=False)
-        )
-
-    def upsert_fcm_token(self, user: User, fcm_token: str) -> None:
-        fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
-        if fresh_user is None:
-            raise api_error(AppError.USER_NOT_FOUND)
-
-        self._upsert_fcm_token(fresh_user.id, fcm_token.strip())
-        self.db.commit()
-
-    def _upsert_fcm_token(self, user_id: str, fcm_token: str) -> None:
-        token = self.db.query(UserFCMToken).filter(UserFCMToken.user_id == str(user_id)).first()
-        if token is None:
-            token = UserFCMToken(user_id=str(user_id), fcm_token=fcm_token)
-            self.db.add(token)
-        else:
-            token.fcm_token = fcm_token

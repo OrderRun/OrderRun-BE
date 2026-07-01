@@ -25,7 +25,8 @@ from app.schemas.user import (
     UserFcmTokenRequest,
     UserNameUpdateRequest,
 )
-from app.services.user_auth_service import UserAuthService
+from app.services.user_profile_service import UserProfileService
+from app.services.user_withdrawal_service import UserWithdrawalService
 
 
 router = APIRouter(prefix="/v1/user", tags=["사용자"])
@@ -45,8 +46,7 @@ def get_user_detail(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    service = UserAuthService(db=db)
-    data = service.get_user_detail(current_user)
+    data = UserProfileService.get_user_detail(db, current_user)
     return {"success": True, "data": data.model_dump(by_alias=True)}
 
 
@@ -73,8 +73,7 @@ def update_alarm(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    service = UserAuthService(db=db)
-    service.update_alarm(current_user, payload.alarm_enabled)
+    UserProfileService.update_alarm(db, current_user, payload.alarm_enabled)
     return {"success": True, "data": None, "message": "알람 설정이 업데이트되었습니다."}
 
 
@@ -92,8 +91,7 @@ def update_name(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    service = UserAuthService(db=db)
-    service.update_name(current_user, payload.name)
+    UserProfileService.update_name(db, current_user, payload.name)
     return {"success": True, "data": None, "message": "닉네임이 업데이트되었습니다."}
 
 
@@ -111,8 +109,7 @@ def update_fcm_token(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    service = UserAuthService(db=db)
-    service.upsert_fcm_token(current_user, payload.fcm_token)
+    UserProfileService.update_fcm_token(db, current_user, payload.fcm_token)
     return {"success": True, "data": None, "message": "FCM 토큰이 업데이트되었습니다."}
 
 
@@ -129,6 +126,5 @@ def withdraw_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    service = UserAuthService(db=db)
-    service.withdraw_user(current_user)
+    UserWithdrawalService.withdraw_user(db, current_user)
     return {"success": True, "data": None, "message": "회원 탈퇴가 완료되었습니다."}

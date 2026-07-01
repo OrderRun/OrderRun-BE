@@ -105,6 +105,15 @@ class Proposal(Base):
         self.status = ProposalStatus.RESOLVED
         self.resolved_at = utcnow_naive()
 
+    def cancel(self) -> None:
+        if self.status not in {
+            ProposalStatus.HOLDING,
+            ProposalStatus.POSTED,
+            ProposalStatus.OFFERED,
+        }:
+            raise ValueError("Cannot cancel proposal after matching")
+        self.status = ProposalStatus.CANCELLED
+
     @classmethod
     def create_proposal(
         cls,

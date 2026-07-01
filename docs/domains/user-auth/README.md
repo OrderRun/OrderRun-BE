@@ -16,3 +16,4 @@ User/Auth는 전화번호 기반 인증, 토큰 생명주기, 사용자 상세, 
 - 사용자 부가 정책: [`../../domain.md`](../../domain.md)의 정책 기준
 - 회원 탈퇴 정책: [`withdrawal-policy.md`](./withdrawal-policy.md)
 - 테스트 보장: [`test-scenarios.md`](./test-scenarios.md)
+- 서비스 책임 경계: [`../../design-docs/user-service-boundaries.md`](../../design-docs/user-service-boundaries.md)

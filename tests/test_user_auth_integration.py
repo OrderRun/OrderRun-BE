@@ -23,7 +23,7 @@ from app.models.user import (
 from app.services.sms_service import get_sms_sender
 from app.services.proposal_service import ProposalService
 from app.services.phone_verification import VERIFICATION_CODE_MAX_ATTEMPTS
-from app.services.user_auth_service import UserAuthService
+from app.services.user_withdrawal_service import UserWithdrawalService
 
 
 def _extract_code(message: str) -> str:
@@ -445,7 +445,7 @@ def test_withdraw_user_auto_cancels_pre_match_proposal_and_waiting_offers(db, fa
     )
     db.commit()
 
-    UserAuthService(db=db).withdraw_user(user)
+    UserWithdrawalService.withdraw_user(db, user)
 
     db.refresh(proposal)
     db.refresh(waiting_offer)
@@ -457,12 +457,34 @@ def test_withdraw_user_auto_cancels_pre_match_proposal_and_waiting_offers(db, fa
     assert user.deleted is True
 
 
+def test_withdraw_user_rolls_back_all_changes_when_anonymization_fails(db, factory, monkeypatch):
+    user = factory.user(phone="01012340015", name="요청사용자")
+    db.add(UserFCMToken(user_id=user.id, fcm_token="rollback-token"))
+    proposal = factory.proposal(orderer_id=user.id, status=ProposalStatus.OFFERED)
+    waiting_offer = factory.offer(proposal_id=proposal.id, runner_id=factory.user(phone="01012340016").id)
+    db.commit()
+
+    def fail_withdraw(self, withdrawn_at):
+        raise RuntimeError("anonymization failed")
+
+    monkeypatch.setattr(User, "withdraw", fail_withdraw)
+
+    with pytest.raises(RuntimeError, match="anonymization failed"):
+        UserWithdrawalService.withdraw_user(db, user)
+
+    db.expire_all()
+    assert db.query(User).filter(User.id == user.id, User.deleted.is_(False)).one()
+    assert db.query(UserFCMToken).filter(UserFCMToken.user_id == user.id).one()
+    assert db.query(Proposal).filter(Proposal.id == proposal.id).one().status == ProposalStatus.OFFERED
+    assert db.query(Offer).filter(Offer.id == waiting_offer.id).one().status == OfferStatus.WAITING
+
+
 def test_withdraw_user_blocks_when_user_has_matched_proposal(db, factory):
     user = factory.user(phone="01012340006", name="오더사용자")
     factory.proposal(orderer_id=user.id, status=ProposalStatus.MATCHED)
 
     with pytest.raises(HTTPException) as exc_info:
-        UserAuthService(db=db).withdraw_user(user)
+        UserWithdrawalService.withdraw_user(db, user)
 
     assert exc_info.value.status_code == 409
     assert exc_info.value.detail["code"] == "USER_WITHDRAWAL_BLOCKED"
@@ -477,7 +499,7 @@ def test_withdraw_user_blocks_when_user_has_accepted_offer(db, factory):
     factory.offer(proposal_id=proposal.id, runner_id=user.id, status=OfferStatus.ACCEPTED)
 
     with pytest.raises(HTTPException) as exc_info:
-        UserAuthService(db=db).withdraw_user(user)
+        UserWithdrawalService.withdraw_user(db, user)
 
     assert exc_info.value.status_code == 409
     assert exc_info.value.detail["code"] == "USER_WITHDRAWAL_BLOCKED"
@@ -548,6 +570,29 @@ def test_verification_state_rules(client, db, sms_sender):
     )
     assert expired_confirm.status_code == 400
     assert expired_confirm.json()["error"]["code"] == "PHONE_VERIFICATION_EXPIRED"
+
+
+def test_signup_confirm_rolls_back_verification_when_user_becomes_duplicate(client, db, sms_sender, factory):
+    phone = "01044445555"
+    response = client.post(
+        "/v1/auth/signup/send",
+        json={"name": "홍길동", "phone": phone, "carrier": "SKT"},
+    )
+    assert response.status_code == 200
+    code = _extract_code(sms_sender.sent_messages[-1]["message"])
+    verification = db.query(AuthPhoneVerification).filter(
+        AuthPhoneVerification.phone == phone,
+        AuthPhoneVerification.purpose == PhoneVerificationPurpose.SIGNUP,
+    ).one()
+    factory.user(phone=phone)
+
+    confirm = client.post("/v1/auth/signup/confirm", json={"phone": phone, "code": code})
+
+    assert confirm.status_code == 409
+    assert confirm.json()["error"]["code"] == "PHONE_ALREADY_EXISTS"
+    db.refresh(verification)
+    assert verification.status == PhoneVerificationStatus.PENDING
+    assert verification.verified_at is None
 
 
 def test_signup_send_persists_verification_even_if_background_sms_fails(client, db):

@@ -50,6 +50,9 @@ class User(Base):
     def update_alarm_setting(self, alarm_enabled: bool) -> None:
         self.alarm_enabled = alarm_enabled
 
+    def update_name(self, name: str) -> None:
+        self.name = name
+
     def verify_phone(self, phone: str, verified_at: datetime) -> None:
         self.phone = phone
         self.phone_verified_at = verified_at

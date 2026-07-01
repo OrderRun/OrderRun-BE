@@ -23,6 +23,7 @@ from app.schemas.user import (
     AuthVerificationSendResponse,
 )
 from app.services.sms_service import get_sms_sender
+from app.services.phone_verification_service import PhoneVerificationService
 from app.services.user_auth_service import UserAuthService
 
 
@@ -68,8 +69,8 @@ def signup_send(
     db: Session = Depends(get_db),
     sms_sender=Depends(get_sms_sender),
 ):
-    service = UserAuthService(db=db, sms_sender=sms_sender)
-    data = service.send_signup_verification(payload, background_tasks=background_tasks)
+    verification_service = PhoneVerificationService(sms_sender)
+    data = UserAuthService.send_signup_verification(db, verification_service, payload, background_tasks)
     return {"success": True, "data": data.model_dump(by_alias=True)}
 
 
@@ -94,8 +95,8 @@ def signup_confirm(
     db: Session = Depends(get_db),
     sms_sender=Depends(get_sms_sender),
 ):
-    service = UserAuthService(db=db, sms_sender=sms_sender)
-    data = service.confirm_signup(payload)
+    verification_service = PhoneVerificationService(sms_sender)
+    data = UserAuthService.confirm_signup(db, verification_service, payload)
     return {"success": True, "data": data.model_dump(by_alias=True)}
 
 
@@ -120,8 +121,8 @@ def login_send(
     db: Session = Depends(get_db),
     sms_sender=Depends(get_sms_sender),
 ):
-    service = UserAuthService(db=db, sms_sender=sms_sender)
-    data = service.send_login_verification(payload, background_tasks=background_tasks)
+    verification_service = PhoneVerificationService(sms_sender)
+    data = UserAuthService.send_login_verification(db, verification_service, payload, background_tasks)
     return {"success": True, "data": data.model_dump(by_alias=True)}
 
 
@@ -146,8 +147,8 @@ def login_confirm(
     db: Session = Depends(get_db),
     sms_sender=Depends(get_sms_sender),
 ):
-    service = UserAuthService(db=db, sms_sender=sms_sender)
-    data = service.confirm_login(payload)
+    verification_service = PhoneVerificationService(sms_sender)
+    data = UserAuthService.confirm_login(db, verification_service, payload)
     return {"success": True, "data": data.model_dump(by_alias=True)}
 
 
@@ -171,8 +172,7 @@ def refresh_token(
     payload: AuthRefreshRequest,
     db: Session = Depends(get_db),
 ):
-    service = UserAuthService(db=db)
-    data = service.refresh_access_token(payload)
+    data = UserAuthService.refresh_access_token(db, payload)
     return {"success": True, "data": data.model_dump(by_alias=True)}
 
 
