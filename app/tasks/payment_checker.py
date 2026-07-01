@@ -8,7 +8,7 @@ import logging
 from datetime import datetime, timezone
 
 from app.core.database import SessionLocal
-from app.services.proposal_service import ProposalService
+from app.services.proposal.proposal_service import ProposalService
 
 
 logger = logging.getLogger(__name__)

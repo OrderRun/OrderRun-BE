@@ -168,7 +168,7 @@ async def signup(background_tasks: BackgroundTasks):
 
 ### SMS 인증번호 발송
 
-[`app/api/v1/auth.py`](../../../app/api/v1/auth.py)의 `signup_send()`는 `BackgroundTasks`를 주입받아 서비스에 전달한다. [`app/services/user_auth_service.py`](../../../app/services/user_auth_service.py)는 DB 커밋 후 아래처럼 SMS 발송을 등록한다.
+[`app/api/v1/auth.py`](../../../app/api/v1/auth.py)의 `signup_send()`는 `BackgroundTasks`를 주입받아 서비스에 전달한다. [`app/services/user_auth_service.py`](../../../app/services/user_auth/user_auth_service.py)는 DB 커밋 후 아래처럼 SMS 발송을 등록한다.
 
 ```python
 background_tasks.add_task(self._send_sms_safely, phone, message)

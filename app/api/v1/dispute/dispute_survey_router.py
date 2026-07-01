@@ -13,7 +13,7 @@ from app.models.dispute_survey import DisputeSurveyTargetType
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.dispute_survey import DisputeSurveyQuestionResponse
-from app.services.dispute_survey_service import DisputeSurveyService
+from app.services.dispute.dispute_survey_service import DisputeSurveyService
 
 
 router = APIRouter(prefix="/dispute-survey", tags=["분쟁 설문"])

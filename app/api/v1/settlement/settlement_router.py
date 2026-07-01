@@ -23,7 +23,7 @@ from app.schemas.settlement import (
     SettlementAccountResponse,
     SettlementBankNamesResponse,
 )
-from app.services.settlement_service import SettlementService
+from app.services.settlement.settlement_service import SettlementService
 
 
 router = APIRouter(prefix="/settlement", tags=["정산"])

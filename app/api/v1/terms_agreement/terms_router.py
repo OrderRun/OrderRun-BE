@@ -12,7 +12,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.terms import TermsAgreementRequest, TermsAgreementResponse
 from app.schemas.user import ApiResponse
-from app.services.terms_service import TermsAgreementService
+from app.services.terms.terms_service import TermsAgreementService
 
 
 router = APIRouter(prefix="/terms", tags=["약관"])

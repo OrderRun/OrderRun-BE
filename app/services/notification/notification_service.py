@@ -14,7 +14,7 @@ from app.schemas.notification import (
     NotificationSendRequest,
     NotificationStatsResponse,
 )
-from app.services.notification_dispatcher import NotificationDispatcher
+from app.services.notification.notification_dispatcher import NotificationDispatcher
 
 
 class NotificationService:

@@ -21,9 +21,9 @@ from app.models.user import (
     UserFCMToken,
 )
 from app.services.sms_service import get_sms_sender
-from app.services.proposal_service import ProposalService
-from app.services.phone_verification import VERIFICATION_CODE_MAX_ATTEMPTS
-from app.services.user_withdrawal_service import UserWithdrawalService
+from app.services.proposal.proposal_service import ProposalService
+from app.services.user_auth.phone_verification import VERIFICATION_CODE_MAX_ATTEMPTS
+from app.services.user_auth.user_withdrawal_service import UserWithdrawalService
 
 
 def _extract_code(message: str) -> str:

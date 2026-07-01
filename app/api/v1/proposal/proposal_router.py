@@ -34,8 +34,8 @@ from app.schemas.proposal import (
 )
 from app.schemas.dispute_evidence import DisputeRequest
 from app.schemas.proposal_report import ProposalReportCreateRequest, ProposalReportResponse
-from app.services.proposal_service import ProposalService
-from app.services.proposal_report_service import ProposalReportService
+from app.services.proposal.proposal_service import ProposalService
+from app.services.proposal.proposal_report_service import ProposalReportService
 
 
 router = APIRouter(prefix="/proposal", tags=["요청"])

@@ -17,9 +17,9 @@ from app.schemas.common import ApiResponse
 from app.schemas.common import PageResponse
 from app.schemas.proposal_report import ProposalReportResponse
 from app.models.proposal_report import ProposalReportStatus
-from app.services.offer_service import OfferService
-from app.services.proposal_service import ProposalService
-from app.services.proposal_report_service import ProposalReportService
+from app.services.offer.offer_service import OfferService
+from app.services.proposal.proposal_service import ProposalService
+from app.services.proposal.proposal_report_service import ProposalReportService
 
 
 router = APIRouter(prefix="/admin", tags=["관리자"])

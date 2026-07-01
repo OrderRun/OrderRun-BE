@@ -12,7 +12,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.dispute_evidence import DisputeEvidenceResponse
-from app.services.dispute_evidence_service import DisputeEvidenceService
+from app.services.dispute.dispute_evidence_service import DisputeEvidenceService
 
 
 router = APIRouter(prefix="/dispute-evidence", tags=["분쟁 증빙"])

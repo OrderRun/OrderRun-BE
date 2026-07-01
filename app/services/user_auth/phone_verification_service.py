@@ -15,7 +15,7 @@ from app.models.user import (
     PhoneVerificationStatus,
 )
 from app.schemas.user import AuthVerificationSendResponse
-from app.services.phone_verification import (
+from app.services.user_auth.phone_verification import (
     VERIFICATION_CODE_MAX_ATTEMPTS,
     VERIFICATION_CODE_TTL,
     build_verification_message,

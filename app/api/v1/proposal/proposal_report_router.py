@@ -10,7 +10,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.proposal_report import ProposalReportReasonQuestionResponse
-from app.services.proposal_report_service import ProposalReportService
+from app.services.proposal.proposal_report_service import ProposalReportService
 
 
 router = APIRouter(prefix="/proposal-report-reasons", tags=["게시글 신고"])

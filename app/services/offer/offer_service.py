@@ -16,7 +16,7 @@ from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
 from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferDetailResponse, OfferResponse, OfferSummaryResponse
-from app.services.dispute_survey_service import DisputeSurveyService
+from app.services.dispute.dispute_survey_service import DisputeSurveyService
 
 
 OPEN_PROPOSAL_STATUSES = (ProposalStatus.POSTED, ProposalStatus.OFFERED)

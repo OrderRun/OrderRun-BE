@@ -25,8 +25,8 @@ from app.schemas.user import (
     UserFcmTokenRequest,
     UserNameUpdateRequest,
 )
-from app.services.user_profile_service import UserProfileService
-from app.services.user_withdrawal_service import UserWithdrawalService
+from app.services.user_auth.user_profile_service import UserProfileService
+from app.services.user_auth.user_withdrawal_service import UserWithdrawalService
 
 
 router = APIRouter(prefix="/user", tags=["사용자"])

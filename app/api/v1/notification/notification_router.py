@@ -24,8 +24,8 @@ from app.schemas.notification import (
     NotificationSendRequest,
     NotificationStatsResponse,
 )
-from app.services.notification_dispatcher import NotificationDispatcher
-from app.services.notification_service import NotificationService
+from app.services.notification.notification_dispatcher import NotificationDispatcher
+from app.services.notification.notification_service import NotificationService
 
 
 router = APIRouter(prefix="/notifications", tags=["알림"])

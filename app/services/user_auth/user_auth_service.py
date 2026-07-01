@@ -25,9 +25,9 @@ from app.schemas.user import (
     AuthTokenResponse,
     AuthVerificationSendResponse,
 )
-from app.services.phone_verification import is_login_test_code_allowed
-from app.services.phone_verification_service import PhoneVerificationService
-from app.services.user_profile_service import UserProfileService
+from app.services.user_auth.phone_verification import is_login_test_code_allowed
+from app.services.user_auth.phone_verification_service import PhoneVerificationService
+from app.services.user_auth.user_profile_service import UserProfileService
 
 
 class UserAuthService:

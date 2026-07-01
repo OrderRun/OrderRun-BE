@@ -14,7 +14,7 @@ from app.models.proposal import Proposal, ProposalStatus
 from app.models.user import User
 from app.schemas.common import PageResponse
 from app.schemas.proposal import ProposalDetailResponse, ProposalOwnOfferResponse, ProposalOwnResponse, ProposalRequest
-from app.services.dispute_survey_service import DisputeSurveyService
+from app.services.dispute.dispute_survey_service import DisputeSurveyService
 
 
 EDITABLE_STATUSES = (ProposalStatus.HOLDING, ProposalStatus.POSTED)

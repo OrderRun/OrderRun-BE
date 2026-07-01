@@ -27,7 +27,7 @@ from app.models.user import User
 from app.schemas.common import ApiResponse, PageResponse
 from app.schemas.offer import OfferAcceptResponse, OfferCreate, OfferDetailResponse, OfferResponse, OfferSummaryResponse
 from app.schemas.dispute_evidence import DisputeRequest
-from app.services.offer_service import OfferService
+from app.services.offer.offer_service import OfferService
 
 
 router = APIRouter(prefix="/offer", tags=["제안"])

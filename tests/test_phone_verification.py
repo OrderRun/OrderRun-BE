@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 
 from app.core import security
-from app.services import phone_verification
+from app.services.user_auth import phone_verification
 
 
 def test_generate_verification_code_returns_six_digits(monkeypatch):

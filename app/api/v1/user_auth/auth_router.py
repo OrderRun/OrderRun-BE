@@ -23,8 +23,8 @@ from app.schemas.user import (
     AuthVerificationSendResponse,
 )
 from app.services.sms_service import get_sms_sender
-from app.services.phone_verification_service import PhoneVerificationService
-from app.services.user_auth_service import UserAuthService
+from app.services.user_auth.phone_verification_service import PhoneVerificationService
+from app.services.user_auth.user_auth_service import UserAuthService
 
 
 router = APIRouter(prefix="/auth", tags=["인증"])
