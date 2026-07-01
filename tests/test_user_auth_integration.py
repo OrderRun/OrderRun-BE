@@ -102,7 +102,7 @@ def test_signup_login_refresh_and_logout_flow(client, db, sms_sender):
 def test_login_confirm_succeeds_with_verification_bypass_code(client, sms_sender, monkeypatch):
     # given: 가입된 유저, 비프로덕션 환경
     _signup(client, sms_sender)
-    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "development")
+    monkeypatch.setattr("app.services.phone_verification.settings.app_env", "development")
     sent_count = len(sms_sender.sent_messages)
 
     # when: 우회 인증 코드로 로그인 확인 요청
@@ -119,7 +119,7 @@ def test_login_confirm_succeeds_with_verification_bypass_code(client, sms_sender
 
 def test_login_confirm_returns_user_not_found_when_user_does_not_exist(client, monkeypatch):
     # given: 존재하지 않는 유저, 비프로덕션 환경
-    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "development")
+    monkeypatch.setattr("app.services.phone_verification.settings.app_env", "development")
 
     # when: 우회 인증 코드로 로그인 확인 요청
     response = client.post(
@@ -135,7 +135,7 @@ def test_login_confirm_returns_user_not_found_when_user_does_not_exist(client, m
 def test_login_confirm_returns_not_found_when_no_pending_verification(client, sms_sender, monkeypatch):
     # given: 가입된 유저, 인증 요청 없음, 프로덕션 환경
     _signup(client, sms_sender)
-    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "production")
+    monkeypatch.setattr("app.services.phone_verification.settings.app_env", "production")
 
     # when: 코드 확인 요청
     response = client.post(
@@ -151,7 +151,7 @@ def test_login_confirm_returns_not_found_when_no_pending_verification(client, sm
 def test_login_confirm_returns_code_mismatch_when_wrong_code_submitted(client, db, sms_sender, monkeypatch):
     # given: 가입된 유저, 인증 요청 완료, 프로덕션 환경
     _signup(client, sms_sender)
-    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "production")
+    monkeypatch.setattr("app.services.phone_verification.settings.app_env", "production")
 
     login_send = client.post("/v1/auth/login/send", json={"phone": "010-1234-5678"})
     assert login_send.status_code == 200
@@ -179,7 +179,7 @@ def test_login_confirm_returns_code_mismatch_when_wrong_code_submitted(client, d
 
 def test_signup_confirm_rejects_verification_bypass_code(client, db, sms_sender, monkeypatch):
     # given: 회원가입 인증 요청, 비프로덕션 환경
-    monkeypatch.setattr("app.services.user_auth_service.settings.app_env", "development")
+    monkeypatch.setattr("app.services.phone_verification.settings.app_env", "development")
 
     signup_send = client.post(
         "/v1/auth/signup/send",

@@ -15,8 +15,11 @@ from app.core.database import get_db
 from app.core.errors import AppError, api_error
 from app.models.user import User
 
-
 security = HTTPBearer(auto_error=False)
+
+
+def access_token_expires_in_ms() -> int:
+    return settings.jwt_access_token_expire_minutes * 60 * 1000
 
 
 def _token_error(error: AppError = AppError.INVALID_TOKEN):

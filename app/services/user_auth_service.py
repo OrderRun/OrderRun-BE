@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
-import hashlib
 import logging
-import secrets
-from datetime import datetime, timedelta, timezone
 
 from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.errors import AppError, api_error
 from app.core.phone import normalize_phone
-from app.core.security import create_access_token, create_refresh_token, verify_token
+from app.core.security import (
+    access_token_expires_in_ms,
+    create_access_token,
+    create_refresh_token,
+    verify_token,
+)
+from app.core.time import utcnow_naive
 from app.models.user import (
     AuthPhoneVerification,
     PhoneVerificationPurpose,
@@ -36,13 +38,18 @@ from app.schemas.user import (
     AuthVerificationSendResponse,
     UserDetailResponse,
 )
+from app.services.phone_verification import (
+    VERIFICATION_CODE_TTL,
+    build_verification_message,
+    generate_verification_code,
+    hash_verification_code,
+    is_login_test_code_allowed,
+)
 from app.services.sms_service import SmsSender
 
 
 logger = logging.getLogger(__name__)
 
-LOCAL_TEST_VERIFICATION_CODE = "123456"
-LOGIN_TEST_CODE_ALLOWED_ENVS = {"development", "local", "staging"}
 WITHDRAWAL_BLOCKING_PROPOSAL_STATUSES = {
     ProposalStatus.MATCHED,
     ProposalStatus.ORDER_COMPLETED,
@@ -65,35 +72,6 @@ class UserAuthService:
     def __init__(self, db: Session, sms_sender: SmsSender | None = None):
         self.db = db
         self.sms_sender = sms_sender
-
-    @staticmethod
-    def _now() -> datetime:
-        return datetime.now(timezone.utc).replace(tzinfo=None)
-
-    @staticmethod
-    def _code_ttl() -> timedelta:
-        return timedelta(minutes=5)
-
-    @staticmethod
-    def _access_expires_in_ms() -> int:
-        return settings.jwt_access_token_expire_minutes * 60 * 1000
-
-    @staticmethod
-    def _generate_code() -> str:
-        return f"{secrets.randbelow(1_000_000):06d}"
-
-    @staticmethod
-    def _hash_code(code: str) -> str:
-        digest = hashlib.sha256(f"{settings.secret_key}:{code}".encode("utf-8")).hexdigest()
-        return digest
-
-    @staticmethod
-    def _is_login_test_code_allowed(code: str) -> bool:
-        return code == LOCAL_TEST_VERIFICATION_CODE and settings.app_env.lower() in LOGIN_TEST_CODE_ALLOWED_ENVS
-
-    @staticmethod
-    def _message(code: str) -> str:
-        return f"[OrderRun] 인증번호는 {code} 입니다. 5분 내 입력해 주세요."
 
     def _send_sms_safely(self, phone: str, message: str) -> None:
         if self.sms_sender is None:
@@ -128,7 +106,7 @@ class UserAuthService:
         purpose: PhoneVerificationPurpose,
         phone: str,
     ) -> bool:
-        now = self._now()
+        now = utcnow_naive()
         return (
             self.db.query(AuthPhoneVerification)
             .filter(
@@ -152,17 +130,17 @@ class UserAuthService:
         if self.sms_sender is None:
             raise api_error(AppError.SMS_SENDER_NOT_CONFIGURED)
 
-        code = self._generate_code()
-        message = self._message(code)
-        now = self._now()
+        code = generate_verification_code()
+        message = build_verification_message(code)
+        now = utcnow_naive()
         verification = AuthPhoneVerification(
             purpose=purpose,
             phone=phone,
             name=name,
             carrier=carrier,
-            code_hash=self._hash_code(code),
+            code_hash=hash_verification_code(code),
             status=PhoneVerificationStatus.PENDING,
-            expires_at=now + self._code_ttl(),
+            expires_at=now + VERIFICATION_CODE_TTL,
             sent_at=now,
             attempt_count=0,
         )
@@ -221,13 +199,13 @@ class UserAuthService:
         if verification is None:
             raise api_error(AppError.PHONE_VERIFICATION_NOT_FOUND)
 
-        now = self._now()
+        now = utcnow_naive()
         if verification.expires_at <= now:
             verification.status = PhoneVerificationStatus.EXPIRED
             self.db.commit()
             raise api_error(AppError.PHONE_VERIFICATION_EXPIRED)
 
-        if verification.code_hash != self._hash_code(code):
+        if verification.code_hash != hash_verification_code(code):
             verification.attempt_count += 1
             if verification.attempt_count >= 5:
                 verification.status = PhoneVerificationStatus.EXPIRED
@@ -245,7 +223,7 @@ class UserAuthService:
             access_token=access_token,
             refresh_token=refresh_token,
             token_type="Bearer",
-            expires_in=self._access_expires_in_ms(),
+            expires_in=access_token_expires_in_ms(),
             user_id=str(user.id),
         )
 
@@ -257,7 +235,7 @@ class UserAuthService:
             self.db.rollback()
             raise api_error(AppError.PHONE_ALREADY_EXISTS)
 
-        now = self._now()
+        now = utcnow_naive()
         user = User(
             name=verification.name or "",
             phone=phone,
@@ -281,10 +259,10 @@ class UserAuthService:
         if user is None:
             raise api_error(AppError.USER_NOT_FOUND)
 
-        if not self._is_login_test_code_allowed(payload.code):
+        if not is_login_test_code_allowed(payload.code):
             self._confirm_verification(PhoneVerificationPurpose.LOGIN, phone, payload.code)
 
-        now = self._now()
+        now = utcnow_naive()
         user.update_last_login_at(now)
         if payload.fcm_token is not None:
             self._upsert_fcm_token(user.id, payload.fcm_token)
@@ -304,7 +282,7 @@ class UserAuthService:
             raise api_error(AppError.USER_NOT_FOUND)
 
         access_token = create_access_token({"sub": str(user.id)})
-        return AuthAccessTokenResponse(access_token=access_token, expires_in=self._access_expires_in_ms())
+        return AuthAccessTokenResponse(access_token=access_token, expires_in=access_token_expires_in_ms())
 
     def get_user_detail(self, user: User) -> UserDetailResponse:
         fresh_user = self.db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
@@ -356,7 +334,7 @@ class UserAuthService:
         self.db.query(UserFCMToken).filter(UserFCMToken.user_id == user_id).delete(synchronize_session=False)
         self.db.query(SettlementAccount).filter(SettlementAccount.user_id == user_id).delete(synchronize_session=False)
         self.db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
-        fresh_user.withdraw(self._now())
+        fresh_user.withdraw(utcnow_naive())
         self.db.commit()
 
     def _has_blocking_activity(self, user_id: str) -> bool:
