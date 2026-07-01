@@ -45,6 +45,7 @@
 
 ### 문서 디렉토리
 - [`docs/design-docs/index.md`](./docs/design-docs/index.md): 기술 설계와 의사결정 근거
+- [`docs/design-docs/object-oriented-principles.md`](./docs/design-docs/object-oriented-principles.md): 객체지향 설계 원칙과 Python 적용 기준
 - [`docs/product-specs/index.md`](./docs/product-specs/index.md): 사용자 관점 요구사항과 행동 정의
 - [`docs/api-spec/README.md`](./docs/api-spec/README.md): 외부 API 통합 명세
 - [`docs/domain.md`](./docs/domain.md): 도메인 상태와 정책 기준
