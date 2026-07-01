@@ -39,7 +39,9 @@ def _signup(client, sms_sender, name="홍길동", phone="010-1234-5678", carrier
     )
     assert response.status_code == 200
     payload = response.json()
+    assert set(payload) == {"success", "data", "message"}
     assert payload["success"] is True
+    assert payload["message"] is None
     assert payload["data"]["phone"] == "01012345678"
     assert payload["data"]["expiresAt"] is not None
     code = _extract_code(sms_sender.sent_messages[-1]["message"])
@@ -48,7 +50,10 @@ def _signup(client, sms_sender, name="홍길동", phone="010-1234-5678", carrier
         json={"phone": phone, "code": code},
     )
     assert confirm.status_code == 200
-    return confirm.json()["data"]
+    confirm_payload = confirm.json()
+    assert set(confirm_payload) == {"success", "data", "message"}
+    assert confirm_payload["message"] is None
+    return confirm_payload["data"]
 
 
 def test_signup_login_refresh_and_logout_flow(client, db, sms_sender):
@@ -63,6 +68,7 @@ def test_signup_login_refresh_and_logout_flow(client, db, sms_sender):
 
     login_send = client.post("/v1/auth/login/send", json={"phone": "010-1234-5678"})
     assert login_send.status_code == 200
+    assert login_send.json()["message"] is None
     login_code = _extract_code(sms_sender.sent_messages[-1]["message"])
 
     login_confirm = client.post(
@@ -70,7 +76,9 @@ def test_signup_login_refresh_and_logout_flow(client, db, sms_sender):
         json={"phone": "010-1234-5678", "code": login_code, "fcmToken": "  token-1  "},
     )
     assert login_confirm.status_code == 200
-    login_data = login_confirm.json()["data"]
+    login_payload = login_confirm.json()
+    assert login_payload["message"] is None
+    login_data = login_payload["data"]
     assert login_data["userId"] == signup_data["userId"]
     assert login_data["tokenType"] == "Bearer"
     assert login_data["expiresIn"] > 0
@@ -86,7 +94,9 @@ def test_signup_login_refresh_and_logout_flow(client, db, sms_sender):
         json={"refreshToken": login_data["refreshToken"]},
     )
     assert refresh.status_code == 200
-    refresh_data = refresh.json()["data"]
+    refresh_payload = refresh.json()
+    assert refresh_payload["message"] is None
+    refresh_data = refresh_payload["data"]
     assert refresh_data["accessToken"]
     assert refresh_data["expiresIn"] > 0
 
@@ -220,7 +230,10 @@ def test_user_detail_alarm_and_fcm_token_flow(client, db, sms_sender):
 
     detail = client.get("/v1/user/detail", headers={"Authorization": f"Bearer {token}"})
     assert detail.status_code == 200
-    data = detail.json()["data"]
+    detail_payload = detail.json()
+    assert set(detail_payload) == {"success", "data", "message"}
+    assert detail_payload["message"] is None
+    data = detail_payload["data"]
     assert data["id"] == user.id
     assert data["name"] == "홍길동"
     assert data["phone"] == "01012345678"
@@ -299,7 +312,11 @@ def test_update_user_name_requires_auth_and_updates_only_current_user(client, db
 
     detail = client.get("/v1/user/detail", headers=factory.headers_for(user))
     assert detail.status_code == 200
-    assert detail.json()["data"]["name"] == "새닉네임"
+    detail_payload = detail.json()
+    assert detail_payload["message"] is None
+    assert detail_payload["data"]["name"] == "새닉네임"
+    assert detail_payload["data"]["phoneVerifiedAt"] is None
+    assert detail_payload["data"]["lastLoginAt"] is None
 
 
 def test_update_user_name_validation_errors(client, factory):

@@ -32,6 +32,7 @@ router = APIRouter(prefix="/v1/auth", tags=["인증"])
 VERIFICATION_SEND_EXAMPLE = {
     "success": True,
     "data": {"phone": "01012345678", "expiresAt": "2026-06-01T12:05:00+09:00"},
+    "message": None,
 }
 TOKEN_EXAMPLE = {
     "success": True,
@@ -42,13 +43,13 @@ TOKEN_EXAMPLE = {
         "expiresIn": 3600000,
         "userId": "550e8400-e29b-41d4-a716-446655440000",
     },
+    "message": None,
 }
 
 
 @router.post(
     "/signup/send",
     response_model=ApiResponse[AuthVerificationSendResponse],
-    response_model_exclude_none=True,
     summary="회원가입 인증번호 발송",
     description="이름, 전화번호, 통신사를 받아 회원가입용 SMS 인증번호를 발송합니다.",
     responses={
@@ -75,7 +76,6 @@ def signup_send(
 @router.post(
     "/signup/confirm",
     response_model=ApiResponse[AuthTokenResponse],
-    response_model_exclude_none=True,
     summary="회원가입 인증번호 확인",
     description="회원가입 인증번호를 확인하고 신규 사용자를 생성한 뒤 토큰을 발급합니다.",
     responses={
@@ -102,7 +102,6 @@ def signup_confirm(
 @router.post(
     "/login/send",
     response_model=ApiResponse[AuthVerificationSendResponse],
-    response_model_exclude_none=True,
     summary="로그인 인증번호 발송",
     description="가입된 전화번호로 로그인용 SMS 인증번호를 발송합니다.",
     responses={
@@ -129,7 +128,6 @@ def login_send(
 @router.post(
     "/login/confirm",
     response_model=ApiResponse[AuthTokenResponse],
-    response_model_exclude_none=True,
     summary="로그인 인증번호 확인",
     description="로그인 인증번호를 확인하고 액세스 토큰과 리프레시 토큰을 발급합니다.",
     responses={
@@ -156,7 +154,6 @@ def login_confirm(
 @router.post(
     "/refresh",
     response_model=ApiResponse[AuthAccessTokenResponse],
-    response_model_exclude_none=True,
     summary="액세스 토큰 재발급",
     description="리프레시 토큰을 검증해 새 액세스 토큰을 발급합니다.",
     responses={
@@ -164,6 +161,7 @@ def login_confirm(
             {
                 "success": True,
                 "data": {"accessToken": "access-token", "expiresIn": 3600000},
+                "message": None,
             }
         ),
         **error_responses(AppError.VALIDATION_ERROR, AppError.INVALID_TOKEN, AppError.USER_NOT_FOUND),

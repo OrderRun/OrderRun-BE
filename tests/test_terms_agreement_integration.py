@@ -22,6 +22,7 @@ def test_terms_agreement_create_and_update(client, db, sample_user):
     created = client.post("/v1/terms", headers=headers, json=_payload())
     assert created.status_code == 201
     body = created.json()
+    assert set(body) == {"success", "data", "message"}
     assert body["success"] is True
     assert body["message"] == "약관 동의가 완료되었습니다."
     assert body["data"]["userId"] == sample_user.id

@@ -18,7 +18,7 @@
 {
   "success": true,
   "data": {},
-  "message": "Success"
+  "message": null
 }
 ```
 
@@ -26,7 +26,9 @@
 |------|------|------|
 | success | boolean | 성공 여부. 성공 응답은 `true` |
 | data | object, array, null | API별 응답 데이터 |
-| message | string | 처리 결과 메시지 |
+| message | string, null | 처리 결과 메시지. 별도 메시지가 없으면 `null` |
+
+`success`, `data`, `message`는 모든 JSON 성공 응답에 항상 포함한다. 값이 없는 필드와 응답 DTO의 nullable 필드는 생략하지 않고 `null`로 반환한다. 필드 누락은 계약에 해당 필드가 없다는 의미이고, `null`은 계약에 존재하지만 현재 값이 없다는 의미이므로 서로 구분한다.
 
 ### 페이징 응답
 

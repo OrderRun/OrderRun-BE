@@ -119,6 +119,7 @@ USER_DETAIL_EXAMPLE = {
         "alarmEnabled": False,
         "level": EXAMPLE_ORDERER_LEVEL,
     },
+    "message": None,
 }
 USER_ALARM_EXAMPLE = {"success": True, "data": None, "message": "알람 설정이 업데이트되었습니다."}
 USER_NAME_EXAMPLE = {"success": True, "data": None, "message": "닉네임이 업데이트되었습니다."}

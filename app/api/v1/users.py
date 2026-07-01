@@ -34,7 +34,6 @@ router = APIRouter(prefix="/v1/user", tags=["사용자"])
 @router.get(
     "/detail",
     response_model=ApiResponse[UserDetailResponse],
-    response_model_exclude_none=True,
     summary="내 정보 조회",
     description="현재 로그인한 사용자의 상세 정보를 조회합니다.",
     responses={

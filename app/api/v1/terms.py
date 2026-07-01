@@ -21,7 +21,6 @@ router = APIRouter(prefix="/v1/terms", tags=["약관"])
 @router.post(
     "",
     response_model=ApiResponse[TermsAgreementResponse],
-    response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="약관 동의 저장",
     description="필수 약관 동의 여부를 저장합니다.",
