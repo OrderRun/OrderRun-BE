@@ -266,9 +266,13 @@ app/
 │   ├── __init__.py
 │   ├── v1/
 │   │   ├── __init__.py
-│   │   ├── users.py
-│   │   ├── proposals.py
-│   │   └── ...                  # API 라우터
+│   │   ├── router.py            # v1 하위 라우터 조립
+│   │   ├── user_auth/
+│   │   │   ├── auth_router.py
+│   │   │   └── user_router.py
+│   │   ├── proposal/
+│   │   │   └── proposal_router.py
+│   │   └── ...                  # 도메인별 API 패키지
 │   └── deps.py                  # API 의존성
 ├── services/
 │   ├── __init__.py
@@ -292,7 +296,7 @@ app/
 | `schemas/` | Pydantic 요청/응답 스키마 | models |
 | `repositories/` | 데이터 액세스 레이어 | models |
 | `services/` | 비즈니스 로직 | repositories, schemas |
-| `api/` | FastAPI 라우터 | services, schemas |
+| `api/` | 도메인별 FastAPI 라우터와 버전별 조립 | services, schemas |
 | `utils/` | 순수 유틸리티 함수 | 없음 |
 
 **의존성 흐름:**
@@ -314,7 +318,7 @@ Q: 이것은 코드인가, 문서인가?
 │   ├─ API 계약 → app/schemas/
 │   ├─ 비즈니스 로직 → app/services/
 │   ├─ 데이터 액세스 → app/repositories/
-│   └─ API 엔드포인트 → app/api/v1/
+│   └─ API 엔드포인트 → app/api/v1/<domain>/*_router.py
 │
 └─ 문서 → docs/
     Q: 어떤 종류의 문서인가?
@@ -384,7 +388,7 @@ docs/design-docs/core-beliefs.md
 4. `docs/exec-plans/active/`에 구현 계획 작성
 5. `app/models/`에 모델 추가
 6. `app/schemas/`, `app/services/`, `app/repositories/` 순서로 레이어 구현
-7. `app/api/v1/`에 엔드포인트 추가
+7. `app/api/v1/<domain>/*_router.py`에 엔드포인트를 추가하고 `app/api/v1/router.py`에 등록
 8. 영속성 구조가 바뀌면 `docs/generated/db-schema.md` 갱신
 
 ### 새 문서 유형 추가 시

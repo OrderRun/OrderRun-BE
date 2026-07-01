@@ -257,8 +257,14 @@ def client(db: Session, sms_sender: RecordingSmsSender, monkeypatch: pytest.Monk
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_sms_sender] = lambda: sms_sender
     monkeypatch.setattr("app.main.get_notification_worker", lambda: NoopNotificationWorker())
-    monkeypatch.setattr("app.api.v1.offer.get_notification_worker", lambda: NoopNotificationWorker())
-    monkeypatch.setattr("app.api.v1.proposal.get_notification_worker", lambda: NoopNotificationWorker())
+    monkeypatch.setattr(
+        "app.api.v1.offer.offer_router.get_notification_worker",
+        lambda: NoopNotificationWorker(),
+    )
+    monkeypatch.setattr(
+        "app.api.v1.proposal.proposal_router.get_notification_worker",
+        lambda: NoopNotificationWorker(),
+    )
 
     with TestClient(app) as test_client:
         yield OpenApiAssertingClient(test_client)

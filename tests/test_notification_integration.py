@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from app.api.v1.notifications import get_notification_dispatcher
+from app.api.v1.notification.notification_router import get_notification_dispatcher
 from app.main import app
 from app.models.notification import Notification, NotificationStatus, NotificationType
 

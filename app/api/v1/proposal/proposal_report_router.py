@@ -13,7 +13,7 @@ from app.schemas.proposal_report import ProposalReportReasonQuestionResponse
 from app.services.proposal_report_service import ProposalReportService
 
 
-router = APIRouter(prefix="/v1/proposal-report-reasons", tags=["게시글 신고"])
+router = APIRouter(prefix="/proposal-report-reasons", tags=["게시글 신고"])
 
 
 @router.get(

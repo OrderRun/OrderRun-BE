@@ -15,7 +15,7 @@ from app.schemas.user import ApiResponse
 from app.services.terms_service import TermsAgreementService
 
 
-router = APIRouter(prefix="/v1/terms", tags=["약관"])
+router = APIRouter(prefix="/terms", tags=["약관"])
 
 
 @router.post(

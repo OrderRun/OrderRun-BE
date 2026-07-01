@@ -38,7 +38,7 @@ from app.services.proposal_service import ProposalService
 from app.services.proposal_report_service import ProposalReportService
 
 
-router = APIRouter(prefix="/v1/proposal", tags=["요청"])
+router = APIRouter(prefix="/proposal", tags=["요청"])
 
 
 class ProposalSearchRequest:

@@ -1,4 +1,4 @@
-"""Admin API endpoints."""
+"""Admin API router."""
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 

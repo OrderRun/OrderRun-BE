@@ -29,7 +29,7 @@ from app.services.user_profile_service import UserProfileService
 from app.services.user_withdrawal_service import UserWithdrawalService
 
 
-router = APIRouter(prefix="/v1/user", tags=["사용자"])
+router = APIRouter(prefix="/user", tags=["사용자"])
 
 
 @router.get(

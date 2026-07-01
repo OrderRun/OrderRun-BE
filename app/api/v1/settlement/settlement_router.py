@@ -26,7 +26,7 @@ from app.schemas.settlement import (
 from app.services.settlement_service import SettlementService
 
 
-router = APIRouter(prefix="/v1/settlement", tags=["정산"])
+router = APIRouter(prefix="/settlement", tags=["정산"])
 
 
 @router.get(

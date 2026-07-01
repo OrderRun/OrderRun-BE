@@ -16,7 +16,7 @@ from app.schemas.dispute_survey import DisputeSurveyQuestionResponse
 from app.services.dispute_survey_service import DisputeSurveyService
 
 
-router = APIRouter(prefix="/v1/dispute-survey", tags=["분쟁 설문"])
+router = APIRouter(prefix="/dispute-survey", tags=["분쟁 설문"])
 
 
 @router.get(

@@ -30,7 +30,7 @@ from app.schemas.dispute_evidence import DisputeRequest
 from app.services.offer_service import OfferService
 
 
-router = APIRouter(prefix="/v1/offer", tags=["제안"])
+router = APIRouter(prefix="/offer", tags=["제안"])
 
 
 class OfferSearchRequest:

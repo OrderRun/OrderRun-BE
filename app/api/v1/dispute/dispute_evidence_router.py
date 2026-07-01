@@ -15,7 +15,7 @@ from app.schemas.dispute_evidence import DisputeEvidenceResponse
 from app.services.dispute_evidence_service import DisputeEvidenceService
 
 
-router = APIRouter(prefix="/v1/dispute-evidence", tags=["분쟁 증빙"])
+router = APIRouter(prefix="/dispute-evidence", tags=["분쟁 증빙"])
 
 
 @router.get(

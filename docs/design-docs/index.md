@@ -11,6 +11,7 @@
 - [`user-service-boundaries.md`](./user-service-boundaries.md): 인증, 프로필, 전화번호 검증, 회원 탈퇴 서비스의 책임과 트랜잭션 경계
 - [`persistence-schema-canonicalization.md`](./persistence-schema-canonicalization.md): 전체 영속성 스키마 정본화와 현재 구현 갭
 - [`testing-conventions.md`](./testing-conventions.md): pytest 통합 테스트 작성 규칙 (이름, GWT 구조, 중복 방지)
+- [`api-router-organization.md`](./api-router-organization.md): API 라우터의 도메인 패키지, 명명, 버전별 조립 원칙
 - [`../api-spec/README.md`](../api-spec/README.md): 외부 API 요청/응답 계약 정본
 - [`../domain.md`](../domain.md): 도메인 상태와 정책 정본
 

@@ -27,7 +27,7 @@ from app.services.phone_verification_service import PhoneVerificationService
 from app.services.user_auth_service import UserAuthService
 
 
-router = APIRouter(prefix="/v1/auth", tags=["인증"])
+router = APIRouter(prefix="/auth", tags=["인증"])
 
 
 VERIFICATION_SEND_EXAMPLE = {
