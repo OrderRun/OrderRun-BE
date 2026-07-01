@@ -21,3 +21,11 @@
 - API 계약: [`../api-spec/README.md`](../api-spec/README.md)
 - 상태와 정책: [`../domain.md`](../domain.md)
 - 기술 결정: [`../design-docs/`](../design-docs/)
+
+## Python 기초
+
+- [`python-basics/01-imports-and-modules.md`](./python-basics/01-imports-and-modules.md): import와 모듈
+- [`python-basics/02-class-inheritance.md`](./python-basics/02-class-inheritance.md): 클래스 상속
+- [`python-basics/03-all-variable.md`](./python-basics/03-all-variable.md): `__all__`
+- [`python-basics/04-entity-organization.md`](./python-basics/04-entity-organization.md): 엔티티 구성
+- [`python-basics/05-decorators.md`](./python-basics/05-decorators.md): 데코레이터의 원리와 사용법
