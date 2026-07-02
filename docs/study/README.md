@@ -24,8 +24,11 @@
 
 ## Python 기초
 
-- [`python-basics/01-imports-and-modules.md`](./python-basics/01-imports-and-modules.md): import와 모듈
-- [`python-basics/02-class-inheritance.md`](./python-basics/02-class-inheritance.md): 클래스 상속
+- [`python-basics/01-variables-functions-and-scope.md`](./python-basics/01-variables-functions-and-scope.md): 변수, 함수, 지역·전역 스코프
+- [`python-basics/02-imports-and-modules.md`](./python-basics/02-imports-and-modules.md): import와 모듈
 - [`python-basics/03-all-variable.md`](./python-basics/03-all-variable.md): `__all__`
-- [`python-basics/04-entity-organization.md`](./python-basics/04-entity-organization.md): 엔티티 구성
+- [`python-basics/04-classes-interfaces-and-inheritance.md`](./python-basics/04-classes-interfaces-and-inheritance.md): 클래스, 인터페이스 개념과 상속
 - [`python-basics/05-decorators.md`](./python-basics/05-decorators.md): 데코레이터의 원리와 사용법
+- [`python-basics/06-enums.md`](./python-basics/06-enums.md): Enum과 문자열 Enum
+- [`python-basics/07-module-level-objects.md`](./python-basics/07-module-level-objects.md): 모듈 수준 변수와 함수, 객체 생명 주기
+- [`python-basics/08-entity-organization.md`](./python-basics/08-entity-organization.md): 엔티티 구성
