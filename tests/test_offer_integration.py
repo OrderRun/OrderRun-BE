@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 
 from app.models.dispute_survey import DisputeSurveyQuestion, DisputeSurveyTargetType
 from app.models.dispute_evidence import DisputeEvidence
-from app.models.notification import Notification, NotificationType
+from app.models.notification import Notification, NotificationStatus, NotificationType
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
 
@@ -26,6 +27,18 @@ def dispute_question(
         question_text=question_text,
         display_order=display_order,
         is_active=is_active,
+    )
+
+
+def notification_for(db, user_id: str, notification_type: NotificationType, related_entity_id: int) -> Notification:
+    return (
+        db.query(Notification)
+        .filter(
+            Notification.user_id == user_id,
+            Notification.notification_type == notification_type,
+            Notification.related_entity_id == related_entity_id,
+        )
+        .one()
     )
 
 
@@ -74,6 +87,45 @@ def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, d
     assert proposal.orderer_confirmed_at is None
     assert proposal.disputed_at is None
     assert proposal.resolved_at is None
+
+
+def test_create_offer_creates_notifications_for_alarm_enabled_users(client, db, factory, sample_user):
+    sample_user.alarm_enabled = True
+    runner = factory.user("01077770031", name="Runner Notify")
+    runner.alarm_enabled = True
+    proposal = factory.proposal(sample_user.id, ProposalStatus.POSTED)
+    db.commit()
+
+    response = client.post(
+        "/v1/offer",
+        json=offer_payload(proposal.id),
+        headers=factory.headers_for(runner),
+    )
+
+    assert response.status_code == 201
+    offer_id = response.json()["data"]["id"]
+    orderer_notification = notification_for(db, sample_user.id, NotificationType.OFFER_NEW, offer_id)
+    runner_notification = notification_for(db, runner.id, NotificationType.OFFER_SUBMITTED, offer_id)
+    assert orderer_notification.status == NotificationStatus.PENDING
+    assert orderer_notification.related_entity_type == "offer"
+    assert json.loads(orderer_notification.data) == {"offer_id": offer_id, "proposal_id": proposal.id}
+    assert runner_notification.status == NotificationStatus.PENDING
+    assert runner_notification.related_entity_type == "offer"
+    assert json.loads(runner_notification.data) == {"offer_id": offer_id, "proposal_id": proposal.id}
+
+
+def test_create_offer_skips_notifications_when_alarm_disabled(client, db, factory, sample_user):
+    runner = factory.user("01077770032")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.POSTED)
+
+    response = client.post(
+        "/v1/offer",
+        json=offer_payload(proposal.id),
+        headers=factory.headers_for(runner),
+    )
+
+    assert response.status_code == 201
+    assert db.query(Notification).filter(Notification.related_entity_id == response.json()["data"]["id"]).count() == 0
 
 
 def test_create_second_offer_keeps_proposal_offered(client, db, factory, sample_user):
@@ -299,6 +351,38 @@ def test_accept_offer_updates_states_and_timestamps(client, db, factory, sample_
     assert proposal.resolved_at is None
 
 
+def test_accept_offer_creates_selected_and_rejected_runner_notifications(client, db, factory, sample_user):
+    sample_user.alarm_enabled = True
+    runner1 = factory.user("01077770033")
+    runner2 = factory.user("01077770034")
+    runner1.alarm_enabled = True
+    runner2.alarm_enabled = True
+    proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
+    selected = Offer(proposal_id=proposal.id, runner_id=runner1.id)
+    other = Offer(proposal_id=proposal.id, runner_id=runner2.id)
+    db.add_all([selected, other])
+    db.commit()
+
+    response = client.post(
+        f"/v1/offer/{selected.id}/accept",
+        headers=factory.headers_for(sample_user),
+    )
+
+    assert response.status_code == 201
+    selected_notification = notification_for(db, runner1.id, NotificationType.OFFER_ACCEPTED, selected.id)
+    rejected_notification = notification_for(db, runner2.id, NotificationType.OFFER_REJECTED, selected.id)
+    assert selected_notification.status == NotificationStatus.PENDING
+    assert json.loads(selected_notification.data) == {"offer_id": selected.id, "proposal_id": proposal.id}
+    assert rejected_notification.status == NotificationStatus.PENDING
+    assert json.loads(rejected_notification.data) == {"offer_id": selected.id, "proposal_id": proposal.id}
+    assert (
+        db.query(Notification)
+        .filter(Notification.user_id == sample_user.id, Notification.related_entity_id == selected.id)
+        .count()
+        == 0
+    )
+
+
 def test_accept_offer_domain_and_validation_errors(client, db, factory, sample_user):
     runner = factory.user("01077770013")
     other_user = factory.user("01077770014")
@@ -412,6 +496,27 @@ def test_complete_delivery_marks_offer_completed_without_finishing_proposal(clie
     assert proposal.disputed_at is None
     assert proposal.resolved_at is None
     assert db.query(DisputeEvidence).filter(DisputeEvidence.offer_id == offer.id).count() == 0
+
+
+def test_complete_delivery_creates_meeting_confirmed_notification_for_orderer(client, db, factory, sample_user):
+    sample_user.alarm_enabled = True
+    runner = factory.user("01077770035")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.MATCHED)
+    offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    offer.accepted_at = datetime.now(timezone.utc)
+    db.add(offer)
+    db.commit()
+
+    response = client.post(
+        f"/v1/offer/{offer.id}/complete-delivery",
+        headers=factory.headers_for(runner),
+    )
+
+    assert response.status_code == 200
+    notification = notification_for(db, sample_user.id, NotificationType.MEETING_CONFIRMED, offer.id)
+    assert notification.status == NotificationStatus.PENDING
+    assert notification.related_entity_type == "offer"
+    assert json.loads(notification.data) == {"offer_id": offer.id, "proposal_id": proposal.id}
 
 
 def test_complete_delivery_after_orderer_completion_marks_both_all_completed(client, db, factory, sample_user):

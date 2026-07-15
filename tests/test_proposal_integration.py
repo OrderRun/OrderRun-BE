@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import inspect
 
 from app.models.dispute_survey import DisputeSurveyQuestion, DisputeSurveyTargetType
 from app.models.dispute_evidence import DisputeEvidence
-from app.models.notification import Notification, NotificationType
+from app.models.notification import Notification, NotificationStatus, NotificationType
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
 
@@ -37,6 +38,18 @@ def dispute_question(
         question_text=question_text,
         display_order=display_order,
         is_active=is_active,
+    )
+
+
+def notification_for(db, user_id: str, notification_type: NotificationType, related_entity_id: int) -> Notification:
+    return (
+        db.query(Notification)
+        .filter(
+            Notification.user_id == user_id,
+            Notification.notification_type == notification_type,
+            Notification.related_entity_id == related_entity_id,
+        )
+        .one()
     )
 
 
@@ -412,6 +425,21 @@ def test_confirm_received_marks_proposal_completed_without_finishing_offer(clien
     assert offer.resolved_at is None
 
 
+def test_confirm_received_creates_meeting_confirmed_notification_for_runner(client, db, factory, auth_headers, sample_user):
+    runner = factory.user("01055550031")
+    runner.alarm_enabled = True
+    proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.ACCEPTED)
+    db.commit()
+
+    response = client.post(f"/v1/proposal/{proposal.id}/confirm-received", headers=auth_headers)
+
+    assert response.status_code == 200
+    notification = notification_for(db, runner.id, NotificationType.MEETING_CONFIRMED, offer.id)
+    assert notification.status == NotificationStatus.PENDING
+    assert notification.related_entity_type == "offer"
+    assert json.loads(notification.data) == {"offer_id": offer.id, "proposal_id": proposal.id}
+
+
 def test_confirm_received_after_runner_completion_marks_both_all_completed(client, db, factory, auth_headers, sample_user):
     runner = factory.user("01055550002")
     sample_user.level = 6
@@ -442,6 +470,34 @@ def test_confirm_received_after_runner_completion_marks_both_all_completed(clien
     assert offer.disputed_at is None
     assert proposal.resolved_at is None
     assert offer.resolved_at is None
+
+
+def test_confirm_received_after_runner_completion_creates_execution_completed_notifications(
+    client,
+    db,
+    factory,
+    auth_headers,
+    sample_user,
+):
+    sample_user.alarm_enabled = True
+    runner = factory.user("01055550032")
+    runner.alarm_enabled = True
+    proposal, offer = factory.execution(sample_user, runner, ProposalStatus.MATCHED, OfferStatus.RUNNER_COMPLETED)
+    proposal.runner_confirmed_at = datetime.now(timezone.utc)
+    offer.runner_confirmed_at = proposal.runner_confirmed_at
+    db.commit()
+
+    response = client.post(f"/v1/proposal/{proposal.id}/confirm-received", headers=auth_headers)
+
+    assert response.status_code == 200
+    runner_meeting_notification = notification_for(db, runner.id, NotificationType.MEETING_CONFIRMED, offer.id)
+    orderer_completed_notification = notification_for(db, sample_user.id, NotificationType.EXECUTION_COMPLETED, offer.id)
+    runner_completed_notification = notification_for(db, runner.id, NotificationType.EXECUTION_COMPLETED, offer.id)
+    assert runner_meeting_notification.status == NotificationStatus.PENDING
+    assert orderer_completed_notification.status == NotificationStatus.PENDING
+    assert runner_completed_notification.status == NotificationStatus.PENDING
+    assert json.loads(orderer_completed_notification.data) == {"offer_id": offer.id, "proposal_id": proposal.id}
+    assert json.loads(runner_completed_notification.data) == {"offer_id": offer.id, "proposal_id": proposal.id}
 
 
 def test_raise_proposal_dispute_updates_both_statuses_and_timestamps(client, db, factory, auth_headers, sample_user):

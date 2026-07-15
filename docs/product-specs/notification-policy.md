@@ -51,27 +51,49 @@
 
 ### 지원 관련
 
-| 이벤트 | 수신자 | 타이틀 | 내용 | 트리거 |
-|---|---|---|---|---|
-| 지원자 발생 | 요청자 | 누군가 지원했어요! 👀 | 회원님의 요청에 새로운 지원자가 생겼어요. 확인해보세요! | `POST /v1/offer` |
-| 지원 완료 | 지원자 | 지원 완료! ✅ | 지원이 정상적으로 접수됐어요. 요청자의 선택을 기다려주세요. | `POST /v1/offer` |
-| 지원 수락 | 지원자 | 선택받으셨어요! 🙌 | 요청자가 회원님을 선택했어요. | `POST /v1/offer/{id}/accept` |
-| 탈락 통보 | 탈락 지원자 전원 | 이번엔 아쉽게 됐어요 😢 | 이번엔 선택받지 못했지만 다음 기회가 분명 있을 거예요. | `POST /v1/offer/{id}/accept` |
+| 이벤트 | 수신자 | NotificationType | 타이틀 | 내용 | 트리거 |
+|---|---|---|---|---|---|
+| 지원자 발생 | 요청자 | `OFFER_NEW` | 누군가 지원했어요! 👀 | 회원님의 요청에 새로운 지원자가 생겼어요. 확인해보세요! | `POST /v1/offer` |
+| 지원 완료 | 지원자 | `OFFER_SUBMITTED` | 지원 완료! ✅ | 지원이 정상적으로 접수됐어요. 요청자의 선택을 기다려주세요. | `POST /v1/offer` |
+| 지원 수락 | 지원자 | `OFFER_ACCEPTED` | 선택받으셨어요! 🙌 | 요청자가 회원님을 선택했어요. | `POST /v1/offer/{id}/accept` |
+| 탈락 통보 | 탈락 지원자 전원 | `OFFER_REJECTED` | 이번엔 아쉽게 됐어요 😢 | 이번엔 선택받지 못했지만 다음 기회가 분명 있을 거예요. | `POST /v1/offer/{id}/accept` |
 
 ### 만남 확인 관련
 
-| 이벤트 | 수신자 | 타이틀 | 내용 | 트리거 |
-|---|---|---|---|---|
-| 지원자가 만남 확인 | 요청자 | 지원자가 만남을 확인했어요! 🤝 | 지원자가 만남을 확인했어요. 회원님도 확인해주시면 정산이 바로 진행돼요. | `POST /v1/offer/{id}/complete-delivery` |
-| 요청자가 만남 확인 | 지원자 | 요청자가 만남을 확인했어요! 🤝 | 요청자가 만남을 확인했어요. 회원님도 확인해주시면 정산이 진행돼요! | `POST /v1/proposal/{id}/confirm-received` |
-| 양측 확인 완료 | 요청자 + 지원자 | 완료! 수고하셨어요 🎊 | 양측 만남이 모두 확인됐어요. 성공적으로 완료됐습니다! | `POST /v1/proposal/{id}/confirm-received` |
+| 이벤트 | 수신자 | NotificationType | 타이틀 | 내용 | 트리거 |
+|---|---|---|---|---|---|
+| 지원자가 만남 확인 | 요청자 | `MEETING_CONFIRMED` | 지원자가 만남을 확인했어요! 🤝 | 지원자가 만남을 확인했어요. 회원님도 확인해주시면 정산이 바로 진행돼요. | `POST /v1/offer/{id}/complete-delivery` |
+| 요청자가 만남 확인 | 지원자 | `MEETING_CONFIRMED` | 요청자가 만남을 확인했어요! 🤝 | 요청자가 만남을 확인했어요. 회원님도 확인해주시면 정산이 진행돼요! | `POST /v1/proposal/{id}/confirm-received` |
+| 양측 확인 완료 | 요청자 + 지원자 | `EXECUTION_COMPLETED` | 완료! 수고하셨어요 🎊 | 양측 만남이 모두 확인됐어요. 성공적으로 완료됐습니다! | `POST /v1/proposal/{id}/confirm-received` |
 
 ### 분쟁 관련
 
-| 이벤트 | 수신자 | 타이틀 | 내용 | 트리거 |
-|---|---|---|---|---|
-| 요청자가 분쟁 접수 | 지원자 | 분쟁이 접수되었어요 | 요청자가 분쟁을 접수했어요. 앱에서 내용을 확인해주세요. | `POST /v1/proposal/{id}/dispute` |
-| 지원자가 분쟁 접수 | 요청자 | 분쟁이 접수되었어요 | 지원자가 분쟁을 접수했어요. 앱에서 내용을 확인해주세요. | `POST /v1/offer/{id}/dispute` |
+| 이벤트 | 수신자 | NotificationType | 타이틀 | 내용 | 트리거 |
+|---|---|---|---|---|---|
+| 요청자가 분쟁 접수 | 지원자 | `DISPUTE_RAISED` | 분쟁이 접수되었어요 | 요청자가 분쟁을 접수했어요. 앱에서 내용을 확인해주세요. | `POST /v1/proposal/{id}/dispute` |
+| 지원자가 분쟁 접수 | 요청자 | `DISPUTE_RAISED` | 분쟁이 접수되었어요 | 지원자가 분쟁을 접수했어요. 앱에서 내용을 확인해주세요. | `POST /v1/offer/{id}/dispute` |
+
+### 저장 필드와 FCM data
+
+현재 1차 알림은 모두 `related_entity_type="offer"`, `related_entity_id=<offer_id>`로 저장한다. `notifications.data`에는 JSON 문자열로 `offer_id`, `proposal_id`를 저장한다.
+
+`NotificationWorker`가 FCM으로 전달하는 data payload는 다음 필드를 포함한다.
+
+| 필드 | 의미 |
+|---|---|
+| `notification_id` | `notifications.id` |
+| `notification_type` | `NotificationType` 값. 클라이언트의 현재 라우팅 code로 사용할 수 있다. |
+| `related_entity_type` | 현재 1차 알림은 `offer` |
+| `related_entity_id` | 현재 1차 알림은 `offer_id` |
+| `extra_offer_id` | `notifications.data.offer_id` |
+| `extra_proposal_id` | `notifications.data.proposal_id` |
+
+명시적인 `navigation_code`, `target_page`, `deep_link` 필드는 아직 없다. 클라이언트 딥링크 정책을 추가할 때는 위 payload와 별도 호환 정책을 정해야 한다.
+
+### 현재 구현 주의사항
+
+- `POST /v1/proposal/{id}/confirm-received`는 알림 레코드를 생성하지만 현재 라우터에서 `NotificationWorker.flush_pending(SessionLocal)` background task를 등록하지 않는다. 즉시 FCM 발송이 필요하면 라우터에 background task 연결을 추가해야 한다.
+- 이벤트 기반 outbox 발송은 추가 data를 `extra_` prefix로 FCM에 싣는다. 커스텀 알림 직접 발송 경로는 `data_` prefix를 사용한다.
 
 ---
 
@@ -97,7 +119,7 @@
 | 지원 수락 | `OFFER_ACCEPTED` |
 | 탈락 통보 | `OFFER_REJECTED` |
 | 지원자/요청자 만남 확인 | `MEETING_CONFIRMED` |
-| 양측 완료 | `ALL_COMPLETED` |
+| 양측 완료 | `EXECUTION_COMPLETED` |
 | 분쟁 접수 | `DISPUTE_RAISED` |
 
 ---
