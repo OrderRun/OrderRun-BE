@@ -6,6 +6,7 @@
 - Content-Type: `application/json`
 - 인증: `Authorization: Bearer {access_token}`
 - 구현 갭 점검: [`implementation-gaps.md`](./implementation-gaps.md)
+- FCM 알림 payload: [`notification-fcm-payload.md`](./notification-fcm-payload.md)
 - 도메인 정책 정본: [`../domain.md`](../domain.md)
 
 ## 공통 규칙

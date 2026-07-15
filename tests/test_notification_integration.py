@@ -219,12 +219,9 @@ def test_notification_worker_sends_pending_notification_with_fcm_data(db, factor
     assert fcm.calls[0]["title"] == notification.title
     assert fcm.calls[0]["body"] == notification.body
     assert fcm.calls[0]["data"] == {
-        "notification_id": str(notification.id),
         "notification_type": "offer_accepted",
-        "related_entity_type": "offer",
-        "related_entity_id": "10",
-        "extra_offer_id": "10",
-        "extra_proposal_id": "20",
+        "offer_id": "10",
+        "proposal_id": "20",
     }
     assert notification.status == NotificationStatus.SENT
     assert notification.fcm_message_id == "message-1"

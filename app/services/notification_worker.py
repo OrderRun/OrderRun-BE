@@ -45,16 +45,12 @@ class NotificationWorker:
         for notif in notifications:
             notification_type = getattr(notif.notification_type, "value", notif.notification_type)
             data: dict[str, str] = {
-                "notification_id": str(notif.id),
                 "notification_type": str(notification_type),
             }
-            if notif.related_entity_type:
-                data["related_entity_type"] = notif.related_entity_type
-            if notif.related_entity_id:
-                data["related_entity_id"] = str(notif.related_entity_id)
             if notif.data:
                 for k, v in json.loads(notif.data).items():
-                    data[f"extra_{k}"] = str(v)
+                    if k in {"offer_id", "proposal_id"}:
+                        data[k] = str(v)
 
             result = self.fcm_service.send_notification(
                 token=self._get_token(db, notif.user_id),

@@ -17,6 +17,8 @@
 
 ## 발송 조건
 
+클라이언트 전달용 FCM payload 계약은 [`../api-spec/notification-fcm-payload.md`](../api-spec/notification-fcm-payload.md)를 기준으로 한다.
+
 모든 알림은 수신자의 `alarm_enabled` 값에 따라 발송 여부가 결정된다.
 
 - `alarm_enabled = true` → 발송
@@ -75,25 +77,30 @@
 
 ### 저장 필드와 FCM data
 
-현재 1차 알림은 모두 `related_entity_type="offer"`, `related_entity_id=<offer_id>`로 저장한다. `notifications.data`에는 JSON 문자열로 `offer_id`, `proposal_id`를 저장한다.
+현재 1차 알림은 모두 `related_entity_type="offer"`, `related_entity_id=<offer_id>`로 저장한다. 이 값은 서버 알림 조회/관리용 DB 필드이며 FCM data payload에는 포함하지 않는다.
 
-`NotificationWorker`가 FCM으로 전달하는 data payload는 다음 필드를 포함한다.
+`notifications.data`에는 JSON 문자열로 `offer_id`, `proposal_id`를 저장한다. `NotificationWorker`가 FCM으로 전달하는 data payload는 다음 JSON 형태다.
+
+```json
+{
+  "notification_type": "offer_accepted",
+  "offer_id": "45",
+  "proposal_id": "10"
+}
+```
 
 | 필드 | 의미 |
 |---|---|
-| `notification_id` | `notifications.id` |
 | `notification_type` | `NotificationType` 값. 클라이언트의 현재 라우팅 code로 사용할 수 있다. |
-| `related_entity_type` | 현재 1차 알림은 `offer` |
-| `related_entity_id` | 현재 1차 알림은 `offer_id` |
-| `extra_offer_id` | `notifications.data.offer_id` |
-| `extra_proposal_id` | `notifications.data.proposal_id` |
+| `offer_id` | `notifications.data.offer_id` |
+| `proposal_id` | `notifications.data.proposal_id` |
 
 명시적인 `navigation_code`, `target_page`, `deep_link` 필드는 아직 없다. 클라이언트 딥링크 정책을 추가할 때는 위 payload와 별도 호환 정책을 정해야 한다.
 
 ### 현재 구현 주의사항
 
 - `POST /v1/proposal/{id}/confirm-received`는 알림 레코드를 생성하지만 현재 라우터에서 `NotificationWorker.flush_pending(SessionLocal)` background task를 등록하지 않는다. 즉시 FCM 발송이 필요하면 라우터에 background task 연결을 추가해야 한다.
-- 이벤트 기반 outbox 발송은 추가 data를 `extra_` prefix로 FCM에 싣는다. 커스텀 알림 직접 발송 경로는 `data_` prefix를 사용한다.
+- 이벤트 기반 outbox 발송은 클라이언트 payload를 `notification_type`, `offer_id`, `proposal_id`로 제한한다. 커스텀 알림 직접 발송 경로는 별도 경로로 기존 data prefix를 사용할 수 있다.
 
 ---
 

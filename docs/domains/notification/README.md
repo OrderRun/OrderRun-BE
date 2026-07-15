@@ -17,5 +17,6 @@ Notification/SMS는 사용자 알림 조회/읽음 처리와 SMS provider 연동
 ## 정본 링크
 
 - 제품 정책: [`../../product-specs/notification-policy.md`](../../product-specs/notification-policy.md)
+- FCM payload 계약: [`../../api-spec/notification-fcm-payload.md`](../../api-spec/notification-fcm-payload.md)
 - API 계약: [`../../api-spec/README.md`](../../api-spec/README.md)의 Notification API
 - 테스트 보장: [`test-scenarios.md`](./test-scenarios.md)
