@@ -19,7 +19,7 @@
 ### Service Layer
 
 - `GET /v1/user/detail` 은 사용자 식별자 기준으로 조회 후 DTO 로 변환한다.
-- `POST /v1/user/alarm` 은 현재 사용자 레코드를 조회하고 `alarmEnabled` 를 갱신한다.
+- `PATCH /v1/user/alarm` 은 현재 사용자 레코드를 조회하고 `alarmEnabled` 를 갱신한다.
 - `PATCH /v1/user/fcm-token` 은 현재 사용자 기준으로 `user_fcm_tokens` 를 upsert 한다.
 
 ### Persistence Layer
@@ -55,7 +55,7 @@
 - `phoneVerifiedAt`, `lastLoginAt` 는 null 가능하다.
 - `createdAt` 은 공통 BaseEntity 의 감사 시각을 사용한다.
 
-### `POST /v1/user/alarm`
+### `PATCH /v1/user/alarm`
 
 - 요청 값은 `true/false` 둘 중 하나만 허용한다.
 - 저장 직후 응답 메시지는 고정 문자열 `알람 설정이 업데이트되었습니다.` 를 사용한다.

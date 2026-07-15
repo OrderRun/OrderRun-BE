@@ -13,7 +13,7 @@
   - `phone` 은 하이픈 제거 및 `+82` 정규화 결과를 반환한다.
   - 인증 없이 호출하면 401 `INVALID_TOKEN` 이다.
   - 존재하지 않는 `userId` 면 404 `USER_NOT_FOUND` 이다.
-- `POST /v1/user/alarm`
+- `PATCH /v1/user/alarm`
   - `alarmEnabled=true/false` 가 DB 에 반영된다.
   - 응답 메시지는 `알람 설정이 업데이트되었습니다.` 로 고정된다.
   - 인증 없이 호출하면 401 `INVALID_TOKEN` 이다.

@@ -59,15 +59,6 @@ def get_user_detail(
         **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR, AppError.USER_NOT_FOUND),
     },
 )
-@router.post(
-    "/alarm",
-    summary="알림 설정 변경",
-    description="현재 사용자의 알림 수신 여부를 변경합니다.",
-    responses={
-        200: success_response(USER_ALARM_EXAMPLE),
-        **error_responses(AppError.INVALID_TOKEN, AppError.VALIDATION_ERROR, AppError.USER_NOT_FOUND),
-    },
-)
 def update_alarm(
     payload: UserAlarmRequest,
     current_user: User = Depends(get_current_user),

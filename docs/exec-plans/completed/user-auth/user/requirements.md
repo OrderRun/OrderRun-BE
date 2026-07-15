@@ -3,7 +3,7 @@
 ## Current Policy
 
 - `User` 도메인은 인증된 현재 사용자 기준의 프로필 조회와 사용자 설정 변경을 담당한다.
-- 현재 구현은 `GET /v1/user/detail`, `POST /v1/user/alarm`, `PATCH /v1/user/fcm-token` 을 제공한다.
+- 현재 구현은 `GET /v1/user/detail`, `PATCH /v1/user/alarm`, `PATCH /v1/user/fcm-token` 을 제공한다.
 - 세 API 모두 JWT Bearer 인증이 필요하다.
 - 현재 사용자 식별은 `Authorization: Bearer <access_token>` 에서 읽은 `userId` 를 기준으로 한다.
 - `GET /v1/user/detail` 은 `id`, `name`, `phone`, `phoneVerifiedAt`, `createdAt`, `lastLoginAt`, `alarmEnabled` 만 반환한다.
@@ -21,7 +21,7 @@
 ## In Scope
 
 - `GET /v1/user/detail`
-- `POST /v1/user/alarm`
+- `PATCH /v1/user/alarm`
 - `PATCH /v1/user/fcm-token`
 - 현재 사용자 조회용 auth dependency
 - `users` / `user_fcm_tokens` 저장 규칙
@@ -46,7 +46,7 @@
 - 현재 사용자 레코드가 없으면 `USER_NOT_FOUND` 를 반환한다.
 - 인증 헤더가 없거나 유효하지 않으면 401 `INVALID_TOKEN` 을 반환한다.
 
-### `POST /v1/user/alarm`
+### `PATCH /v1/user/alarm`
 
 - 요청 본문은 `alarmEnabled` boolean 1개만 허용한다.
 - 인증된 사용자의 `alarmEnabled` 값을 업데이트한다.

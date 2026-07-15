@@ -241,7 +241,7 @@ def test_user_detail_alarm_and_fcm_token_flow(client, db, sms_sender):
     assert data["level"] == 0
     assert data["phoneVerifiedAt"] is not None
 
-    alarm = client.post(
+    alarm = client.patch(
         "/v1/user/alarm",
         headers={"Authorization": f"Bearer {token}"},
         json={"alarmEnabled": True},
@@ -272,7 +272,7 @@ def test_user_detail_alarm_and_fcm_token_flow(client, db, sms_sender):
     db.refresh(token_row)
     assert token_row.fcm_token == "token-3"
 
-    extra_alarm_field = client.post(
+    extra_alarm_field = client.patch(
         "/v1/user/alarm",
         headers={"Authorization": f"Bearer {token}"},
         json={"alarmEnabled": True, "unexpected": True},

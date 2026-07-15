@@ -17,6 +17,13 @@ def test_openapi_contains_korean_api_metadata():
     assert "OrderRun 백엔드 API" in schema["info"]["description"]
 
 
+def test_user_alarm_openapi_exposes_only_patch():
+    alarm_path = app.openapi()["paths"]["/v1/user/alarm"]
+
+    assert set(alarm_path) == {"patch"}
+    assert alarm_path["patch"]["summary"] == "알림 설정 변경"
+
+
 def test_auth_signup_send_openapi_examples_match_response_shape():
     operation = app.openapi()["paths"]["/v1/auth/signup/send"]["post"]
 
