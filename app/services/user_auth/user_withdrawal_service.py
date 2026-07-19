@@ -10,7 +10,14 @@ from app.models.notification import Notification
 from app.models.offer import Offer, OfferStatus
 from app.models.proposal import Proposal, ProposalStatus
 from app.models.settlement import SettlementAccount
-from app.models.user import AuthPhoneVerification, User, UserFCMToken
+from app.models.user import (
+    AuthPhoneVerification,
+    User,
+    UserFCMToken,
+    UserWithdrawal,
+    UserWithdrawalReasonQuestion,
+)
+from app.schemas.user import UserWithdrawalReasonQuestionResponse, UserWithdrawalRequest
 
 
 WITHDRAWAL_BLOCKING_PROPOSAL_STATUSES = {
@@ -33,7 +40,17 @@ WITHDRAWAL_AUTO_CANCEL_OFFER_STATUSES = {OfferStatus.WAITING}
 
 class UserWithdrawalService:
     @staticmethod
-    def withdraw_user(db: Session, user: User) -> None:
+    def list_reason_questions(db: Session) -> list[UserWithdrawalReasonQuestionResponse]:
+        questions = (
+            db.query(UserWithdrawalReasonQuestion)
+            .filter(UserWithdrawalReasonQuestion.is_active.is_(True))
+            .order_by(UserWithdrawalReasonQuestion.display_order.asc(), UserWithdrawalReasonQuestion.id.asc())
+            .all()
+        )
+        return [UserWithdrawalReasonQuestionResponse.model_validate(question) for question in questions]
+
+    @staticmethod
+    def withdraw_user(db: Session, user: User, request: UserWithdrawalRequest | None = None) -> None:
         fresh_user = db.query(User).filter(User.id == str(user.id), User.deleted.is_(False)).first()
         if fresh_user is None:
             raise api_error(AppError.USER_NOT_FOUND)
@@ -42,9 +59,19 @@ class UserWithdrawalService:
         if UserWithdrawalService._has_blocking_activity(db, user_id):
             raise api_error(AppError.USER_WITHDRAWAL_BLOCKED)
 
+        reason_question = UserWithdrawalService._validate_request(db, request)
         original_phone = fresh_user.phone
+        withdrawn_at = utcnow_naive()
         try:
             UserWithdrawalService._auto_cancel_pre_match_activity(db, user_id)
+            db.add(
+                UserWithdrawal(
+                    user_id=user_id,
+                    reason_question_id=reason_question.id if reason_question is not None else None,
+                    detail_reason=request.detail_reason if request is not None else None,
+                    withdrawn_at=withdrawn_at,
+                )
+            )
             if original_phone is not None:
                 db.query(AuthPhoneVerification).filter(AuthPhoneVerification.phone == original_phone).delete(
                     synchronize_session=False
@@ -54,11 +81,32 @@ class UserWithdrawalService:
                 synchronize_session=False
             )
             db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
-            fresh_user.withdraw(utcnow_naive())
+            fresh_user.withdraw(withdrawn_at)
             db.commit()
         except Exception:
             db.rollback()
             raise
+
+    @staticmethod
+    def _validate_request(
+        db: Session, request: UserWithdrawalRequest | None
+    ) -> UserWithdrawalReasonQuestion | None:
+        if request is None or request.reason_question_id is None:
+            return None
+
+        question = (
+            db.query(UserWithdrawalReasonQuestion)
+            .filter(
+                UserWithdrawalReasonQuestion.id == request.reason_question_id,
+                UserWithdrawalReasonQuestion.is_active.is_(True),
+            )
+            .one_or_none()
+        )
+        if question is None:
+            raise api_error(AppError.VALIDATION_ERROR, "reasonQuestionId")
+        if question.requires_detail and request.detail_reason is None:
+            raise api_error(AppError.VALIDATION_ERROR, "detailReason")
+        return question
 
     @staticmethod
     def _has_blocking_activity(db: Session, user_id: str) -> bool:

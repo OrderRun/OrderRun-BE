@@ -220,6 +220,32 @@ class UserDetailResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
 
+class UserWithdrawalReasonQuestionResponse(BaseModel):
+    id: int
+    question_text: str = Field(..., serialization_alias="questionText")
+    display_order: int = Field(..., serialization_alias="displayOrder")
+    requires_detail: bool = Field(..., serialization_alias="requiresDetail")
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class UserWithdrawalRequest(BaseModel):
+    reason_question_id: Optional[int] = Field(None, validation_alias="reasonQuestionId", ge=1)
+    detail_reason: Optional[str] = Field(None, validation_alias="detailReason", max_length=500)
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    @field_validator("detail_reason")
+    @classmethod
+    def strip_detail_reason(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("detailReason must not be blank")
+        return stripped
+
+
 class UserAlarmRequest(BaseModel):
     alarm_enabled: bool = Field(..., alias="alarmEnabled", description="알림 수신 여부")
 

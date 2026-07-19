@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -12,6 +12,7 @@ from app.core.openapi import (
     USER_DETAIL_EXAMPLE,
     USER_FCM_TOKEN_EXAMPLE,
     USER_NAME_EXAMPLE,
+    USER_WITHDRAWAL_REASONS_EXAMPLE,
     USER_WITHDRAWAL_EXAMPLE,
     error_responses,
     success_response,
@@ -24,6 +25,8 @@ from app.schemas.user import (
     UserDetailResponse,
     UserFcmTokenRequest,
     UserNameUpdateRequest,
+    UserWithdrawalReasonQuestionResponse,
+    UserWithdrawalRequest,
 )
 from app.services.user_auth.user_profile_service import UserProfileService
 from app.services.user_auth.user_withdrawal_service import UserWithdrawalService
@@ -104,18 +107,42 @@ def update_fcm_token(
     return {"success": True, "data": None, "message": "FCM 토큰이 업데이트되었습니다."}
 
 
-@router.delete(
-    "",
-    summary="회원 탈퇴",
-    description="현재 사용자의 개인정보를 삭제합니다. 매칭 이후 진행 중인 거래, 분쟁 또는 정산이 있으면 탈퇴할 수 없습니다.",
+@router.get(
+    "/withdrawal-reasons",
+    response_model=ApiResponse[list[UserWithdrawalReasonQuestionResponse]],
+    summary="회원 탈퇴 사유 조회",
+    description="회원 탈퇴 화면에 표시할 활성 탈퇴 사유를 조회합니다.",
     responses={
-        200: success_response(USER_WITHDRAWAL_EXAMPLE),
-        **error_responses(AppError.INVALID_TOKEN, AppError.USER_NOT_FOUND, AppError.USER_WITHDRAWAL_BLOCKED),
+        200: success_response(USER_WITHDRAWAL_REASONS_EXAMPLE),
+        **error_responses(AppError.INVALID_TOKEN),
     },
 )
-def withdraw_user(
+def list_withdrawal_reasons(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    UserWithdrawalService.withdraw_user(db, current_user)
+    _ = current_user
+    return ApiResponse(success=True, data=UserWithdrawalService.list_reason_questions(db), message="Success")
+
+
+@router.delete(
+    "",
+    summary="회원 탈퇴",
+    description="현재 사용자의 개인정보를 삭제합니다. 탈퇴 사유와 상세 사유를 선택 입력으로 받을 수 있습니다. 매칭 이후 진행 중인 거래, 분쟁 또는 정산이 있으면 탈퇴할 수 없습니다.",
+    responses={
+        200: success_response(USER_WITHDRAWAL_EXAMPLE),
+        **error_responses(
+            AppError.INVALID_TOKEN,
+            AppError.VALIDATION_ERROR,
+            AppError.USER_NOT_FOUND,
+            AppError.USER_WITHDRAWAL_BLOCKED,
+        ),
+    },
+)
+def withdraw_user(
+    payload: UserWithdrawalRequest | None = Body(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    UserWithdrawalService.withdraw_user(db, current_user, payload)
     return {"success": True, "data": None, "message": "회원 탈퇴가 완료되었습니다."}

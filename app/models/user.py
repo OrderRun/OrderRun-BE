@@ -6,7 +6,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, Index, Integer, String
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -104,10 +104,51 @@ class UserFCMToken(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
 
+
+class UserWithdrawalReasonQuestion(Base):
+    """Active withdrawal-reason choices displayed to users."""
+
+    __tablename__ = "user_withdrawal_reason_questions"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    question_text = Column(String(500), nullable=False)
+    display_order = Column(Integer, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="1")
+    requires_detail = Column(Boolean, nullable=False, default=False, server_default="0")
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
+
+    __table_args__ = (
+        UniqueConstraint("display_order", name="uk_user_withdrawal_reason_questions_display_order"),
+        Index("idx_user_withdrawal_reason_questions_lookup", "is_active", "display_order", "id"),
+    )
+
+
+class UserWithdrawal(Base):
+    """A user's submitted withdrawal reason."""
+
+    __tablename__ = "user_withdrawals"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    reason_question_id = Column(BigInteger, nullable=True)
+    detail_reason = Column(String(500), nullable=True)
+    withdrawn_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
+
+    __table_args__ = (
+        Index("idx_user_withdrawals_reason_question_id", "reason_question_id"),
+        Index("idx_user_withdrawals_user_withdrawn_at", "user_id", "withdrawn_at"),
+    )
+
+
 __all__ = [
     "AuthPhoneVerification",
     "PhoneVerificationPurpose",
     "PhoneVerificationStatus",
     "User",
     "UserFCMToken",
+    "UserWithdrawal",
+    "UserWithdrawalReasonQuestion",
 ]
