@@ -76,6 +76,7 @@
 - 최신 `PENDING` 레코드를 찾고 만료 여부를 먼저 본다.
 - 코드 mismatch 는 attempt count 를 증가시키는 별도 커밋 경로를 유지한다.
 - 성공 시 verification status 를 `VERIFIED` 로, user 생성과 token 발급을 이어서 수행한다.
+- `fcmToken` 이 있으면 user 생성 트랜잭션 안에서 trim 후 저장한다.
 
 ### `POST /v1/auth/login/send`
 

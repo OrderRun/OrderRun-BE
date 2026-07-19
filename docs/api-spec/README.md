@@ -451,6 +451,7 @@ Offer 조회 API에서 사용하는 응답이다. `OfferResponse`와 동일한 t
 |------|------|------|------|
 | phone | string | O | 공백 불가, 최대 20자, `^[0-9+\-\s]{8,20}$` |
 | code | string | O | 6자리 숫자 |
+| fcmToken | string | X | 최대 4096자 |
 
 #### `POST /v1/auth/login/send`
 

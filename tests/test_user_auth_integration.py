@@ -110,6 +110,48 @@ def test_signup_login_refresh_and_logout_flow(client, db, sms_sender):
     assert logout.json()["data"] is None
 
 
+def test_signup_confirm_accepts_and_stores_fcm_token(client, db, sms_sender):
+    signup_send = client.post(
+        "/v1/auth/signup/send",
+        json={"name": "홍길동", "phone": "010-1234-5678", "carrier": "SKT"},
+    )
+    assert signup_send.status_code == 200
+    code = _extract_code(sms_sender.sent_messages[-1]["message"])
+
+    signup_confirm = client.post(
+        "/v1/auth/signup/confirm",
+        json={"phone": "010-1234-5678", "code": code, "fcmToken": "  signup-token  "},
+    )
+
+    assert signup_confirm.status_code == 200
+    signup_data = signup_confirm.json()["data"]
+    assert signup_data["tokenType"] == "Bearer"
+    assert signup_data["accessToken"]
+    assert signup_data["refreshToken"]
+    user = db.query(User).filter(User.phone == "01012345678").first()
+    assert user is not None
+    fcm = db.query(UserFCMToken).filter(UserFCMToken.user_id == user.id).first()
+    assert fcm is not None
+    assert fcm.fcm_token == "signup-token"
+
+
+def test_signup_confirm_rejects_blank_fcm_token(client, sms_sender):
+    signup_send = client.post(
+        "/v1/auth/signup/send",
+        json={"name": "홍길동", "phone": "010-1234-5678", "carrier": "SKT"},
+    )
+    assert signup_send.status_code == 200
+    code = _extract_code(sms_sender.sent_messages[-1]["message"])
+
+    signup_confirm = client.post(
+        "/v1/auth/signup/confirm",
+        json={"phone": "010-1234-5678", "code": code, "fcmToken": "   "},
+    )
+
+    assert signup_confirm.status_code == 400
+    assert signup_confirm.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
 def test_login_confirm_succeeds_with_verification_bypass_code(client, sms_sender, monkeypatch):
     # given: 가입된 유저, 비프로덕션 환경
     _signup(client, sms_sender)

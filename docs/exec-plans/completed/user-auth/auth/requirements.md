@@ -57,7 +57,7 @@
 
 ### `POST /v1/auth/signup/confirm`
 
-- 요청은 `phone`, `code` 를 받는다.
+- 요청은 `phone`, `code`, `fcmToken?` 를 받는다.
 - 최신 `PENDING` 회원가입 인증을 찾는다.
 - 인증이 없으면 404 `PHONE_VERIFICATION_NOT_FOUND` 를 반환한다.
 - 만료되었으면 400 `PHONE_VERIFICATION_EXPIRED` 를 반환하고 해당 인증을 `EXPIRED` 로 바꾼다.
@@ -65,6 +65,7 @@
 - 실패 횟수가 5회에 도달하면 해당 인증은 `EXPIRED` 로 바뀐다.
 - 성공 시 인증은 `VERIFIED` 로 바뀌고 `User` 가 생성된다.
 - 생성된 사용자의 `phoneVerifiedAt` 과 `lastLoginAt` 은 현재 시각으로 설정된다.
+- `fcmToken` 이 있으면 trim 후 저장한다.
 - 생성 직후 JWT access/refresh token 이 함께 발급된다.
 - 성공 응답 `data` 는 `accessToken`, `refreshToken`, `tokenType`, `expiresIn`, `userId` 를 가진다.
 - `tokenType` 은 항상 `Bearer` 다.

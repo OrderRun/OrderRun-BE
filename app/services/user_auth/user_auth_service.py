@@ -19,8 +19,8 @@ from app.schemas.user import (
     AuthAccessTokenResponse,
     AuthLoginConfirmRequest,
     AuthLoginSendRequest,
-    AuthPhoneConfirmRequest,
     AuthRefreshRequest,
+    AuthSignupConfirmRequest,
     AuthSignupSendRequest,
     AuthTokenResponse,
     AuthVerificationSendResponse,
@@ -71,7 +71,7 @@ class UserAuthService:
     def confirm_signup(
         db: Session,
         phone_verification: PhoneVerificationService,
-        payload: AuthPhoneConfirmRequest,
+        payload: AuthSignupConfirmRequest,
     ) -> AuthTokenResponse:
         phone = normalize_phone(payload.phone)
         verification = phone_verification.verify(
@@ -95,6 +95,9 @@ class UserAuthService:
         )
         db.add(user)
         try:
+            db.flush()
+            if payload.fcm_token is not None:
+                UserProfileService.upsert_fcm_token(db, str(user.id), payload.fcm_token.strip())
             db.commit()
         except Exception as exc:  # pragma: no cover - defensive transactional guard
             db.rollback()

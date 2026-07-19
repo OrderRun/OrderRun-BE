@@ -16,8 +16,8 @@ from app.schemas.user import (
     AuthLoginConfirmRequest,
     AuthLoginSendRequest,
     AuthLogoutRequest,
-    AuthPhoneConfirmRequest,
     AuthRefreshRequest,
+    AuthSignupConfirmRequest,
     AuthSignupSendRequest,
     AuthTokenResponse,
     AuthVerificationSendResponse,
@@ -91,7 +91,7 @@ def signup_send(
     },
 )
 def signup_confirm(
-    payload: AuthPhoneConfirmRequest,
+    payload: AuthSignupConfirmRequest,
     db: Session = Depends(get_db),
     sms_sender=Depends(get_sms_sender),
 ):

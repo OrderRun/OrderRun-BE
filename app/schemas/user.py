@@ -49,14 +49,15 @@ class AuthSignupSendRequest(BaseModel):
         return stripped
 
 
-class AuthPhoneConfirmRequest(BaseModel):
+class AuthSignupConfirmRequest(BaseModel):
     phone: str = Field(..., min_length=1, max_length=20, description="휴대폰 번호")
     code: str = Field(..., min_length=1, max_length=20, description="SMS 인증번호")
+    fcm_token: Optional[str] = Field(None, alias="fcmToken", min_length=1, max_length=4096, description="FCM 토큰")
 
     model_config = ConfigDict(
         populate_by_name=True,
         extra="forbid",
-        json_schema_extra={"example": {"phone": "01012345678", "code": "123456"}},
+        json_schema_extra={"example": {"phone": "01012345678", "code": "123456", "fcmToken": "fcm-token"}},
     )
 
     @field_validator("phone", "code")
@@ -65,6 +66,16 @@ class AuthPhoneConfirmRequest(BaseModel):
         stripped = value.strip()
         if not stripped:
             raise ValueError("must not be blank")
+        return stripped
+
+    @field_validator("fcm_token")
+    @classmethod
+    def strip_fcm_token(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("fcmToken must not be blank")
         return stripped
 
 
