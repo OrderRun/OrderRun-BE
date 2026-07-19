@@ -144,6 +144,24 @@ Swagger UI는 `/docs`, OpenAPI JSON은 `/openapi.json`에서 확인한다.
 | alarmEnabled | boolean | 알람 수신 동의 여부 |
 | level | number | 성공 완료한 러너 Offer 수 기반 레벨 |
 
+### UserWithdrawalReasonQuestionResponse
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| id | number | 탈퇴 사유 ID |
+| questionText | string | 탈퇴 사유 문구 |
+| displayOrder | number | 클라이언트 표시 순서 |
+| requiresDetail | boolean | 상세 사유 필수 여부 |
+
+### UserWithdrawalRequest
+
+`DELETE /v1/user`에서 선택적으로 전달할 수 있다. body를 보내지 않아도 기존처럼 탈퇴 요청은 처리된다.
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| reasonQuestionId | number | X | 활성 탈퇴 사유 ID |
+| detailReason | string | X | 선택 상세 사유. 최대 500자. 해당 사유의 `requiresDetail`이 `true`이면 필수 |
+
 ### ProposalResponse
 
 | 필드 | 타입 | 설명 |
@@ -364,9 +382,10 @@ Offer 조회 API에서 사용하는 응답이다. `OfferResponse`와 동일한 t
 | 사용자 닉네임 수정 | `PATCH` | `/v1/user/name` | 필요 | `200 OK` | `null` |
 | FCM 토큰 갱신 | `PATCH` | `/v1/user/fcm-token` | 필요 | `200 OK` | `null` |
 | 사용자 프로필 조회 | `GET` | `/v1/user/detail` | 필요 | `200 OK` | `UserDetailResponse` |
+| 회원 탈퇴 사유 조회 | `GET` | `/v1/user/withdrawal-reasons` | 필요 | `200 OK` | `UserWithdrawalReasonQuestionResponse[]` |
 | 회원 탈퇴 | `DELETE` | `/v1/user` | 필요 | `200 OK` | `null` |
 
-회원 탈퇴는 개인정보를 즉시 삭제하고, 거래 활동은 작성자를 `탈퇴한 사용자`로 익명화해 유지한다. 매칭 이후 진행 중인 거래·분쟁·정산이 있으면 `409 USER_WITHDRAWAL_BLOCKED`를 반환한다. 자세한 규칙은 [`../domains/user-auth/withdrawal-policy.md`](../domains/user-auth/withdrawal-policy.md)를 따른다.
+회원 탈퇴는 선택적으로 `UserWithdrawalRequest`를 받아 탈퇴 사유 이력을 저장하고, 개인정보를 즉시 삭제하며, 거래 활동은 작성자를 `탈퇴한 사용자`로 익명화해 유지한다. 매칭 전 Proposal/Offer는 자동 취소하고, 매칭 이후 진행 중인 거래·분쟁·정산이 있으면 `409 USER_WITHDRAWAL_BLOCKED`를 반환한다. 자세한 규칙은 [`../domains/user-auth/withdrawal-policy.md`](../domains/user-auth/withdrawal-policy.md)를 따른다.
 
 ### Terms API
 

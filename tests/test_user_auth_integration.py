@@ -19,11 +19,39 @@ from app.models.user import (
     PhoneVerificationStatus,
     User,
     UserFCMToken,
+    UserWithdrawal,
+    UserWithdrawalReasonQuestion,
 )
 from app.services.sms_service import get_sms_sender
 from app.services.proposal.proposal_service import ProposalService
 from app.services.user_auth.phone_verification import VERIFICATION_CODE_MAX_ATTEMPTS
 from app.services.user_auth.user_withdrawal_service import UserWithdrawalService
+
+
+WITHDRAWAL_REASONS = (
+    ("원하는 임무가 많지 않았어요.", False),
+    ("원하는 꼬봉(또는 행님)을 만나기 어려웠어요.", False),
+    ("이용 방법이 어려웠어요.", False),
+    ("앱이 자주 오류가 났어요.", False),
+    ("다른 회원과 문제가 있었어요.", False),
+    ("다른 서비스를 이용하려고 해요.", False),
+    ("기타", True),
+)
+
+
+def seed_withdrawal_reasons(db) -> list[UserWithdrawalReasonQuestion]:
+    reasons = [
+        UserWithdrawalReasonQuestion(
+            question_text=text,
+            display_order=index,
+            requires_detail=requires_detail,
+            is_active=True,
+        )
+        for index, (text, requires_detail) in enumerate(WITHDRAWAL_REASONS, start=1)
+    ]
+    db.add_all(reasons)
+    db.commit()
+    return reasons
 
 
 def _extract_code(message: str) -> str:
@@ -474,12 +502,102 @@ def test_withdraw_user_hard_deletes_pii_and_keeps_anonymized_activity_history(cl
         json={"name": "재가입사용자", "phone": user_phone, "carrier": "SKT"},
     )
     assert signup_send.status_code == 200
+    withdrawal = db.query(UserWithdrawal).filter(UserWithdrawal.user_id == user_id).one()
+    assert withdrawal.reason_question_id is None
+    assert withdrawal.detail_reason is None
+    assert withdrawal.withdrawn_at == withdrawn_user.deleted_at
 
 
-def test_withdraw_user_auto_cancels_pre_match_proposal_and_waiting_offers(db, factory):
+def test_list_user_withdrawal_reasons_returns_active_ordered_questions(client, db, auth_headers):
+    reasons = seed_withdrawal_reasons(db)
+    db.add(
+        UserWithdrawalReasonQuestion(
+            question_text="비활성",
+            display_order=8,
+            requires_detail=False,
+            is_active=False,
+        )
+    )
+    db.commit()
+
+    response = client.get("/v1/user/withdrawal-reasons", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["data"] == [
+        {
+            "id": reason.id,
+            "questionText": reason.question_text,
+            "displayOrder": reason.display_order,
+            "requiresDetail": reason.requires_detail,
+        }
+        for reason in reasons
+    ]
+
+
+def test_withdraw_user_stores_optional_reason_and_detail(client, db, factory):
+    reasons = seed_withdrawal_reasons(db)
+    reason = reasons[0]
+    user = factory.user(phone="01012340104", name="탈퇴사유사용자")
+    headers = factory.headers_for(user)
+
+    response = client.delete(
+        "/v1/user",
+        headers=headers,
+        json={"reasonQuestionId": reason.id, "detailReason": " 임무가 부족했습니다. "},
+    )
+
+    assert response.status_code == 200
+    withdrawal = db.query(UserWithdrawal).filter(UserWithdrawal.user_id == user.id).one()
+    assert withdrawal.reason_question_id == reason.id
+    assert withdrawal.detail_reason == "임무가 부족했습니다."
+
+
+def test_withdraw_user_requires_detail_for_other_reason(client, db, factory):
+    reasons = seed_withdrawal_reasons(db)
+    other_reason = next(reason for reason in reasons if reason.requires_detail)
+    user = factory.user(phone="01012340105", name="기타사유사용자")
+    headers = factory.headers_for(user)
+
+    response = client.delete("/v1/user", headers=headers, json={"reasonQuestionId": other_reason.id})
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert response.json()["error"]["details"] == "detailReason"
+    db.refresh(user)
+    assert user.deleted is False
+    assert db.query(UserWithdrawal).filter(UserWithdrawal.user_id == user.id).first() is None
+
+
+def test_withdraw_user_rejects_inactive_or_unknown_reason(client, db, factory):
+    inactive_reason = UserWithdrawalReasonQuestion(
+        question_text="비활성",
+        display_order=1,
+        requires_detail=False,
+        is_active=False,
+    )
+    db.add(inactive_reason)
+    db.commit()
+    user = factory.user(phone="01012340106", name="비활성사유사용자")
+    headers = factory.headers_for(user)
+
+    response = client.delete("/v1/user", headers=headers, json={"reasonQuestionId": inactive_reason.id})
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert response.json()["error"]["details"] == "reasonQuestionId"
+    db.refresh(user)
+    assert user.deleted is False
+    assert db.query(UserWithdrawal).filter(UserWithdrawal.user_id == user.id).first() is None
+
+
+@pytest.mark.parametrize(
+    "proposal_status",
+    [ProposalStatus.HOLDING, ProposalStatus.POSTED, ProposalStatus.OFFERED],
+)
+def test_withdraw_user_auto_cancels_pre_match_proposal_and_waiting_offers(db, factory, proposal_status):
     user = factory.user(phone="01012340005", name="요청사용자")
     db.add(UserFCMToken(user_id=user.id, fcm_token="kept-token"))
-    proposal = factory.proposal(orderer_id=user.id, status=ProposalStatus.OFFERED)
+    proposal = factory.proposal(orderer_id=user.id, status=proposal_status)
     waiting_offer = factory.offer(proposal_id=proposal.id, runner_id=factory.user(phone="01012340008").id)
     own_waiting_offer = factory.offer(
         proposal_id=factory.proposal(orderer_id=factory.user(phone="01012340009").id).id,
@@ -497,6 +615,48 @@ def test_withdraw_user_auto_cancels_pre_match_proposal_and_waiting_offers(db, fa
     assert waiting_offer.status == OfferStatus.CANCELLED
     assert own_waiting_offer.status == OfferStatus.CANCELLED
     assert user.deleted is True
+
+
+@pytest.mark.parametrize(
+    "proposal_status",
+    [ProposalStatus.MATCHED, ProposalStatus.ORDER_COMPLETED, ProposalStatus.DISPUTED],
+)
+def test_withdraw_user_blocks_when_user_has_active_proposal(db, factory, proposal_status):
+    user = factory.user(phone="01012340006", name="오더사용자")
+    proposal = factory.proposal(orderer_id=user.id, status=proposal_status)
+
+    with pytest.raises(HTTPException) as exc_info:
+        UserWithdrawalService.withdraw_user(db, user)
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail["code"] == "USER_WITHDRAWAL_BLOCKED"
+    db.refresh(user)
+    db.refresh(proposal)
+    assert user.deleted is False
+    assert proposal.status == proposal_status
+    assert db.query(UserWithdrawal).filter(UserWithdrawal.user_id == user.id).first() is None
+
+
+@pytest.mark.parametrize(
+    "offer_status",
+    [OfferStatus.ACCEPTED, OfferStatus.RUNNER_COMPLETED, OfferStatus.DISPUTED],
+)
+def test_withdraw_user_blocks_when_user_has_active_offer(db, factory, offer_status):
+    user = factory.user(phone="01012340006", name="러너사용자")
+    orderer = factory.user(phone="01012340007", name="오더사용자")
+    proposal = factory.proposal(orderer_id=orderer.id, status=ProposalStatus.CANCELLED)
+    offer = factory.offer(proposal_id=proposal.id, runner_id=user.id, status=offer_status)
+
+    with pytest.raises(HTTPException) as exc_info:
+        UserWithdrawalService.withdraw_user(db, user)
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail["code"] == "USER_WITHDRAWAL_BLOCKED"
+    db.refresh(user)
+    db.refresh(offer)
+    assert user.deleted is False
+    assert offer.status == offer_status
+    assert db.query(UserWithdrawal).filter(UserWithdrawal.user_id == user.id).first() is None
 
 
 def test_withdraw_user_rolls_back_all_changes_when_anonymization_fails(db, factory, monkeypatch):
@@ -519,34 +679,7 @@ def test_withdraw_user_rolls_back_all_changes_when_anonymization_fails(db, facto
     assert db.query(UserFCMToken).filter(UserFCMToken.user_id == user.id).one()
     assert db.query(Proposal).filter(Proposal.id == proposal.id).one().status == ProposalStatus.OFFERED
     assert db.query(Offer).filter(Offer.id == waiting_offer.id).one().status == OfferStatus.WAITING
-
-
-def test_withdraw_user_blocks_when_user_has_matched_proposal(db, factory):
-    user = factory.user(phone="01012340006", name="오더사용자")
-    factory.proposal(orderer_id=user.id, status=ProposalStatus.MATCHED)
-
-    with pytest.raises(HTTPException) as exc_info:
-        UserWithdrawalService.withdraw_user(db, user)
-
-    assert exc_info.value.status_code == 409
-    assert exc_info.value.detail["code"] == "USER_WITHDRAWAL_BLOCKED"
-    db.refresh(user)
-    assert user.deleted is False
-
-
-def test_withdraw_user_blocks_when_user_has_accepted_offer(db, factory):
-    user = factory.user(phone="01012340006", name="러너사용자")
-    orderer = factory.user(phone="01012340007", name="오더사용자")
-    proposal = factory.proposal(orderer_id=orderer.id, status=ProposalStatus.CANCELLED)
-    factory.offer(proposal_id=proposal.id, runner_id=user.id, status=OfferStatus.ACCEPTED)
-
-    with pytest.raises(HTTPException) as exc_info:
-        UserWithdrawalService.withdraw_user(db, user)
-
-    assert exc_info.value.status_code == 409
-    assert exc_info.value.detail["code"] == "USER_WITHDRAWAL_BLOCKED"
-    db.refresh(user)
-    assert user.deleted is False
+    assert db.query(UserWithdrawal).filter(UserWithdrawal.user_id == user.id).first() is None
 
 
 def test_verification_state_rules(client, db, sms_sender):

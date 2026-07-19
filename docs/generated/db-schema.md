@@ -15,6 +15,8 @@
 | `auth_phone_verifications` | auth | O | `docs/domains/user-auth/README.md` | 회원가입/로그인 전화번호 인증 |
 | `phone_verifications` | user legacy | X | 이 문서 | 구 전화번호 인증 테이블. 현재 코드 미사용 |
 | `user_fcm_tokens` | user | O | `docs/domains/user-auth/README.md` | 사용자별 FCM 토큰 |
+| `user_withdrawal_reason_questions` | user | O | `docs/domains/user-auth/withdrawal-policy.md` | 회원 탈퇴 사유 마스터 |
+| `user_withdrawals` | user | O | `docs/domains/user-auth/withdrawal-policy.md` | 회원 탈퇴 사유 선택 이력 |
 | `terms_agreements` | terms | O | `docs/exec-plans/completed/terms-agreement/model.md` | 사용자별 필수 약관 동의 |
 | `proposals` | bidding/proposal | O | `docs/exec-plans/completed/proposal/model.md` | 심부름 모집 공고 |
 | `offers` | bidding/offer | O | `docs/domains/offer/README.md` | 러너 지원서 |
@@ -31,6 +33,7 @@
 users 1 -> N proposals(orderer_id)
 users 1 -> N offers(runner_id)
 users 1 -> 1 user_fcm_tokens
+users 1 -> N user_withdrawals
 users 1 -> 1 terms_agreements
 users 1 -> 1 settlement_accounts
 
@@ -74,7 +77,9 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 
 - `id`는 애플리케이션에서 UUID로 생성한다.
 - `phone`은 하이픈/공백 제거 및 `+82` -> `0` 변환 후 저장한다.
-- 탈퇴 시 `deleted = true`로 표시하고, 개인정보 필드는 `null`로 영구 삭제한다. 활동 조회에서만 작성자를 `탈퇴한 사용자`로 표시한다.
+- 탈퇴 시 `deleted = true`로 표시한다. 이 값은 회원 탈퇴 정책의 `WITHDRAWN` 상태에 해당한다.
+- 탈퇴 시 개인정보 필드는 `null`로 영구 삭제한다. 활동 조회에서만 작성자를 `탈퇴한 사용자`로 표시한다.
+- 탈퇴 후 `phone = null`이 되므로 동일 전화번호로 새 사용자 가입이 가능하며, 기존 활동 이력은 새 User ID와 연결하지 않는다.
 
 ## `auth_phone_verifications`
 
@@ -127,6 +132,30 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 | `id` | `bigint` | NO | PK, auto increment | 토큰 row ID |
 | `user_id` | `varchar(36)` | NO | UNIQUE `uk_user_fcm_tokens_user_id` | 사용자 ID |
 | `fcm_token` | `varchar(4096)` | NO |  | FCM 등록 토큰 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+## `user_withdrawal_reason_questions`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 탈퇴 사유 ID |
+| `question_text` | `varchar(500)` | NO |  | 탈퇴 사유 문구 |
+| `display_order` | `integer` | NO | UNIQUE `uk_user_withdrawal_reason_questions_display_order`, INDEX `idx_user_withdrawal_reason_questions_lookup` | 표시 순서 |
+| `is_active` | `boolean` | NO | INDEX `idx_user_withdrawal_reason_questions_lookup` | 조회 노출 여부 |
+| `requires_detail` | `boolean` | NO |  | 상세 사유 필수 여부 |
+| `created_at` | `datetime(6)` | NO |  | 생성 시각 |
+| `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
+
+## `user_withdrawals`
+
+| 컬럼 | 타입 | Null | 키/인덱스 | 설명 |
+|------|------|------|-----------|------|
+| `id` | `bigint` | NO | PK, auto increment | 탈퇴 이력 ID |
+| `user_id` | `varchar(36)` | NO | INDEX `ix_user_withdrawals_user_id`, INDEX `idx_user_withdrawals_user_withdrawn_at` | 탈퇴 사용자 ID |
+| `reason_question_id` | `bigint` | YES | INDEX `idx_user_withdrawals_reason_question_id` | 선택한 탈퇴 사유 ID |
+| `detail_reason` | `varchar(500)` | YES |  | 선택 상세 사유 |
+| `withdrawn_at` | `datetime(6)` | NO | INDEX `ix_user_withdrawals_withdrawn_at`, INDEX `idx_user_withdrawals_user_withdrawn_at` | 탈퇴 처리 시각 |
 | `created_at` | `datetime(6)` | NO |  | 생성 시각 |
 | `updated_at` | `datetime(6)` | NO |  | 수정 시각 |
 
@@ -269,6 +298,7 @@ Legacy `phone_verifications`도 migration 기준으로 감사 컬럼이 있다.
 현재 코드 메모:
 
 - `payments` ORM 모델은 아직 없다.
+- 회원 탈퇴의 미결 정산/결제 트랜잭션 검증은 `payments` ORM과 정산 상태 전이가 도입될 때 `PENDING`, `PROCESSING`, 환불/분쟁 처리 중 상태를 차단 조건으로 연결한다.
 - 기존 문서의 `payer_id`, `payee_id`, `amount`, `currency`, `provider`, `external_tx_id` 기준은 이 목표 정본으로 대체한다.
 
 ## `settlement_accounts`
