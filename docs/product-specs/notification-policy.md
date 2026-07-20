@@ -10,6 +10,8 @@
 | Offer (제안) | 지원 |
 | Orderer (오더러) | 요청자 |
 | Runner (러너) | 지원자 |
+| 행님 | 요청자 |
+| 꼬봉 | 지원자 |
 | complete_delivery | 지원자 만남 확인 ("만났어요") |
 | confirm_received | 요청자 만남 확인 ("만났어요") |
 
@@ -64,9 +66,11 @@
 
 | 이벤트 | 수신자 | NotificationType | 타이틀 | 내용 | 트리거 |
 |---|---|---|---|---|---|
-| 지원자가 만남 확인 | 요청자 | `MEETING_CONFIRMED` | 지원자가 만남을 확인했어요! 🤝 | 지원자가 만남을 확인했어요. 회원님도 확인해주시면 정산이 바로 진행돼요. | `POST /v1/offer/{id}/complete-delivery` |
-| 요청자가 만남 확인 | 지원자 | `MEETING_CONFIRMED` | 요청자가 만남을 확인했어요! 🤝 | 요청자가 만남을 확인했어요. 회원님도 확인해주시면 정산이 진행돼요! | `POST /v1/proposal/{id}/confirm-received` |
-| 양측 확인 완료 | 요청자 + 지원자 | `EXECUTION_COMPLETED` | 완료! 수고하셨어요 🎊 | 양측 만남이 모두 확인됐어요. 성공적으로 완료됐습니다! | `POST /v1/proposal/{id}/confirm-received` |
+| 지원자만 만남 확인 | 요청자 | `MEETING_CONFIRMED` | 지원자가 만남을 확인했어요! 🤝 | 지원자가 만남을 확인했어요. 회원님도 확인해주시면 정산이 바로 진행돼요. | `POST /v1/offer/{id}/complete-delivery` |
+| 요청자만 만남 확인 | 지원자 | `MEETING_CONFIRMED` | 요청자가 만남을 확인했어요! 🤝 | 요청자가 만남을 확인했어요. 회원님도 확인해주시면 정산이 진행돼요! | `POST /v1/proposal/{id}/confirm-received` |
+| 양측 확인 완료 | 요청자 + 지원자 | `EXECUTION_COMPLETED` | 완료! 수고하셨어요 🎊 | 양측 만남이 모두 확인됐어요. 성공적으로 완료됐습니다! | `POST /v1/offer/{id}/complete-delivery` 또는 `POST /v1/proposal/{id}/confirm-received` |
+
+양측 확인 완료 알림은 두 번째 완료 클릭으로 `ALL_COMPLETED`가 되는 경우에만 발송한다. 이때 마지막 클릭에 대한 `MEETING_CONFIRMED`는 별도로 발송하지 않고 `EXECUTION_COMPLETED`만 발송한다.
 
 ### 분쟁 관련
 
