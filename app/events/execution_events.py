@@ -14,6 +14,7 @@ class MeetingConfirmedByRunnerEvent(DomainEvent):
     runner_id: str
     orderer_id: str
     proposal_title: str
+    all_completed: bool
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,7 @@ class MeetingConfirmedByOrdererEvent(DomainEvent):
     orderer_id: str
     runner_id: str
     proposal_title: str
+    all_completed: bool
 
 
 @dataclass(frozen=True)

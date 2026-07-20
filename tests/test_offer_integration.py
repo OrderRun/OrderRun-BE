@@ -42,6 +42,18 @@ def notification_for(db, user_id: str, notification_type: NotificationType, rela
     )
 
 
+def notification_count(db, user_id: str, notification_type: NotificationType, related_entity_id: int) -> int:
+    return (
+        db.query(Notification)
+        .filter(
+            Notification.user_id == user_id,
+            Notification.notification_type == notification_type,
+            Notification.related_entity_id == related_entity_id,
+        )
+        .count()
+    )
+
+
 def test_create_offer_with_proposal_id_only_and_marks_proposal_offered(client, db, factory, sample_user):
     runner = factory.user("01077770001", name="Runner One")
     proposal = factory.proposal(sample_user.id, ProposalStatus.POSTED)
@@ -517,6 +529,8 @@ def test_complete_delivery_creates_meeting_confirmed_notification_for_orderer(cl
     assert notification.status == NotificationStatus.PENDING
     assert notification.related_entity_type == "offer"
     assert json.loads(notification.data) == {"offer_id": offer.id, "proposal_id": proposal.id}
+    assert notification_count(db, sample_user.id, NotificationType.EXECUTION_COMPLETED, offer.id) == 0
+    assert notification_count(db, runner.id, NotificationType.EXECUTION_COMPLETED, offer.id) == 0
 
 
 def test_complete_delivery_after_orderer_completion_marks_both_all_completed(client, db, factory, sample_user):
@@ -558,6 +572,38 @@ def test_complete_delivery_after_orderer_completion_marks_both_all_completed(cli
     assert proposal.disputed_at is None
     assert offer.resolved_at is None
     assert proposal.resolved_at is None
+
+
+def test_complete_delivery_after_orderer_completion_creates_execution_completed_notifications(
+    client,
+    db,
+    factory,
+    sample_user,
+):
+    sample_user.alarm_enabled = True
+    runner = factory.user("01077770037")
+    runner.alarm_enabled = True
+    db.commit()
+    proposal = factory.proposal(sample_user.id, ProposalStatus.ORDER_COMPLETED)
+    offer = Offer(proposal_id=proposal.id, runner_id=runner.id, status=OfferStatus.ACCEPTED)
+    offer.accepted_at = datetime.now(timezone.utc)
+    offer.orderer_confirmed_at = datetime.now(timezone.utc)
+    db.add(offer)
+    db.commit()
+
+    response = client.post(
+        f"/v1/offer/{offer.id}/complete-delivery",
+        headers=factory.headers_for(runner),
+    )
+
+    assert response.status_code == 200
+    orderer_completed_notification = notification_for(db, sample_user.id, NotificationType.EXECUTION_COMPLETED, offer.id)
+    runner_completed_notification = notification_for(db, runner.id, NotificationType.EXECUTION_COMPLETED, offer.id)
+    assert notification_count(db, sample_user.id, NotificationType.MEETING_CONFIRMED, offer.id) == 0
+    assert orderer_completed_notification.status == NotificationStatus.PENDING
+    assert runner_completed_notification.status == NotificationStatus.PENDING
+    assert json.loads(orderer_completed_notification.data) == {"offer_id": offer.id, "proposal_id": proposal.id}
+    assert json.loads(runner_completed_notification.data) == {"offer_id": offer.id, "proposal_id": proposal.id}
 
 
 def test_runner_level_counts_each_completed_offer(client, db, factory, sample_user):

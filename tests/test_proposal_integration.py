@@ -53,6 +53,18 @@ def notification_for(db, user_id: str, notification_type: NotificationType, rela
     )
 
 
+def notification_count(db, user_id: str, notification_type: NotificationType, related_entity_id: int) -> int:
+    return (
+        db.query(Notification)
+        .filter(
+            Notification.user_id == user_id,
+            Notification.notification_type == notification_type,
+            Notification.related_entity_id == related_entity_id,
+        )
+        .count()
+    )
+
+
 def test_list_public_requires_auth_and_supports_multi_status_filter(client, db, factory, auth_headers, sample_user):
     holding = factory.proposal(sample_user.id, ProposalStatus.HOLDING, "holding")
     posted = factory.proposal(sample_user.id, ProposalStatus.POSTED, "posted")
@@ -438,6 +450,8 @@ def test_confirm_received_creates_meeting_confirmed_notification_for_runner(clie
     assert notification.status == NotificationStatus.PENDING
     assert notification.related_entity_type == "offer"
     assert json.loads(notification.data) == {"offer_id": offer.id, "proposal_id": proposal.id}
+    assert notification_count(db, sample_user.id, NotificationType.EXECUTION_COMPLETED, offer.id) == 0
+    assert notification_count(db, runner.id, NotificationType.EXECUTION_COMPLETED, offer.id) == 0
 
 
 def test_confirm_received_after_runner_completion_marks_both_all_completed(client, db, factory, auth_headers, sample_user):
@@ -490,10 +504,9 @@ def test_confirm_received_after_runner_completion_creates_execution_completed_no
     response = client.post(f"/v1/proposal/{proposal.id}/confirm-received", headers=auth_headers)
 
     assert response.status_code == 200
-    runner_meeting_notification = notification_for(db, runner.id, NotificationType.MEETING_CONFIRMED, offer.id)
     orderer_completed_notification = notification_for(db, sample_user.id, NotificationType.EXECUTION_COMPLETED, offer.id)
     runner_completed_notification = notification_for(db, runner.id, NotificationType.EXECUTION_COMPLETED, offer.id)
-    assert runner_meeting_notification.status == NotificationStatus.PENDING
+    assert notification_count(db, runner.id, NotificationType.MEETING_CONFIRMED, offer.id) == 0
     assert orderer_completed_notification.status == NotificationStatus.PENDING
     assert runner_completed_notification.status == NotificationStatus.PENDING
     assert json.loads(orderer_completed_notification.data) == {"offer_id": offer.id, "proposal_id": proposal.id}

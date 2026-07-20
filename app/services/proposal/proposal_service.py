@@ -308,6 +308,7 @@ class ProposalService:
         proposal.confirm_orderer_completion()
         offer.confirm_orderer_completion()
         ProposalService._sync_all_completed(db, proposal, offer)
+        all_completed = proposal.status == ProposalStatus.ALL_COMPLETED and offer.status == OfferStatus.ALL_COMPLETED
         db.flush()
         EventBus.publish(MeetingConfirmedByOrdererEvent(
             offer_id=offer.id,
@@ -315,6 +316,7 @@ class ProposalService:
             orderer_id=proposal.orderer_id,
             runner_id=offer.runner_id,
             proposal_title=proposal.title,
+            all_completed=all_completed,
         ), db)
         db.commit()
         db.refresh(proposal)

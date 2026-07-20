@@ -311,6 +311,7 @@ class OfferService:
         if proposal.status == ProposalStatus.ORDER_COMPLETED:
             offer.confirm_orderer_completion()
         OfferService._sync_all_completed(db, offer, proposal)
+        all_completed = offer.status == OfferStatus.ALL_COMPLETED and proposal.status == ProposalStatus.ALL_COMPLETED
         db.flush()
         EventBus.publish(MeetingConfirmedByRunnerEvent(
             offer_id=offer.id,
@@ -318,6 +319,7 @@ class OfferService:
             runner_id=offer.runner_id,
             orderer_id=proposal.orderer_id,
             proposal_title=proposal.title,
+            all_completed=all_completed,
         ), db)
         db.commit()
         db.refresh(offer)
