@@ -88,6 +88,7 @@ def test_notification_list_stats_detail_and_mark_read(client, db, factory, auth_
     assert listed.json()["success"] is True
     assert listed.json()["message"] == "Success"
     assert listed.json()["data"]["total"] == 3
+    assert listed.json()["data"]["notifications"][0]["data"] == "{\"proposalId\":\"1\"}"
     assert stats.status_code == 200
     assert stats.json()["success"] is True
     assert stats.json()["message"] == "Success"
@@ -96,6 +97,7 @@ def test_notification_list_stats_detail_and_mark_read(client, db, factory, auth_
     assert detail.json()["success"] is True
     assert detail.json()["message"] == "Success"
     assert detail.json()["data"]["id"] == unread.id
+    assert detail.json()["data"]["data"] == "{\"proposalId\":\"1\"}"
     assert marked.status_code == 200
     assert marked.json()["success"] is True
     assert marked.json()["message"] == "1 notification(s) marked as read"
@@ -188,6 +190,7 @@ def test_notification_send_and_failure_cases(client, db, auth_headers, sample_us
     assert sent.json()["success"] is True
     assert sent.json()["message"] == "Success"
     assert sent.json()["data"]["title"] == "테스트 알림"
+    assert sent.json()["data"]["data"] == "{\"proposalId\":\"1\"}"
     assert missing.status_code == 404
     assert missing.json()["error"]["code"] == "ERROR"
     assert invalid_mark_read.status_code == 400

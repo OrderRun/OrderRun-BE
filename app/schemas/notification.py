@@ -1,7 +1,8 @@
 """Notification request and response schemas."""
+import json
 from datetime import datetime
 from typing import Optional, Dict, Any
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 from app.models.notification import NotificationType, NotificationStatus
 
@@ -45,6 +46,22 @@ class NotificationResponse(BaseModel):
     sent_at: Optional[datetime]
     delivered_at: Optional[datetime]
     read_at: Optional[datetime]
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def stringify_json_data_values(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            return value
+        try:
+            parsed = json.loads(value)
+        except (TypeError, json.JSONDecodeError):
+            return value
+        if not isinstance(parsed, dict):
+            return value
+        normalized = {key: str(item) for key, item in parsed.items()}
+        return json.dumps(normalized, ensure_ascii=False, separators=(",", ":"))
 
     model_config = ConfigDict(from_attributes=True)
 

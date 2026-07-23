@@ -537,7 +537,7 @@ NOTIFICATION_EXAMPLE = {
     "notification_type": "custom",
     "title": "테스트 알림",
     "body": "테스트 알림 본문입니다.",
-    "data": "{\"proposalId\":1}",
+    "data": "{\"proposalId\":\"1\"}",
     "related_entity_type": "proposal",
     "related_entity_id": 1,
     "status": "sent",
