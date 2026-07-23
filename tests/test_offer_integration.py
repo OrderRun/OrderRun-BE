@@ -126,7 +126,7 @@ def test_create_offer_creates_notifications_for_alarm_enabled_users(client, db, 
     assert json.loads(runner_notification.data) == {"offer_id": offer_id, "proposal_id": proposal.id}
 
 
-def test_create_offer_skips_notifications_when_alarm_disabled(client, db, factory, sample_user):
+def test_create_offer_stores_skipped_notifications_when_alarm_disabled(client, db, factory, sample_user):
     runner = factory.user("01077770032")
     proposal = factory.proposal(sample_user.id, ProposalStatus.POSTED)
 
@@ -137,7 +137,15 @@ def test_create_offer_skips_notifications_when_alarm_disabled(client, db, factor
     )
 
     assert response.status_code == 201
-    assert db.query(Notification).filter(Notification.related_entity_id == response.json()["data"]["id"]).count() == 0
+    offer_id = response.json()["data"]["id"]
+    orderer_notification = notification_for(db, sample_user.id, NotificationType.OFFER_NEW, offer_id)
+    runner_notification = notification_for(db, runner.id, NotificationType.OFFER_SUBMITTED, offer_id)
+    assert orderer_notification.status == NotificationStatus.SKIPPED
+    assert runner_notification.status == NotificationStatus.SKIPPED
+    assert orderer_notification.read_at is None
+    assert runner_notification.read_at is None
+    assert json.loads(orderer_notification.data) == {"offer_id": offer_id, "proposal_id": proposal.id}
+    assert json.loads(runner_notification.data) == {"offer_id": offer_id, "proposal_id": proposal.id}
 
 
 def test_create_second_offer_keeps_proposal_offered(client, db, factory, sample_user):
@@ -393,6 +401,27 @@ def test_accept_offer_creates_selected_and_rejected_runner_notifications(client,
         .count()
         == 0
     )
+
+
+def test_accept_offer_stores_skipped_runner_notifications_when_alarm_disabled(client, db, factory, sample_user):
+    runner1 = factory.user("01077770038")
+    runner2 = factory.user("01077770039")
+    proposal = factory.proposal(sample_user.id, ProposalStatus.OFFERED)
+    selected = Offer(proposal_id=proposal.id, runner_id=runner1.id)
+    other = Offer(proposal_id=proposal.id, runner_id=runner2.id)
+    db.add_all([selected, other])
+    db.commit()
+
+    response = client.post(
+        f"/v1/offer/{selected.id}/accept",
+        headers=factory.headers_for(sample_user),
+    )
+
+    assert response.status_code == 201
+    selected_notification = notification_for(db, runner1.id, NotificationType.OFFER_ACCEPTED, selected.id)
+    rejected_notification = notification_for(db, runner2.id, NotificationType.OFFER_REJECTED, selected.id)
+    assert selected_notification.status == NotificationStatus.SKIPPED
+    assert rejected_notification.status == NotificationStatus.SKIPPED
 
 
 def test_accept_offer_domain_and_validation_errors(client, db, factory, sample_user):

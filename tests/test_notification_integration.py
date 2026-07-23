@@ -280,3 +280,28 @@ def test_notification_worker_fails_without_token_and_does_not_call_fcm(db, facto
     assert notification.status == NotificationStatus.FAILED
     assert notification.retry_count == 1
     assert notification.error_message == "No FCM token"
+
+
+def test_notification_worker_ignores_skipped_notifications(db, factory, sample_user):
+    db.add(UserFCMToken(user_id=sample_user.id, fcm_token="token-skipped"))
+    notification = factory.notification(
+        sample_user.id,
+        notification_type=NotificationType.OFFER_SUBMITTED,
+        status=NotificationStatus.SKIPPED,
+        data='{"offer_id": 13, "proposal_id": 23}',
+        related_entity_type="offer",
+        related_entity_id=13,
+        fcm_message_id=None,
+        sent_at=None,
+    )
+    notification_id = notification.id
+    fcm = RecordingFCMService(FCMSendResult(success=True, message_id="unused"))
+
+    NotificationWorker(fcm).flush_pending(lambda: db)
+
+    notification = db.get(Notification, notification_id)
+    assert notification is not None
+    assert fcm.calls == []
+    assert notification.status == NotificationStatus.SKIPPED
+    assert notification.fcm_message_id is None
+    assert notification.sent_at is None

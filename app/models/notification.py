@@ -33,6 +33,7 @@ class NotificationStatus(str, enum.Enum):
     DELIVERED = "delivered"
     FAILED = "failed"
     READ = "read"
+    SKIPPED = "skipped"
 
 
 class Notification(Base):

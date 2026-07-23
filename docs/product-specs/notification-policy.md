@@ -17,14 +17,17 @@
 
 ---
 
-## 발송 조건
+## 저장 및 발송 조건
 
 클라이언트 전달용 FCM payload 계약은 [`../api-spec/notification-fcm-payload.md`](../api-spec/notification-fcm-payload.md)를 기준으로 한다.
 
-모든 알림은 수신자의 `alarm_enabled` 값에 따라 발송 여부가 결정된다.
+모든 도메인 이벤트 알림은 알림 히스토리용 `notifications` 레코드로 저장한다.
+수신자의 `alarm_enabled` 값은 레코드 생성 여부가 아니라 푸시 발송 여부를 결정한다.
 
-- `alarm_enabled = true` → 발송
-- `alarm_enabled = false` → 미발송
+- `alarm_enabled = true` → `status=PENDING` 저장 후 FCM 발송 대상
+- `alarm_enabled = false` → `status=SKIPPED` 저장 후 FCM 미발송
+
+`SKIPPED` 알림은 사용자가 나중에 알림 설정을 켜도 소급 발송하지 않는다. 읽기 전까지 `read_at=null`로 유지되며 알림 목록과 미읽음 카운트에 포함된다.
 
 ---
 
@@ -33,9 +36,9 @@
 ```
 [비즈니스 트랜잭션]
   비즈니스 서비스 (OfferService, ProposalService)
-    → EventBus.publish(DomainEvent, db)  ← 같은 DB 세션
+      → EventBus.publish(DomainEvent, db)  ← 같은 DB 세션
       → NotificationEventListener
-          → Notification INSERT (status=PENDING)
+          → Notification INSERT (alarm_enabled=true: PENDING, false: SKIPPED)
     → db.commit()  ← 비즈니스 데이터 + PENDING 알림 함께 커밋
 
 [비동기 발송 - FastAPI BackgroundTask]
@@ -138,4 +141,5 @@
 ## 발송 제한 (1차)
 
 - 재시도 최대 3회 (`retry_count < 3`)
+- `SKIPPED` 상태는 발송 및 재시도 대상에서 제외
 - 지원 알림 묶음 처리 (5회/시간): **2차 구현**
